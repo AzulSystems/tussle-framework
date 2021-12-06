@@ -1,0 +1,566 @@
+button, select, html, textarea, input {
+	font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+select, button, textarea, input {
+	font-size: 100%;
+}
+
+[ng-cloak] {
+	display: none !important;
+}
+
+.hidden {
+	display: none !important;
+}
+
+.first_col {
+	padding-right: 4px;
+	padding-left: 4px;
+	color: blue;
+	white-space: nowrap;
+}
+
+.data_col {
+	padding-right: 2px;
+	padding-left: 2px;
+}
+
+.data_wrap {
+	word-wrap: break-word;
+}
+
+.wrap {
+	white-space: normal !important;
+}
+
+.nowrap {
+	white-space: nowrap !important;
+}
+
+.nowrap_pre {
+	white-space: pre-line;
+}
+
+.large_neg {
+	color: Tomato;
+}
+
+.light_neg {
+	color: Orange;
+}
+
+.lightlight_neg {
+	color: rgb(209, 172, 148);
+}
+
+.lightlight_pos {
+	color: rgb(143, 163, 143);
+}
+
+.large_pos {
+	color: DarkGreen;
+}
+
+.light_pos {
+	color: DarkSeaGreen;
+}
+
+.error_rate {
+	color: darkred !important;
+	text-decoration: line-through !important;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+.link {
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-right: 1px;
+	padding-left: 1px;
+	cursor: pointer;
+}
+
+.link:hover {
+	text-decoration: underline;
+	color: #0000ff;
+}
+
+.table {
+	border-collapse: collapse;
+	background-color: transparent;
+	/* width: 100%; */
+	/* overflow: scroll; */
+}
+
+.table-scrolled {
+	width: 100%;
+	height: 800px;
+	display: block;
+	/* overflow: auto; */
+	white-space: nowrap;
+}
+
+.table-bordered {
+	border: 1px solid #afafaf;
+}
+
+.border_bottom {
+	border-bottom: 1pt solid #afafaf;
+}
+
+.border_top {
+	border-top: 1pt solid #afafaf;
+}
+
+/* .table tr:nth-child(even) {
+	background-color: #f9f9f9;
+}
+ */
+.table tr:hover {
+	background-color: #f0fafe;
+}
+
+.table th {
+	padding: 4px;
+	margin: 0px;
+	border-top: 1px solid #eceeef;
+}
+
+.table td {
+	word-wrap: break-word;
+	/* display: block; */
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-right: 4px;
+	padding-left: 4px;
+	margin: 0px;
+	border-top: 1px solid #eceeef;
+	line-height: 26px;
+	padding-top: 1px;
+}
+
+.md-list-item .md-list-item-inner, .md-button, md-checkbox {
+	min-width: 26px;
+	min-height: 26px;
+	height: 26px;
+	margin: 2px;
+	line-height: 2px;
+}
+
+.noselect {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none;
+	/* Non-prefixed version, currently supported by Chrome and Opera */
+}
+
+.row_selected {
+	background-color: #d3f0ff !important;
+}
+
+.row_selected:hover {
+	background-color: #d3f0ef !important;
+}
+
+.avg_value {
+	text-decoration: underline;
+	color: rgb(0, 0, 100);
+}
+
+.best_value {
+	text-decoration: underline;
+	color: rgb(0, 100, 0);
+}
+
+.worst_value {
+	text-decoration: underline;
+	color: rgb(100, 0, 0);
+}
+
+.center-aligner {
+	text-align: center;
+}
+
+.main_logo {
+	float: left;
+	border-style: none;
+}
+
+.table_caption {
+	font-weight: normal;
+	font-size: large;
+}
+
+.main_title {
+	font-weight: bold;
+	font-size: x-large;
+}
+
+.main_subtitle {
+	font-size: small;;
+}
+
+.center {
+	width: 100%;
+	border: 0px;
+	padding: 6px;
+	display: flex;
+	justify-content: center;
+}
+
+.head_table {
+	width: 100%;
+	border: 0px;
+	padding: 0px;
+	display: flex;
+	justify-content: center;
+}
+
+.sub_table {
+	padding: 0px;
+}
+
+.half {
+    min-width: 50%;
+    display: inline-block;
+}
+
+.vspace {
+	width: 100%;
+	height: 6px;
+	display: inline-block;
+}
+
+.summary-normal {
+	width: 800px;
+}
+
+.summary-wide {
+	width: 100%;
+}
+
+.chart-box-small {
+	width: 600px;
+	height: 240px;
+}
+
+.chart-box-normal {
+	width: 1200px;
+	height: 360px;
+}
+
+.chart-box-long {
+	width: 1400px;
+	height: 360px;
+}
+
+.chart-box-large {
+	width: 1400px;
+	height: 600px;
+}
+
+.chart-box-wide {
+	width: 100%;
+	height: 300px;
+}
+
+.zing-falcon {
+	background-color: rgba(230, 230, 255, 0.5);
+}
+
+.zing {
+	background-color: rgba(230, 230, 255, 0.5);
+}
+
+.zing-c2 {
+	background-color: rgba(230, 255, 230, 0.5);
+}
+
+.hotspot {
+	background-color: rgba(255, 240, 230, 0.5);
+}
+
+.hotspot-cms {
+	background-color: rgba(255, 240, 230, 0.5);
+}
+
+.hotspot-g1 {
+	background-color: rgba(255, 220, 230, 0.5);
+}
+
+.hotspot-zgc {
+	background-color: rgba(255, 220, 230, 0.5);
+}
+
+.hotspot-sgc {
+	background-color: rgba(255, 220, 230, 0.5);
+}
+
+.openjdk {
+	background-color: rgba(240, 255, 230, 0.5);
+}
+
+.openjdk-g1 {
+	background-color: rgba(240, 255, 230, 0.5);
+}
+
+.openjdk-zgc {
+	background-color: rgba(240, 255, 230, 0.5);
+}
+
+.openjdk-sgc {
+	background-color: rgba(240, 255, 230, 0.5);
+}
+
+.properties {
+	background-color: rgba(240, 240, 240, 0.5);
+}
+
+.data_error {
+	color: Tomato;
+}
+
+.data_header {
+	background-color: rgba(240, 240, 230, 0.5);
+}
+
+.h1 {
+	line-height: 28px;
+}
+
+.h2 {
+	line-height: 26px;
+}
+
+.h3 {
+	line-height: 24px;
+}
+
+.h4 {
+	line-height: 22px;
+}
+
+.h5 {
+	line-height: 20px;
+}
+
+.top_left {
+	position: fixed;
+	top: 10px;
+	left: 30px;
+	right: 200px;
+	width: 400px;
+	border: 1px solid #c0c0c0;
+}
+
+.overlay {
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	height: 100vh;
+	width: 100vw;
+	border: 1px solid #c0c0c0;
+	background-color: rgba(150, 200, 100, 0.2);
+	z-index: 1000000;
+}
+
+.my-button {
+	display: inline-block;
+	border: 1px solid #ccc;
+	background-color: #dddddd;
+	box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.2);
+	cursor: pointer;
+	vertical-align: middle;
+	padding-left: 3px;
+	padding-right: 3px;
+	text-align: center;
+}
+
+.my-button:hover {
+	box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.6);
+}
+
+.my-button:active {
+	background-color: #CCC;
+	box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.7);
+}
+
+.push-button {
+	color: #204a87;
+	cursor: pointer;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left: 5px;
+	padding-right: 5px;
+	margin-top: 1px;
+	margin-bottom: 1px;
+	margin-left: 3px;
+	margin-right: 3px;
+	border: 1px solid #dddddd;
+	border-radius: 4px;
+	white-space: nowrap;
+	background-color: #b5d3dd;
+}
+
+.toggle_separator {
+	display: block;
+	cursor: default;
+	height: 5px;
+}
+
+.toggle_label {
+	background-color: #eeeeee;
+}
+
+.toggle {
+	display: inline-block;
+	line-height: 22px;
+	color: #888a85;
+	cursor: pointer;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left: 5px;
+	padding-right: 5px;
+	margin-top: 1px;
+	margin-bottom: 1px;
+	margin-left: 3px;
+	margin-right: 3px;
+	border: 1px solid #dddddd;
+	border-radius: 4px;
+	white-space: nowrap;
+	background-color: #eeeeee;
+	color: #888a85;
+}
+
+.toggle_base {
+	color: #888a85;
+	cursor: pointer;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left: 5px;
+	padding-right: 5px;
+	margin-top: 1px;
+	margin-bottom: 1px;
+	margin-left: 3px;
+	margin-right: 3px;
+	border: 1px solid #dddddd;
+	border-radius: 4px;
+	background-color: #eeeeee;
+}
+
+.toggle:hover {
+	background-color: #dddddd;
+	color: #204a87;
+}
+
+.toggle_selected {
+	color: #204a87;
+	border: 1px solid #729fcf;
+	background-color: #e3e0ff;
+}
+
+.toggle_selected:hover {
+	color: #204a87;
+	border: 1px solid #204a87;
+	background-color: #b3b0ff;
+}
+
+.common_toggle {
+	font-weight: bold;
+	color: #8060c0;
+}
+
+.toggle_small {
+	/* color: #babdb6; */
+	font-size: small;
+	background-color: #eeefff;
+}
+
+.toggle_small:active {
+	background-color: #ccdddd;
+}
+
+.toggle_small:hover {
+	
+}
+
+.toggle_small_selected {
+	/* background-color: #b0c2ff !important; */
+	color: #204a87;
+	border: 1px solid #204a87 !important;
+}
+
+.toggle_small_selected:hover {
+	background-color: #c5b7e8 !important;
+}
+
+.toggle_del {
+	/* font-size: small; */
+	color: #888a85;
+	cursor: pointer;
+}
+
+.toggle_del:hover {
+	background-color: #dddddd;
+	color: #204a87;
+}
+
+.toggle:hover {
+	background-color: #dddddd;
+	/* border: 1px solid #0000ff; */
+	color: #204a87;
+}
+
+.toggles {
+	padding-top: 2px;
+	padding-bottom: 2px;
+	padding-right: 4px;
+	padding-left: 4px;
+	background-color: rgba(235, 245, 245, 0.7);
+}
+
+.container {
+	position: relative;
+}
+
+.offset_pos {
+	padding: 1px;
+	margin: 0px;
+	top: 10px;
+	left: 10px;
+	position: absolute;
+}
+
+.offset_chart {
+	top: 0px;
+	left: 0px;
+	position: relative;
+}
+
+.circle {
+	border-radius: 35%;
+	/* border: 1px solid; */
+}
+
+.toggle:active {
+	box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.7);
+	/* background-color: #сссссс; */
+}
+
+.sticky {
+	position: -webkit-sticky;
+	position: sticky;
+	top: 0 !important;
+	left: 0 !important;
+	z-index: 100000;
+}
+
+.right {
+	float: right
+}
