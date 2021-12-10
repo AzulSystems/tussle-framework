@@ -12,7 +12,7 @@ import org.benchmarks.metrics.MetricData;
 import org.benchmarks.metrics.MetricValue;
 import org.benchmarks.tools.LoggerTool;
 
-public class TLPStressProcessor implements DataFileProcessor {
+public class TLPStressProcessor implements DataLogProcessor {
     /**
     *
 # tlp-stress run at Tue Nov 09 20:01:33 UTC 2021

@@ -1,6 +1,5 @@
 package org.benchmarks;
 
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 import org.benchmarks.tools.ConfigLoader;
@@ -20,8 +19,6 @@ public abstract class WlBenchmark implements Benchmark {
         }
     }
 
-    protected AtomicLong totalCount = new AtomicLong();
-    protected AtomicLong totalErrors = new AtomicLong();
     protected WlConfig config;
 
     public void init(String[] args) throws Exception {
@@ -77,10 +74,6 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws InterruptedException {
-        int durationMs = runTime * 1000;
-        RunResult runResult = getTargetRunner().runWorkload(getOperationName(), targetRate, durationMs, getWorkload(), recorder);
-        log(" -- check count: %d - %d", runResult.getCount(), totalCount.get());
-        log(" -- check errors: %d - %d", runResult.getErrors(), totalErrors.get());
-        return runResult;
+        return getTargetRunner().runWorkload(getOperationName(), targetRate, runTime * 1000, getWorkload(), recorder);
     }
 }

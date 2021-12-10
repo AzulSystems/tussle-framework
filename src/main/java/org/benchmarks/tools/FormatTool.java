@@ -32,7 +32,6 @@ public class FormatTool {
         return l == d ? "" + l : "" + d;
     }
 
-    
     public static String format(double n, boolean round) {
         return round ? roundFormat(n) : DF[DF.length - 1].format(n);
     }

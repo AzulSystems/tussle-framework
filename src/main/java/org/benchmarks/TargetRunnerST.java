@@ -1,6 +1,6 @@
 package org.benchmarks;
 
-import static org.benchmarks.tools.FormatTool.roundFormat;
+import static org.benchmarks.tools.FormatTool.*;
 
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -16,10 +16,6 @@ public class TargetRunnerST implements TargetRunner {
 
     public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(TargetRunnerST.class.getName());
 
-    private static final long NS_IN_S = 1000000000L;
-    private static final long NS_IN_MS = 1000000L;
-    private static final long MS_IN_S = 1000L;
-
     public static void log(String format, Object... args) {
         if (logger.isLoggable(Level.INFO)) {
             logger.info(String.format("[%s] %s", TargetRunnerST.class.getSimpleName(), String.format(format, args)));
@@ -34,7 +30,10 @@ public class TargetRunnerST implements TargetRunner {
 
     @Override
     public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) {
-        log("runWorkload: target %s op/s, time %d ms", roundFormat(targetRate), runTime);
+        if (runTime <= 0) {
+            return null;
+        }
+        log("Starting: target rate %s op/s, time %d ms...", roundFormat(targetRate), runTime);
         boolean throttled = targetRate > 0;
         double delayBetweenOps = throttled ? (NS_IN_S / targetRate) : 0;
         long startRunTime = System.nanoTime();
@@ -71,7 +70,8 @@ public class TargetRunnerST implements TargetRunner {
                 .rateUnits("op/s")
                 .rate(opIndex > 0 ? opIndex / ((double) time / MS_IN_S) : 0)
                 .build();
-        log("runWorkload result: " + result);
+        SleepTool.sleep(NS_IN_S);
+        log("Result: " + result);
         return result;
     }
 }

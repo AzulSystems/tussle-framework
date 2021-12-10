@@ -2055,23 +2055,17 @@ function calcMetricAverages(metric) {
 function collectMetricStats(metric, mapRespMax, mapRespMaxCount, mapMinLength) {
     const metricLabel = getMetricLabel(metric);
     const metricMax = metric.getValues("values")?.max() || null;
-    if (metricMax) {
-        if (!mapRespMax.has(metricLabel) || mapRespMax.get(metricLabel) < metricMax) {
-            mapRespMax.set(metricLabel, metricMax);
-        }
+    if (metricMax && !mapRespMax.has(metricLabel) || mapRespMax.get(metricLabel) < metricMax) {
+        mapRespMax.set(metricLabel, metricMax);
     }
     const metricMaxCount = metric.getValues("counts")?.max() || null;
-    if (metricMaxCount) {
-        if (!mapRespMaxCount.has(metricLabel) || mapRespMaxCount.get(metricLabel) < metricMaxCount) {
-            mapRespMaxCount.set(metricLabel, metricMaxCount);
-        }
+    if (metricMaxCount && !mapRespMaxCount.has(metricLabel) || mapRespMaxCount.get(metricLabel) < metricMaxCount) {
+        mapRespMaxCount.set(metricLabel, metricMaxCount);
     }
     const values = metric.getValues("values") || metric.getValues("p50_values");
     const metricLength = values ? values.length : null;
-    if (metricLength) {
-        if (!mapMinLength.has(metricLabel) || mapMinLength.get(metricLabel) > metricLength) {
-            mapMinLength.set(metricLabel, metricLength);
-        }
+    if (metricLength && !mapMinLength.has(metricLabel) || mapMinLength.get(metricLabel) > metricLength) {
+        mapMinLength.set(metricLabel, metricLength);
     }
 }
 
@@ -2086,18 +2080,23 @@ function groupMetrics(metrics) {
     });
     groups.forEach((grMetrics, group) => {
         console.log(`group: ${group}`);
-        const mvalues = [];
+        const metricValues = [];
         const name = group;
         const operation = '';
-        grMetrics.forEach(metric => mvalues.push({ name: metric.operation, values: metric.get("values"), counts: metric.get("counts") }));
-        metrics.push({
+        grMetrics.forEach(m => {
+            metricValues.push({ name: m.operation, type: 'VALUES',  values: m.getValues("values") });
+            metricValues.push({ name: m.operation, type: 'COUNTS',  values: m.getValues("counts") });
+        });
+        const metric = {
             name,
             operation,
+            metricValues,
             ymarkers: grMetrics[0].ymarkers,
             scale: grMetrics[0].scale,
-            step: grMetrics[0].step,
-            mvalues
-        });
+            step: grMetrics[0].step
+        };
+        fixMetricValues(metric);
+        metrics.push(metric);
     });
 }
 

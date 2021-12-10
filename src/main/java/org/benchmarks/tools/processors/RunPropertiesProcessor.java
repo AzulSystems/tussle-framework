@@ -24,7 +24,7 @@ class RunPropertiesDoc {
     RunPropertiesData doc = new RunPropertiesData();
 }
 
-public class RunPropertiesProcessor implements DataFileProcessor {
+public class RunPropertiesProcessor implements DataLogProcessor {
     @Override
     public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
         try {

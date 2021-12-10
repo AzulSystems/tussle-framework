@@ -10,7 +10,7 @@ import org.benchmarks.metrics.Metric;
 import org.benchmarks.metrics.MetricData;
 import org.benchmarks.metrics.MetricValue;
 
-public class HiccupProcessor implements DataFileProcessor {
+public class HiccupProcessor implements DataLogProcessor {
     @Override
     public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
         long start = 0;

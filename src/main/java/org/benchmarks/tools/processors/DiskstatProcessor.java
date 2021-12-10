@@ -11,7 +11,7 @@ import org.benchmarks.metrics.MetricValue;
 import org.benchmarks.tools.FormatTool;
 import org.benchmarks.tools.LoggerTool;
 
-public class DiskstatProcessor implements DataFileProcessor {
+public class DiskstatProcessor implements DataLogProcessor {
 
     /**
      * Supported format:

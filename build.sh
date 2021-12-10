@@ -6,7 +6,8 @@ echo "Building $(pwd)..."
 
 rm -v *.jar
 
-mvn clean package -DskipTests || exit 1
+mvn clean
+mvn package -DskipTests || exit 1
 
 from=$(find target -name *-jar-with-dependencies.jar)
 to=${from/-jar-with-dependencies/}

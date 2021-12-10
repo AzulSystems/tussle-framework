@@ -11,7 +11,7 @@ import org.benchmarks.metrics.MetricValue;
 import org.benchmarks.tools.FormatTool;
 import org.benchmarks.tools.LoggerTool;
 
-public class TopProcessor implements DataFileProcessor {
+public class TopProcessor implements DataLogProcessor {
 
     /**
      * Supported format: 

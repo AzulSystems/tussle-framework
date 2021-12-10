@@ -10,18 +10,18 @@ import lombok.Data;
  */
 @Data
 public class BenchmarkConfig {
-    public String targetRate = "1k";   // op/s, expected target throughput
-    public String warmupTime = "0";    // sec, test warmup time
-    public String runTime = "60";      // sec, test run time
-    public int runSteps = 1;           // number of run steps
-    public int intervalLength = 1000;  // ms, histogram write interval length
-    public int progressIntervals = 5;  // ms, output progress interval count
-    public double histogramFactor = 1000000; // conversion factor (divider) from histogram's units to milliseconds, e.g. for ns-to-ms it is 1000000 
-    public boolean reset = true;       // call reset before each benchmark run by 'Runner'
-    public boolean makeReport = false; // generate detailed report in addition to the summary results printed to log
-    public boolean rawData = false;    // collect raw data: each request start and finish time stamps
-    public String histogramsDir = "./histograms"; // location for histogram files
+    public int runSteps = 1;                      // number of run steps
+    public int intervalLength = 1000;             // ms, histogram write interval length
+    public int progressIntervals = 5;             // ms, output progress interval count
+    public double histogramFactor = 1000000;      // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000 
+    public boolean reset = true;                  // reset benchmark before run in the Runner scenario
+    public boolean rawData = false;               // collect each request raw data: start and finish times
+    public boolean makeReport = false;            // generate detailed report in addition to the summary results printed to log
+    public String runTime = "60";                 // sec, test run time
+    public String targetRate = "1k";              // op/s, expected target throughput
+    public String warmupTime = "0";               // sec, test warmup time
     public String reportDir = "./report";         // location for report files
+    public String histogramsDir = "./histograms"; // location for histogram (hdr) files
 
     public void validate() {
         if (FormatTool.parseValue(targetRate) < 0) {

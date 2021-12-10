@@ -202,7 +202,7 @@ public class Analyzer {
         } else if (isHiccupFile(fileName)) {
             new HiccupProcessor().processData(metricData, inputStream, host, logger);
         } else if (isHistogramFile(fileName)) {
-            processHistogram(fileName, inputStream);
+            processResultHistograms(fileName, inputStream);
         } else if (isTLPStressResults(fileName)) {
             new TLPStressProcessor().processData(metricData, inputStream, host, logger);
         } else {
@@ -317,16 +317,21 @@ public class Analyzer {
         }
     }
 
-    public void processHistogram(String fileName, InputStream inputStream) {
+    public void processResultHistograms(String fileName, InputStream inputStream) {
+        log("Processing histogram file '%s'...", fileName);
         HdrResult result = HdrResult.getIterationResult(fileName);
-        result.processHistogram(metricData, inputStream, analyzerConfig.slaConfig, analyzerConfig.intervals, analyzerConfig.longPercentiles ? percentilesLong : percentilesShort, analyzerConfig.mergeHistos);
-        hdrResults.add(result);
+        addAndProcessHistograms(result, inputStream);
     }
 
-    public void processHistogram(HdrResult result) throws IOException {
+    public void processResultHistograms(HdrResult result) throws IOException {
+        log("Processing histogram file '%s'...", result.hdrFile);
         try (InputStream inputStream = new FileInputStream(result.hdrFile)) {
-            result.processHistogram(metricData, inputStream, analyzerConfig.slaConfig, analyzerConfig.intervals, analyzerConfig.longPercentiles ? percentilesLong : percentilesShort, analyzerConfig.mergeHistos);
-            hdrResults.add(result);
+            addAndProcessHistograms(result, inputStream);
         }
+    }
+
+    public void addAndProcessHistograms(HdrResult result, InputStream inputStream) {
+        result.processHistograms(metricData, inputStream, analyzerConfig.slaConfig, analyzerConfig.intervals, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort, analyzerConfig.mergeHistos);
+        hdrResults.add(result);
     }
 }

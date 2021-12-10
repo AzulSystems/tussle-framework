@@ -3,7 +3,7 @@ package org.benchmarks;
 public interface WithException {
     void run() throws Exception;
 
-    public static void withException(WithException r) {
+    public static void wrapException(WithException r) {
         try {
             r.run();
         } catch (Exception e) {
@@ -11,7 +11,7 @@ public interface WithException {
         }
     }
 
-    public static void exception(WithException r) throws Exception {
+    public static void withException(WithException r) throws Exception {
         try {
             r.run();
         } catch (RuntimeException e) {

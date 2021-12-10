@@ -47,11 +47,18 @@ public class HdrIntervalResult {
     private DoubleStream.Builder[] mwBuffCounts;
     private MovingWindowSumHistogram[] movingWindowSumHistograms;
 
+    static long mul(long v, long m) {
+        if (v == Long.MAX_VALUE || v == Long.MIN_VALUE)
+            return v;
+        else
+            return v * m;
+    }
+
     public HdrIntervalResult(SLA[] slaConfig, Interval interval, double histogramFactor) {
         this.slaConfig = slaConfig;
         this.histogram = new Histogram(3);
         this.histogramFactor = histogramFactor;
-        this.interval = new Interval(interval.start * 1000, interval.finish * 1000, interval.name);
+        this.interval = new Interval(mul(interval.start, 1000), mul(interval.finish , 1000), interval.name);
         valBuffers = new DoubleStream.Builder[valueTypes.length];
         for (int i = 0; i < valBuffers.length; i++) {
             valBuffers[i] = DoubleStream.builder();
@@ -110,12 +117,12 @@ public class HdrIntervalResult {
     }
 
     public void processHistogram(HdrResult hdrResult, MetricData metricData, double[] percentiles, int mergeHistos) {
-        LoggerTool.log("HdrIntervalResult", "processHistogram interval [%s]", interval);
         String opName = hdrResult.getOperationName();
         String metricIntervalName = (hdrResult.metricName + " " + interval.name).trim();
         long totalCount = histogram.getTotalCount();
         long start = histogram.getStartTimeStamp();
         long finish = histogram.getEndTimeStamp();
+        LoggerTool.log("HdrIntervalResult", "processHistogram interval [%s] totalCount %d, start %d, finish %d", interval, totalCount, start, finish);
         if (totalCount == 0 || finish <= start) {
             return;
         }

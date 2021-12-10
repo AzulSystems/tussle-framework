@@ -67,8 +67,8 @@ public class HdrResult {
         metricName = sb.toString();
         operationName = nums > 0 ? String.format("op_%d_%s_%d", percentOfHighBound, FormatTool.format(targetRate), retry) : "";
     }
-    
-    public static String cleanPathAndExtension(String fileName) {
+
+    public static String clearPathAndExtension(String fileName) {
         int pos = fileName.lastIndexOf('/');
         if (pos >= 0) {
             fileName = fileName.substring(pos + 1);
@@ -91,12 +91,12 @@ public class HdrResult {
             result.operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
         } else {
             result.histogramFactor = 1000_000;
-            result.detectValues(cleanPathAndExtension(fileName));
+            result.detectValues(clearPathAndExtension(fileName));
         }
         return result;
     }
 
-    public void processHistogram(MetricData metricData, InputStream inputStream, SLA[] slaConfig, Interval[] intervals, double[] percentiles, int mergeHistos) {
+    public void processHistograms(MetricData metricData, InputStream inputStream, SLA[] slaConfig, Interval[] intervals, double[] percentiles, int mergeHistos) {
         LoggerTool.log("HdrResult", "processHistogram '%s', operation %s, metricName %s, merge %d adjucent histograms", hdrFile, getOperationName(), metricName, mergeHistos);
         recordsCount = 0;
         try (HistogramLogReader hdrReader = new HistogramLogReader(inputStream)) {
@@ -130,7 +130,7 @@ public class HdrResult {
                 }
                 if (!histos.isEmpty()) {
                     recordsCount++;
-                    subIntervalHistograms.forEach(h -> h.add(histos));
+                    subIntervalHistograms.forEach(sh -> sh.add(histos));
                 } else if (nulls++ > 10) {
                     break;
                 }

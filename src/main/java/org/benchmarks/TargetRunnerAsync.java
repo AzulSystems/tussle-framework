@@ -31,7 +31,6 @@ public class TargetRunnerAsync implements TargetRunner {
     }
 
     private final long timeOffset = System.currentTimeMillis() * NS_IN_MS - System.nanoTime();
-
     private final AtomicLong opsCount = new AtomicLong();
     private final AtomicLong errorsCount = new AtomicLong();
     private final int threadsCount;
@@ -73,7 +72,7 @@ public class TargetRunnerAsync implements TargetRunner {
         }
         long delayBetweenOps = (long) (NS_IN_S / targetRate);
         ExecutorService executor = Executors.newFixedThreadPool(threadsCount);
-        log("runWorkload: target %s op/s, time %d ms, delayBetweenOps %d ns", roundFormat(targetRate), runTime, delayBetweenOps);
+        log("Starting: target rate %s op/s, time %d ms, delayBetweenOps %d ns", roundFormat(targetRate), runTime, delayBetweenOps);
         opsCount.set(0);
         errorsCount.set(0);
         long startRunTime = System.nanoTime();
@@ -88,7 +87,7 @@ public class TargetRunnerAsync implements TargetRunner {
             SleepTool.sleepUntil(intendedNextStartTime);
             opIndex++;
         }
-        log("runWorkload: finishing tasks...");
+        log("Finishing tasks...");
         for (Future<?> lastOne : lastOnes) {
             if (lastOne != null) {
                 try {
@@ -98,7 +97,7 @@ public class TargetRunnerAsync implements TargetRunner {
                 }
             }
         }
-        log("runWorkload: executor shutdown...");
+        log("Executor shutdown...");
         executor.shutdownNow();
         executor.awaitTermination(1, TimeUnit.SECONDS);
         long ops = opsCount.get();
@@ -113,7 +112,8 @@ public class TargetRunnerAsync implements TargetRunner {
                 .rateUnits("op/s")
                 .rate(ops > 0 ? ops / ((double) time / MS_IN_S) : 0)
                 .build();
-        log("runWorkload result: " + result);
+        SleepTool.sleep(NS_IN_S);
+        log("Result: " + result);
         return result;
     }
 }

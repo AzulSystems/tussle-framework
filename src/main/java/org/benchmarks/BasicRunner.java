@@ -67,7 +67,7 @@ public class BasicRunner {
         benchmark.cleanup();
         if (benchmarkPassed && benchmarkConfig.isMakeReport()) {
             AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-            analyzerConfig.setMakeReport(true);
+            analyzerConfig.setMakeReport(benchmarkConfig.isMakeReport());
             analyzerConfig.setResultsDir(benchmarkConfig.getHistogramsDir());
             analyzerConfig.setReportDir(benchmarkConfig.getReportDir());
             try {

@@ -11,7 +11,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 public class WlConfig extends BenchmarkConfig {
     public int threads = 1;
-    public boolean asyncMode = true;
+    public boolean asyncMode = false;
 
     @Override
     public void validate() {

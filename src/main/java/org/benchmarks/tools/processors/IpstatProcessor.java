@@ -11,7 +11,7 @@ import org.benchmarks.metrics.MetricValue;
 import org.benchmarks.tools.FormatTool;
 import org.benchmarks.tools.LoggerTool;
 
-public class IpstatProcessor implements DataFileProcessor {
+public class IpstatProcessor implements DataLogProcessor {
     /**
     *
 DELAY: 5

@@ -1,10 +1,12 @@
 package org.benchmarks;
 
-import static org.benchmarks.tools.FormatTool.roundFormat;
+import static org.benchmarks.tools.FormatTool.*;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+
+import org.benchmarks.tools.SleepTool;
 
 /**
  * 
@@ -14,8 +16,6 @@ import java.util.logging.Level;
 public class TargetRunnerMT implements TargetRunner {
 
     public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(TargetRunnerMT.class.getName());
-
-    private static final long MS_IN_S = 1000L;
 
     public static void log(String format, Object... args) {
         if (logger.isLoggable(Level.INFO)) {
@@ -31,7 +31,7 @@ public class TargetRunnerMT implements TargetRunner {
 
     @Override
     public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws InterruptedException {
-        log("runWorkloadMT: target %s op/s, time %d ms", roundFormat(targetRate), runTime);
+        log("Starting: target rate %s op/s, time %d ms...", roundFormat(targetRate), runTime);
         final ConcurrentHashMap<Integer, RunResult> runResults = new ConcurrentHashMap<>(threadCount);
         final Thread[] threads = new Thread[threadCount];
         double targetPerThread = targetRate / threadCount;
@@ -64,7 +64,8 @@ public class TargetRunnerMT implements TargetRunner {
                 .rate(maxTime > 0 ? countSum / ((double) maxTime / MS_IN_S) : 0)
                 .errors(errorSum)
                 .build();
-        log("runWorkloadMT result: " + result);
+        SleepTool.sleep(NS_IN_S);
+        log("Result: " + result);
         return result;
     }
 }
