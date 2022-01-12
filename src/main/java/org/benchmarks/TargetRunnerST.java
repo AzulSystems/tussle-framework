@@ -35,14 +35,14 @@ public class TargetRunnerST implements TargetRunner {
         }
         log("Starting: target rate %s op/s, time %d ms...", roundFormat(targetRate), runTime);
         boolean throttled = targetRate > 0;
-        double delayBetweenOps = throttled ? (NS_IN_S / targetRate) : 0;
+        long delayBetweenOps = (long) (throttled ? (NS_IN_S / targetRate) : 0);
         long startRunTime = System.nanoTime();
         long finishRunTime = startRunTime + runTime * NS_IN_MS;
         long opIndex = 0;
         long errs = 0;
         long startTime = startRunTime;
         while (startTime < finishRunTime) {
-            long intendedStartTime = (long) (startRunTime + opIndex * delayBetweenOps);
+            long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
             boolean success = false;
             try {
                 success = workload.call();

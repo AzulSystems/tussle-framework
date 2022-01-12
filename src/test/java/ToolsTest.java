@@ -13,7 +13,7 @@ public class ToolsTest {
             long n = System.nanoTime();
             long m = System.currentTimeMillis();
             long s = System.nanoTime();
-            SleepTool.sleepPrecise(1000);
+            SleepTool.sleepSpinning(1000);
             long t = System.nanoTime() - s;
             if (i % 1000 == 0)
                 System.err.println(i + ": " + n + " - " + m + " - " + t);
@@ -29,7 +29,7 @@ public class ToolsTest {
             long n = System.nanoTime();
             long m = System.currentTimeMillis();
             long s = System.nanoTime();
-            SleepTool.sleepPrecise(100000);
+            SleepTool.sleepSpinning(100000);
             long t = System.nanoTime() - s;
             if (i % 1000 == 0)
                 System.err.println(i + ": " + n + " - " + m + " - " + t);

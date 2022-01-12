@@ -83,9 +83,9 @@ public class TargetRunnerAsync implements TargetRunner {
         while (deadline - System.nanoTime() > 0) {
             long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
             lastOnes[(lastOneIdx++) % lastOnes.length] = executor.submit(new C(workload, recorder, operationName, intendedStartTime));
-            long intendedNextStartTime = startRunTime + (opIndex + 1) * delayBetweenOps;
-            SleepTool.sleepUntil(intendedNextStartTime);
             opIndex++;
+            long intendedNextStartTime = startRunTime + opIndex * delayBetweenOps;
+            SleepTool.sleepUntil(intendedNextStartTime);
         }
         log("Finishing tasks...");
         for (Future<?> lastOne : lastOnes) {

@@ -87,8 +87,13 @@ public class HdrResult {
         final String hs = ".hdr-";
         if (fileName.startsWith("tlp_stress_metrics") && fileName.indexOf(hs) >= 0) {
             result.histogramFactor = 1000;
-            result.metricName = "service_time";
             result.operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
+            if (result.operationName.startsWith("INTENDED-")) {
+                result.operationName = result.operationName.substring("INTENDED-".length());
+                result.metricName = "response_time";
+            } else {
+                result.metricName = "service_time";
+            }
         } else {
             result.histogramFactor = 1000_000;
             result.detectValues(clearPathAndExtension(fileName));
