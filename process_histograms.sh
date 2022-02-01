@@ -70,25 +70,38 @@ ${SLA2}
 ${SLA3}
 "
 
-run_props=$( find "${RES_DIR}" -type f -name "run.properties.json" )
+process_dir() {
+    local res_dir=$1
+    local run_props=$( find "${res_dir}" -type f -name "run.properties.json" )
+    local resultsDir
+    if [[ -z "${run_props}" ]]
+    then
+        resultsDir=${res_dir}
+        echo "No any run.properties found. Processing topmost results dir: ${resultsDir} ..."
+        (
+        cd "${resultsDir}" && \
+        java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
+        )
+        return
+    fi
+    echo "${run_props}" | while read r
+    do
+        resultsDir=$(dirname "${r}")
+        echo "Processing results dir: ${resultsDir} ..."
+        (
+        cd "${resultsDir}" && \
+        java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
+        )
+    done
+}
 
-if [[ -z "${run_props}" ]]
+if [[ -z "${1}" ]]
 then
-    resultsDir=${RES_DIR}
-    echo "No any run.properties found. Processing topmost results dir: ${resultsDir} ..."
-    (
-    cd "${resultsDir}" && \
-    java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
-    )
-    exit
+    process_dir .
+else
+    while [[ -n "$1" ]]
+    do
+    process_dir "$1"
+    shift
+    done
 fi
-
-echo "${run_props}" | while read r
-do
-    resultsDir=$(dirname "${r}")
-    echo "Processing results dir: ${resultsDir} ..."
-    (
-    cd "${resultsDir}" && \
-    java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
-    )
-done
