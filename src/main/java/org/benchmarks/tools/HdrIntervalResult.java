@@ -1,3 +1,35 @@
+/*
+ * Copyright (c) 2021, Azul Systems
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of [project] nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
 package org.benchmarks.tools;
 
 import java.util.LinkedList;
@@ -13,7 +45,7 @@ import org.benchmarks.metrics.MetricData;
 import org.benchmarks.metrics.MetricType;
 import org.benchmarks.metrics.MetricValue;
 import org.benchmarks.metrics.MovingWindowSumHistogram;
-import org.benchmarks.metrics.SLA;
+import org.benchmarks.metrics.MovingWindowSLE;
 
 public class HdrIntervalResult {
 
@@ -36,7 +68,7 @@ public class HdrIntervalResult {
         return valueTypes[index];
     }
 
-    private SLA[] slaConfig;
+    private MovingWindowSLE[] slaConfig;
     private Metric metric;
     private Interval interval;
     private Histogram histogram;
@@ -54,8 +86,8 @@ public class HdrIntervalResult {
             return v * m;
     }
 
-    public HdrIntervalResult(SLA[] slaConfig, Interval interval, double histogramFactor) {
-        this.slaConfig = slaConfig;
+    public HdrIntervalResult(MovingWindowSLE[] sleConfig, Interval interval, double histogramFactor) {
+        this.slaConfig = sleConfig;
         this.histogram = new Histogram(3);
         this.histogramFactor = histogramFactor;
         this.interval = new Interval(mul(interval.start, 1000), mul(interval.finish , 1000), interval.name);
@@ -63,17 +95,17 @@ public class HdrIntervalResult {
         for (int i = 0; i < valBuffers.length; i++) {
             valBuffers[i] = DoubleStream.builder();
         }
-        mwBuffValues = new DoubleStream.Builder[slaConfig.length];
-        mwBuffCounts = new DoubleStream.Builder[slaConfig.length];
-        for (int i = 0; i < slaConfig.length; i++) {
+        mwBuffValues = new DoubleStream.Builder[sleConfig.length];
+        mwBuffCounts = new DoubleStream.Builder[sleConfig.length];
+        for (int i = 0; i < sleConfig.length; i++) {
             mwBuffValues[i] = DoubleStream.builder();
             mwBuffCounts[i] = DoubleStream.builder();
         }
-        movingWindowSumHistograms = new MovingWindowSumHistogram[slaConfig.length];
-        movingWindowMax = new double[slaConfig.length];
-        for (int i = 0; i < slaConfig.length; i++) {
-            double percentile = slaConfig[i].percentile;
-            int movingWindow = slaConfig[i].movingWindow;
+        movingWindowSumHistograms = new MovingWindowSumHistogram[sleConfig.length];
+        movingWindowMax = new double[sleConfig.length];
+        for (int i = 0; i < sleConfig.length; i++) {
+            double percentile = sleConfig[i].percentile;
+            int movingWindow = sleConfig[i].movingWindow;
             movingWindowSumHistograms[i] = new MovingWindowSumHistogram(new Histogram(3), new LinkedList<>(), percentile, movingWindow);
         }
     }
@@ -165,7 +197,7 @@ public class HdrIntervalResult {
         }
         for (int i = 0; i < slaConfig.length; i++) {
             LoggerTool.log("HdrIntervalResult", "slaConfig " + slaConfig[i].longName()  + " max " + movingWindowMax[i]);
-            String mwMetricName = (hdrResult.metricName + " " + slaConfig[i].withMWName() + " " + interval.name).trim();
+            String mwMetricName = (hdrResult.metricName + " " + slaConfig[i].nameWithMovingWindow() + " " + interval.name).trim();
             Metric mwMetric = Metric.builder()
                     .name(mwMetricName)
                     .units("ms")
@@ -183,7 +215,7 @@ public class HdrIntervalResult {
             mwMetric.add(new MetricValue("VALUES", values));
             mwMetric.add(new MetricValue("COUNTS", counts));
             if (slaConfig[i].maxValue > 0) {
-                mwMetric.addMarker(new Marker(slaConfig[i].withMaxName(), null, slaConfig[i].maxValue));
+                mwMetric.addMarker(new Marker(slaConfig[i].nameWithMax(), null, slaConfig[i].maxValue));
             }
             metricData.add(mwMetric);
             // TODO: targetMetric.add(new MetricValue(valName + "_max", movingWindowMax[i]))

@@ -1,12 +1,43 @@
+/*
+ * Copyright (c) 2021, Azul Systems
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of [project] nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
 package org.benchmarks.tools;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 
-import org.benchmarks.BenchmarkConfig;
+import org.benchmarks.AbstractConfig;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
@@ -85,46 +116,13 @@ public class ConfigLoader {
         return loadObject(args, klass, false);
     }
 
-    public static boolean isFileOrNonEmptyDir(File fileDir) {
-        if (fileDir.exists()) {
-            if (fileDir.isDirectory()) {
-                String[] files = fileDir.list();
-                return files != null && files.length > 0;
-            } else {
-                return true;
-            }
-        } else {
-            return false;
-        }
-    }
-
-    public static <T extends BenchmarkConfig> void createDirs(T config) {
-        File histogramsDir = new File(config.histogramsDir);
-        File reportDir = new File(config.reportDir);
-        if (isFileOrNonEmptyDir(histogramsDir)) {
-            throw new IllegalArgumentException(String.format("Non-empty histograms dir '%s' already exists", histogramsDir));
-        }
-        if (config.makeReport && isFileOrNonEmptyDir(reportDir)) {
-            throw new IllegalArgumentException(String.format("Non-empty report dir '%s' already exists", reportDir));
-        }
-        if (!histogramsDir.exists() && !histogramsDir.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create histograms dir '%s'", histogramsDir));
-        }
-        if (config.makeReport && !reportDir.exists() && !reportDir.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create report dir '%s'", reportDir));
-        }
-    }
-
-    public static <T extends BenchmarkConfig> T loadConfig(String[] args, boolean runMode, Class<? extends BenchmarkConfig> configClass, boolean skipMissingProperties) throws IOException, ReflectiveOperationException {
+    public static <T extends AbstractConfig> T loadConfig(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass, boolean skipMissingProperties) throws IOException, ReflectiveOperationException {
         T config = loadObject(args, configClass, skipMissingProperties);
-        config.validate();
-        if (runMode) {
-            createDirs(config);
-        }
+        config.validate(runMode);
         return config;
     }
 
-    public static <T extends BenchmarkConfig> T load(String[] args, boolean runMode, Class<? extends BenchmarkConfig> configClass) throws IOException, ReflectiveOperationException {
+    public static <T extends AbstractConfig> T load(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass) throws IOException, ReflectiveOperationException {
         return loadConfig(args, runMode, configClass, false);
     }
 }

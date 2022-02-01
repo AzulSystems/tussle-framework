@@ -1,3 +1,35 @@
+/*
+ * Copyright (c) 2021, Azul Systems
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of [project] nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
 package org.benchmarks.tools;
 
 import java.io.File;
@@ -15,7 +47,7 @@ import java.util.zip.ZipFile;
 import org.benchmarks.RunProperties;
 import org.benchmarks.metrics.Interval;
 import org.benchmarks.metrics.MetricData;
-import org.benchmarks.metrics.SLA;
+import org.benchmarks.metrics.MovingWindowSLE;
 import org.benchmarks.tools.processors.DiskstatProcessor;
 import org.benchmarks.tools.processors.HiccupProcessor;
 import org.benchmarks.tools.processors.IpstatProcessor;
@@ -88,8 +120,8 @@ public class Analyzer {
 
     public void init(AnalyzerConfig config) {
         analyzerConfig = config;
-        if (analyzerConfig.slaConfig == null || analyzerConfig.slaConfig.length == 0) {
-            analyzerConfig.slaConfig = new SLA[] {
+        if (analyzerConfig.sleConfig == null || analyzerConfig.sleConfig.length == 0) {
+            analyzerConfig.sleConfig = new MovingWindowSLE[] {
                     // new SLA(90, 0, 10),
             };
         }
@@ -135,7 +167,7 @@ public class Analyzer {
         }
     }
 
-    public static String[] getTypes(SLA[] slaConfig) {
+    public static String[] getTypes(MovingWindowSLE[] slaConfig) {
         ArrayList<String> types = new ArrayList<>();
         for (int i = 0; i < slaConfig.length; i++) {
             types.add("P" + FormatTool.format(slaConfig[i].percentile) + "_VALUES");
@@ -331,7 +363,7 @@ public class Analyzer {
     }
 
     public void addAndProcessHistograms(HdrResult result, InputStream inputStream) {
-        result.processHistograms(metricData, inputStream, analyzerConfig.slaConfig, analyzerConfig.intervals, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort, analyzerConfig.mergeHistos);
+        result.processHistograms(metricData, inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort, analyzerConfig.mergeHistos);
         hdrResults.add(result);
     }
 }

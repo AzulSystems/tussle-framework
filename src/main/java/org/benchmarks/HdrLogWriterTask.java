@@ -1,3 +1,35 @@
+/*
+ * Copyright (c) 2021, Azul Systems
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of [project] nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
 package org.benchmarks;
 
 import java.io.IOException;
@@ -30,13 +62,13 @@ public class HdrLogWriterTask extends TimerTask {
         }
     }
 
+    private Path hdrFile;
     private Recorder recorder;
     private HdrResult hdrResult;
-    private Histogram intervalHistogram;
     private Histogram allHistogram;
+    private Histogram intervalHistogram;
     private Histogram progressHistogram;
     private HistogramLogWriter writer;
-    private Path hdrFile;
     private String shortName;
     private AtomicInteger countWrites = new AtomicInteger();
     private int totalTime;
@@ -95,13 +127,13 @@ public class HdrLogWriterTask extends TimerTask {
         if (progressHistogram.getTotalCount() == 0) {
             return;
         }
-        printProgressHeader();
         printProgress();
         progressCount = 0;
         progressHistogram.reset();
     }
 
     private void printProgress() {
+        printProgressHeader();
         long spentTime = System.currentTimeMillis() - startTime;
         double progress = spentTime / 10.0 / totalTime;
         if (progress > 100) {
@@ -115,7 +147,7 @@ public class HdrLogWriterTask extends TimerTask {
         double p99 = progressHistogram.getValueAtPercentile(99.0) / hdrResult.histogramFactor;
         double p100 = progressHistogram.getValueAtPercentile(100.0) / hdrResult.histogramFactor;
         double mean = progressHistogram.getMean() / hdrResult.histogramFactor;
-        log("%6d | %4s | %5s%% | %7s | %7s | %7s | %7s | %7s | %6d | %6d", time, shortName, String.format("%2.1f", progress), roundFormat(p50), roundFormat(p90), roundFormat(p99), roundFormat(p100), roundFormat(mean), count, totalCount);
+        log("%6d | %4s | %5s%% | %7s | %7s | %7s | %7s | %7s | %7d | %7d", time, shortName, String.format("%2.1f", progress), roundFormat(p50), roundFormat(p90), roundFormat(p99), roundFormat(p100), roundFormat(mean), count, totalCount);
     }
 
     private void printProgressHeader() {
@@ -123,9 +155,9 @@ public class HdrLogWriterTask extends TimerTask {
             synchronized (logger) {
                 if (!progressHeaderPrinted) {
                     progressHeaderPrinted = true;
-                    log("--------------------------------------------------------------------------------------------");
-                    log("%6s | %4s | %6s | %7s | %7s | %7s | %7s | %7s | %6s | %6s", "time", "name", "progr", "p50ms", "p90ms", "p99ms", "p100ms", "mean", "count", "total");
-                    log("--------------------------------------------------------------------------------------------");
+                    log("----------------------------------------------------------------------------------------------");
+                    log("%6s | %4s | %6s | %7s | %7s | %7s | %7s | %7s | %7s | %7s", "time", "name", "progr", "p50ms", "p90ms", "p99ms", "p100ms", "mean", "count", "total");
+                    log("----------------------------------------------------------------------------------------------");
                 }
             }
         }

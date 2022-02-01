@@ -32,59 +32,39 @@
 
 package org.benchmarks.metrics;
 
-import java.util.ArrayList;
-import java.util.Optional;
+import static org.benchmarks.tools.FormatTool.format;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-public class Metric {
-    protected Long start;
-    protected Long finish;
-    protected Long totalValues;
-    protected Integer delay;
-    protected String name;
-    protected String host;
-    protected String type;
-    protected String group;
-    protected String units;
-    protected String xunits;
-    protected String operation;
-    protected Double highBound;
-    protected Double targetRate;
-    protected Double actualRate;
-    protected Double value;
-    protected Double meanValue;
-    protected String[] xValues;
-    protected ArrayList<Marker> markers;
-    protected ArrayList<MetricValue> metricValues;
+@NoArgsConstructor
+@AllArgsConstructor
+public class MovingWindowSLE implements ServiceLevelExpectation {
+    public double percentile;
+    public double maxValue;
+    public int movingWindow;
 
-    public Metric add(MetricValue mv) {
-        if (metricValues == null) {
-            metricValues = new ArrayList<>();
-        }
-        metricValues.add(mv);
-        return this;
+    public String toString() {
+        return "p" + percentile + " percentile = " + maxValue + "ms in " + movingWindow;
     }
 
-    public Metric addMarker(Marker marker) {
-        if (markers == null) {
-            markers = new ArrayList<>();
-        }
-        markers.add(marker);
-        return this;
+    // Format:
+    // p50-sle1ms-mw10s
+    public String longName() {
+        return "p" + format(percentile) + "-sle" + format(maxValue) + "ms-mw" + (movingWindow) + "s";
     }
 
-    public MetricValue byType(String type) {
-        if (metricValues == null)
-            return null;
-        Optional<MetricValue> elem = metricValues.stream().filter(m -> type.equals(m.type)).findFirst();
-        return elem.orElse(null);
+    // Format:
+    // p50-sle1ms
+    public String nameWithMax() {
+        return "p" + format(percentile) + "-sle" + format(maxValue) + "ms";
     }
 
-    public MetricValue byType(MetricType type) {
-        return byType(type.name());
+    // Format:
+    // p50-mw10s
+    public String nameWithMovingWindow() {
+        return "p" + format(percentile) + "-mw" + (movingWindow) + "s";
     }
 }

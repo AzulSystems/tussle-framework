@@ -30,21 +30,65 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
-COMMON_BASE_DIR=$(cd $(dirname $0); pwd)
-cd "${COMMON_BASE_DIR}" || exit 1
-echo "Building $(pwd)..."
+BASE_DIR=$(cd $(dirname $0); pwd)
 
-rm -v *.jar
+INT0_DEF="start: 0, finish: 36000, name: ''"
+INT0=${INT0:-${INT0_DEF}}
+MAKE_REPORT=${MAKE_REPORT:-false}
+MH=${MH:-3}
 
-mvn clean
-mvn package -DskipTests || exit 1
+while [[ "${1}" == *=* ]]
+do
+export "${1}"
+echo "Exported: '${1}'"
+shift
+done
 
-from=$(find target -name *-jar-with-dependencies.jar)
-to=${from/-jar-with-dependencies/}
-to=${to##*/}
+RES_DIR=${RES_DIR:-${1:-.}}
 
-cp -fv ${from} ${to}
-chmod 777 ${to}
+INT0="- {${INT0}}"
+[[ -n "${INT1}" ]] && INT1="- {${INT1}}"
+[[ -n "${INT2}" ]] && INT2="- {${INT2}}"
+[[ -n "${INT3}" ]] && INT3="- {${INT3}}"
 
-echo "Installing built file '${to}' ..."
-mvn install:install-file -Dfile=${to} -DpomFile=pom.xml
+[[ -n "${SLA1}" ]] && SLA1="- {${SLA1}}"
+[[ -n "${SLA2}" ]] && SLA2="- {${SLA2}}"
+[[ -n "${SLA3}" ]] && SLA3="- {${SLA3}}"
+
+metricsConf="
+resultsDir: . 
+makeReport: ${MAKE_REPORT}
+mergeHistos: ${MH}
+intervals:
+${INT0}
+${INT1}
+${INT2}
+${INT3}
+slaConfig:
+${SLA1}
+${SLA2}
+${SLA3}
+"
+
+run_props=$( find "${RES_DIR}" -type f -name "run.properties.json" )
+
+if [[ -z "${run_props}" ]]
+then
+    resultsDir=${RES_DIR}
+    echo "No any run.properties found. Processing topmost results dir: ${resultsDir} ..."
+    (
+    cd "${resultsDir}" && \
+    java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
+    )
+    exit
+fi
+
+echo "${run_props}" | while read r
+do
+    resultsDir=$(dirname "${r}")
+    echo "Processing results dir: ${resultsDir} ..."
+    (
+    cd "${resultsDir}" && \
+    java -cp ${BASE_DIR}/benchmarks-common-*.jar org.benchmarks.tools.Analyzer -s "${metricsConf}"
+    )
+done
