@@ -51,9 +51,9 @@ INT0="- {${INT0}}"
 [[ -n "${INT2}" ]] && INT2="- {${INT2}}"
 [[ -n "${INT3}" ]] && INT3="- {${INT3}}"
 
-[[ -n "${SLA1}" ]] && SLA1="- {${SLA1}}"
-[[ -n "${SLA2}" ]] && SLA2="- {${SLA2}}"
-[[ -n "${SLA3}" ]] && SLA3="- {${SLA3}}"
+[[ -n "${SLE1}" ]] && SLE1="- {${SLE1}}"
+[[ -n "${SLE2}" ]] && SLE2="- {${SLE2}}"
+[[ -n "${SLE3}" ]] && SLE3="- {${SLE3}}"
 
 metricsConf="
 resultsDir: . 
@@ -64,10 +64,10 @@ ${INT0}
 ${INT1}
 ${INT2}
 ${INT3}
-slaConfig:
-${SLA1}
-${SLA2}
-${SLA3}
+sleConfig:
+${SLE1}
+${SLE2}
+${SLE3}
 "
 
 process_dir() {
