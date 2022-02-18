@@ -1,9 +1,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>benchmarks</groupId>
+    <groupId>org.tussleframework</groupId>
     <artifactId>benchmarks-common</artifactId>
     <version>1.2.3</version>
+    <licenses>
+        <license>
+            <name>BSD-3-Clause</name>
+            <url>https://opensource.org/licenses/BSD-3-Clause</url>
+        </license>
+        <license>
+            <name>BSD-2-Clause</name>
+            <url>https://opensource.org/licenses/BSD-2-Clause</url>
+        </license>
+        <license>
+            <name>MIT</name>
+        </license>
+    </licenses>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
