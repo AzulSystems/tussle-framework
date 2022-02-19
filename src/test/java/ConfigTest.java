@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -31,36 +31,60 @@
  */
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.text.DecimalFormat;
+import java.io.PrintStream;
 
 import org.junit.Test;
+import org.tussleframework.RunProperties;
+import org.tussleframework.metrics.MetricData;
+import org.tussleframework.tools.JsonTool;
 import org.tussleframework.tools.SleepTool;
 
 public class ConfigTest {
 
     @Test
-    public void test1() {
-        DecimalFormat df = new DecimalFormat("#.##");
-        System.err.println(df.format(999.9000099990002));
-        System.err.println(df.format(999));
-        System.err.println(df.format(999.0111));
-        System.err.println(df.format(999.0001));
-        System.err.println(df.format(99.0001));
-        System.err.println(df.format(9.0001));
-        System.err.println(df.format(.01));
-        System.err.println(df.format(.001));
-        System.err.println(df.format(.0001));
-        System.err.println(df.format(.00001));
-        System.err.println(df.format(.000001));
-        System.err.println(String.format("%02.0f", .01));
-        System.err.println(String.format("%02.0f", 1.01));
-        System.err.println(String.format("%02.0f", 10.01));
-        System.err.println(String.format("%02.0f", 100.01));
-        assertTrue(true);
+    public void testPrint() {
+        System.out.println("testPrint...");
+        final PrintStream out = System.out;
+        MetricData metricData = new MetricData();
+        RunProperties runProperties = new RunProperties();
+        metricData.setRunProperties(runProperties);
+        try {
+            JsonTool.printJson(metricData, out);
+            out.println();
+            runProperties.put("test", "PropTest");
+            JsonTool.printJson(metricData, out);
+            out.println();
+            runProperties.getHardware().put("name", "Hardware");
+            runProperties.getHardware().put("vendor", "Hardwarer");
+            runProperties.getOs().put("name", "TheOS");
+            JsonTool.printJson(metricData, out);
+            out.println();
+            System.out.println("done");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 
     @Test
+    public void testDef() {
+        System.out.println("testDef...");
+        final PrintStream out = System.out;
+        MetricData metricData = new MetricData();
+        try {
+            metricData.loadDefaultRunProperties();
+            JsonTool.printJson(metricData, out);
+            out.println();
+            System.out.println("done");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    // @Test
     public void testSleepPrecise1s() {
         System.err.println("S: " + System.nanoTime() + " - " + System.currentTimeMillis());
         for (int i = 1; i <= 1000000; i++) {

@@ -74,8 +74,9 @@ public class SleepTool {
      */
     public static void sleepUntil(long deadline) {
         long ns = deadline - System.nanoTime();
-        while (ns > 20_000L) {
-            LockSupport.parkNanos(ns - 20_000);
+        final long minNs = 50_000L; 
+        while (ns > minNs) {
+            LockSupport.parkNanos(ns - minNs);
             ns = deadline - System.nanoTime();
         }
         sleepSpinning(ns);

@@ -39,48 +39,46 @@ public class SleepToolTest {
 
     @Test
     public void testSleepPrecise1s() {
-        System.err.println("S: " + System.nanoTime() + " - " + System.currentTimeMillis());
-        for (int i = 1; i <= 1000000; i++) {
+        System.err.println("Sleep 1s = 1us x1000000 times  start: " + System.nanoTime() + " - " + System.currentTimeMillis());
+        for (int i = 1; i <= 1000_000; i++) {
             long n = System.nanoTime();
             long m = System.currentTimeMillis();
             long s = System.nanoTime();
-            SleepTool.sleepSpinning(1000);
+            SleepTool.sleepSpinning(1000L);
             long t = System.nanoTime() - s;
-            if (i % 1000 == 0)
+            if (i % 100_000 == 0)
                 System.err.println(i + ": " + n + " - " + m + " - " + t);
         }
-        System.err.println("E: " + System.nanoTime() + " - " + System.currentTimeMillis());
         assertTrue(true);
     }
     
     @Test
     public void testSleep1s() {
-        System.err.println("S: " + System.nanoTime() + " - " + System.currentTimeMillis());
-        for (int i = 1; i <= 10000; i++) {
+        System.err.println("Sleep 1s = 100us x10000 times  start: " + System.nanoTime() + " - " + System.currentTimeMillis());
+        for (int i = 1; i <= 10_000; i++) {
             long n = System.nanoTime();
             long m = System.currentTimeMillis();
             long s = System.nanoTime();
-            SleepTool.sleepSpinning(100000);
+            // Sleep 100 us
+            SleepTool.sleep(100_000L);
             long t = System.nanoTime() - s;
             if (i % 1000 == 0)
                 System.err.println(i + ": " + n + " - " + m + " - " + t);
         }
-        System.err.println("E: " + System.nanoTime() + " - " + System.currentTimeMillis());
         assertTrue(true);
     }
 
     @Test
     public void testSleep5s() {
-        System.err.println("S: " + System.nanoTime() + " - " + System.currentTimeMillis());
-        for (int i = 1; i <= 5; i++) {
+        System.err.println("Sleep 3s = 1s x3 times  start: " + System.nanoTime() + " - " + System.currentTimeMillis());
+        for (int i = 1; i <= 3; i++) {
             long n = System.nanoTime();
             long m = System.currentTimeMillis();
             long s = System.nanoTime();
-            SleepTool.sleep(1000000000);
+            SleepTool.sleep(1000_000_000L);
             long t = System.nanoTime() - s;
             System.err.println(i + ": " + n + " - " + m + " - " + t);
         }
-        System.err.println("E: " + System.nanoTime() + " - " + System.currentTimeMillis());
         assertTrue(true);
     }
 }
