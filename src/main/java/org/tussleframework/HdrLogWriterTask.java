@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -75,7 +75,7 @@ public class HdrLogWriterTask extends TimerTask {
     private int progressCount;
     private volatile long startTime;
 
-    public HdrLogWriterTask(HdrResult hdrResult, int totalTime, int progressIntervals) throws IOException {
+    public HdrLogWriterTask(HdrResult hdrResult, int totalTime, boolean writeHdr, int progressIntervals) throws IOException {
         this.hdrResult = hdrResult;
         this.recorder = new Recorder(Long.MAX_VALUE, 3);
         this.allHistogram = new Histogram(3);
@@ -84,8 +84,10 @@ public class HdrLogWriterTask extends TimerTask {
         this.totalTime = totalTime;
         this.progressIntervals = progressIntervals;
         this.shortName = hdrResult.metricName.length() > 4 ? hdrResult.metricName.substring(0, 4) : hdrResult.metricName;
-        Files.createDirectories(this.hdrFile.getParent());
-        this.writer = new HistogramLogWriter(this.hdrFile.toFile());
+        if (writeHdr) {
+            Files.createDirectories(this.hdrFile.getParent());
+            this.writer = new HistogramLogWriter(this.hdrFile.toFile());
+        }
         /// log("Starting %s - %s", shortName, hdrResult.metricName)
     }
 
@@ -113,8 +115,10 @@ public class HdrLogWriterTask extends TimerTask {
         if (intervalHistogram.getTotalCount() != 0) {
             allHistogram.add(intervalHistogram);
             progressHistogram.add(intervalHistogram);
-            writer.outputIntervalHistogram(intervalHistogram);
-            countWrites.incrementAndGet();
+            if (writer != null) {
+                writer.outputIntervalHistogram(intervalHistogram);
+                countWrites.incrementAndGet();
+            }
         }
         if (startTime == 0) {
             return;
@@ -168,13 +172,15 @@ public class HdrLogWriterTask extends TimerTask {
         progressCount = progressIntervals;
         run();
         /// log("Closing %s", shortName)
-        writer.close();
-        if (countWrites.get() == 0) {
-            try {
-                Files.delete(hdrFile);
-                log("Deleted empty hdr file without records %s", hdrFile);
-            } catch (IOException e) {
-                log("Failed to delete empty hdr file %s", hdrFile);
+        if (writer != null) {
+            writer.close();
+            if (countWrites.get() == 0) {
+                try {
+                    Files.delete(hdrFile);
+                    log("Deleted empty hdr file without records %s", hdrFile);
+                } catch (IOException e) {
+                    log("Failed to delete empty hdr file %s", hdrFile);
+                }
             }
         }
         return result;

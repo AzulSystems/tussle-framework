@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -110,21 +110,22 @@ public class ResultsRecorder implements TimeRecorder {
         }
     }
 
-    public ResultsRecorder(BenchmarkConfig config, double highBound, double percentOfHighBound, double targetRate, int retry, int totalTime) throws IOException {
-        String percentStr = percentOfHighBound < 10 ? "00" + FormatTool.roundFormat(percentOfHighBound) : percentOfHighBound < 100 ? "0" + FormatTool.roundFormat(percentOfHighBound) : FormatTool.roundFormat(percentOfHighBound);
-        String operationName = String.format("op_%s_%s_%d", percentStr, FormatTool.format(targetRate), retry);
+    public ResultsRecorder(BenchmarkConfig config, double percentOfHighBound, double targetRate, int retry, int totalTime, boolean writeHdr) throws IOException {
+        String percentStr = FormatTool.roundFormatPercent(percentOfHighBound);
+        String parameters = String.format("%s_%s_%d", percentStr, FormatTool.format(targetRate), retry);
+        String operationName = String.format("op_%s", parameters);
         intervalLength = config.getIntervalLength();
-        String respHdrFile = String.format("%s/response_time_%s_%s_%d.hlog", config.getHistogramsDir(), percentStr, FormatTool.format(targetRate), retry);
-        HdrResult resp = new HdrResult(operationName, "response_time", respHdrFile, highBound, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
-        responseTimeWriter = new HdrLogWriterTask(resp, totalTime, config.getProgressIntervals());
-        String servHdrFile = String.format("%s/service_time_%s_%s_%d.hlog", config.getHistogramsDir(), percentStr, FormatTool.format(targetRate), retry);
-        HdrResult serv = new HdrResult(operationName, "service_time", servHdrFile, highBound, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
-        serviceTimeWriter = new HdrLogWriterTask(serv, totalTime, config.getProgressIntervals());
-        String errorsHdrFile = String.format("%s/errors_%s_%s_%d.hlog", config.getHistogramsDir(), percentStr, FormatTool.format(targetRate), retry);
-        HdrResult erro = new HdrResult(operationName, "errors", errorsHdrFile, highBound, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
-        errorsWriter = new HdrLogWriterTask(erro, totalTime, config.getProgressIntervals());
+        String respHdrFile = String.format("%s/response_time_%s.hlog", config.getHistogramsDir(), parameters);
+        HdrResult resp = new HdrResult(operationName, "response_time", respHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
+        responseTimeWriter = new HdrLogWriterTask(resp, totalTime, writeHdr, config.getProgressIntervals());
+        String servHdrFile = String.format("%s/service_time_%s.hlog", config.getHistogramsDir(), parameters);
+        HdrResult serv = new HdrResult(operationName, "service_time", servHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
+        serviceTimeWriter = new HdrLogWriterTask(serv, totalTime, writeHdr, config.getProgressIntervals());
+        String errorsHdrFile = String.format("%s/errors_%s.hlog", config.getHistogramsDir(), parameters);
+        HdrResult erro = new HdrResult(operationName, "errors", errorsHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry, null);
+        errorsWriter = new HdrLogWriterTask(erro, totalTime, writeHdr, config.getProgressIntervals());
         if (config.isRawData()) {
-            String rawName = String.format("samples_data_%s_%s_%d.raw", percentStr, FormatTool.format(targetRate), retry);
+            String rawName = String.format("samples_data_%s.raw", parameters);
             rawDataOutputStream = new BufferedOutputStream(new FileOutputStream(new File(config.getHistogramsDir(), rawName)), 128 * 1024 * 1024);
             startTime0 = System.currentTimeMillis();
             rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0).getBytes());
@@ -138,11 +139,6 @@ public class ResultsRecorder implements TimeRecorder {
         timer.cancel();
         if (rawDataOutputStream != null) {
             try {
-                rawDataOutputStream.flush();
-            } catch (IOException e) {
-                ///
-            }
-            try {
                 rawDataOutputStream.close();
             } catch (IOException e) {
                 ///
@@ -154,6 +150,9 @@ public class ResultsRecorder implements TimeRecorder {
     }
 
     public void getResults(List<HdrResult> results) {
+        if (results == null) {
+            return;
+        }
         if (!responseTimeWriter.isEmpty()) {
             results.add(responseTimeWriter.getHdrResult());
         }

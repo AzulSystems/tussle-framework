@@ -80,7 +80,7 @@ public class BasicRunner {
                     log("Resetting benchmark: %s", benchmark.getName());
                     benchmark.reset();
                 }
-                ResultsRecorder resultsRecorder = new ResultsRecorder(benchmarkConfig, 0, 100, targetRate, step, runTime);
+                ResultsRecorder resultsRecorder = new ResultsRecorder(benchmarkConfig, 100, targetRate, step, runTime, true);
                 RunResult runResult;
                 try {
                     log("Reguesting rate %s, warmup %ds, time %ds...", roundFormat(targetRate), warmupTime, runTime);

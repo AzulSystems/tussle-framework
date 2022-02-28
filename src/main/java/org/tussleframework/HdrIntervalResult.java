@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -173,9 +173,6 @@ public class HdrIntervalResult {
                 .actualRate(actualRate)
                 .meanValue(meanValue)
                 .build();
-        if (hdrResult.highBound > 0) {
-            metric.setHighBound(hdrResult.highBound);
-        }
         metricData.add(metric);
         for (int i = 0; i < reportedTypes.length; i++) {
             MetricValue mValue = new MetricValue(reportedTypes[i].name(), valBuffers[i].build().toArray());

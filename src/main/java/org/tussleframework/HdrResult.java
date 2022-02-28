@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -61,7 +61,6 @@ public class HdrResult {
     public String operationName;
     public String metricName;
     public String hdrFile;
-    public double highBound;
     public double targetRate;
     public double actualRate;
     public double histogramFactor;

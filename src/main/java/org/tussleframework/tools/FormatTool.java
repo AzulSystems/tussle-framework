@@ -98,6 +98,13 @@ public class FormatTool {
         return DF[digits].format(n);
     }
 
+    public static String roundFormatPercent(double percentOfHighBound) {
+        if (percentOfHighBound < 10) {
+            return "00" + roundFormat(percentOfHighBound);
+        }
+        return percentOfHighBound < 100 ? "0" + roundFormat(percentOfHighBound) : roundFormat(percentOfHighBound);
+    }
+
     private static final DecimalFormat[] DF;
 
     static {
