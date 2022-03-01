@@ -203,6 +203,7 @@ public class Analyzer {
 
     public static boolean isHistogramFile(String name) {
         return name.endsWith(".hgrm") && !name.contains("processed") ||
+                name.endsWith(".hlog") && !name.contains("processed") && !name.startsWith("hiccup") ||
                 name.startsWith("tlp_stress_metrics") && name.indexOf(".hdr-") > 0;
     }
 
