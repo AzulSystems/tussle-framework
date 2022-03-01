@@ -98,7 +98,7 @@ public class HdrResult {
             sb.append(parts[i]);
         }
         metricName = sb.toString();
-        operationName = nums > 0 ? String.format("op_%d_%s_%d", percentOfHighBound, FormatTool.format(targetRate), retry) : "";
+        operationName = nums > 0 ? String.format("op_%s_%s_%d", FormatTool.roundFormatPercent(percentOfHighBound), FormatTool.format(targetRate), retry) : "";
     }
 
     public static String clearPathAndExtension(String fileName) {

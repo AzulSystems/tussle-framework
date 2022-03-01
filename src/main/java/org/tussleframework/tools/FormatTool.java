@@ -102,7 +102,10 @@ public class FormatTool {
         if (percentOfHighBound < 10) {
             return "00" + roundFormat(percentOfHighBound);
         }
-        return percentOfHighBound < 100 ? "0" + roundFormat(percentOfHighBound) : roundFormat(percentOfHighBound);
+        if (percentOfHighBound < 100) {
+            return "0" + roundFormat(percentOfHighBound);
+        }
+        return roundFormat(percentOfHighBound);
     }
 
     private static final DecimalFormat[] DF;
