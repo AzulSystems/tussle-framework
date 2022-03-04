@@ -2,7 +2,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.tussleframework</groupId>
-    <artifactId>tussle-common</artifactId>
+    <artifactId>tussle-framework</artifactId>
     <version>1.2.4</version>
     <licenses>
         <license>
@@ -14,7 +14,8 @@
             <url>https://opensource.org/licenses/BSD-2-Clause</url>
         </license>
         <license>
-            <name>MIT</name>
+            <name>The MIT License (MIT)</name>
+            <url>https://mit-license.org/</url>
         </license>
     </licenses>
     <properties>
