@@ -47,20 +47,13 @@ import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
-@Data
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
 public class HdrResult {
 
     public String operationName;
     public String metricName;
     public String hdrFile;
+    public String rateUnits;
+    public String timeUnits;
     public double targetRate;
     public double actualRate;
     public double histogramFactor;
@@ -68,7 +61,27 @@ public class HdrResult {
     public int intervalLength;
     public int recordsCount;
     public int retry;
-    public List<HdrIntervalResult> subIntervalHistograms;
+    public Histogram allHistogram = new Histogram(3);
+    public List<HdrIntervalResult> subIntervalHistograms = new ArrayList<>();
+
+    public HdrResult() {
+        ///
+    }
+
+    public HdrResult(String operationName, String metricName, String rateUnits, String timeUnits, String hdrFile, double targetRate, double actualRate, double histogramFactor, double percentOfHighBound, int intervalLength, int recordsCount, int retry) {
+        this.operationName = operationName;
+        this.metricName = metricName;
+        this.rateUnits = rateUnits;
+        this.timeUnits = timeUnits;
+        this.hdrFile = hdrFile;
+        this.targetRate = targetRate;
+        this.actualRate = actualRate;
+        this.histogramFactor  = histogramFactor;
+        this.percentOfHighBound = percentOfHighBound;
+        this.intervalLength = intervalLength;
+        this.recordsCount = recordsCount;
+        this.retry = retry;
+    }
 
     public void detectValues(String fileName) {
         String[] parts = fileName.split("_");
@@ -98,7 +111,17 @@ public class HdrResult {
             sb.append(parts[i]);
         }
         metricName = sb.toString();
-        operationName = nums > 0 ? String.format("op_%s_%s_%d", FormatTool.roundFormatPercent(percentOfHighBound), FormatTool.format(targetRate), retry) : "";
+        int pos = metricName.indexOf('_');
+        if (pos > 0) {
+            operationName = metricName.substring(0, pos);
+            metricName = metricName.substring(pos + 1);
+        } else {
+            operationName = "op";
+        }
+    }
+
+    public String getOpName() {
+        return String.format("%s_%s_%s_%d", operationName, FormatTool.roundFormatPercent(percentOfHighBound), FormatTool.format(targetRate), retry);
     }
 
     public static String clearPathAndExtension(String fileName) {
@@ -135,7 +158,7 @@ public class HdrResult {
     }
 
     public void processHistograms(MetricData metricData, InputStream inputStream, MovingWindowSLE[] sleConfig, Interval[] intervals, double[] percentiles, int mergeHistos) {
-        LoggerTool.log("HdrResult", "processHistogram '%s', operation %s, metricName %s, merge %d adjucent histograms", hdrFile, getOperationName(), metricName, mergeHistos);
+        LoggerTool.log("HdrResult", "processHistogram '%s', operation %s, metricName %s, merge %d adjucent histograms", hdrFile, operationName, metricName, mergeHistos);
         recordsCount = 0;
         try (HistogramLogReader hdrReader = new HistogramLogReader(inputStream)) {
             int nulls = 0;

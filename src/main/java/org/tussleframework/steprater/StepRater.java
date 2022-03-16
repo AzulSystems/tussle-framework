@@ -54,15 +54,15 @@ import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.LoggerTool;
 
-public class StepRaterRunner {
+public class StepRater {
 
-    private static final Logger logger = Logger.getLogger(StepRaterRunner.class.getName());
+    private static final Logger logger = Logger.getLogger(StepRater.class.getName());
 
     static final Exception USAGE = new Exception("Expected args: benchmark-class-name [benchmark-parameters...] [--tussle tussle-parameters...]");
 
     public static void log(String format, Object... args) {
         if (logger.isLoggable(Level.INFO)) {
-            logger.info(String.format("[%s] %s", StepRaterRunner.class.getSimpleName(), String.format(format, args)));
+            logger.info(String.format("[%s] %s", StepRater.class.getSimpleName(), String.format(format, args)));
         }
     }
 
@@ -71,7 +71,7 @@ public class StepRaterRunner {
     }
 
     public static void main(String[] args) throws ClassNotFoundException {
-        new StepRaterRunner().initAndRun(args);
+        new StepRater().initAndRun(args);
     }
 
     public static StepRaterConfig loadTussleConfig(String[] args) throws IOException, ReflectiveOperationException  {
@@ -92,14 +92,14 @@ public class StepRaterRunner {
     protected StepRaterConfig runnerConfig;
     protected String rateUnits = "op/s";
 
-    public StepRaterRunner() {
+    public StepRater() {
     }
 
-    public StepRaterRunner(StepRaterConfig runnerConfig) {
+    public StepRater(StepRaterConfig runnerConfig) {
         this.runnerConfig = runnerConfig;
     }
 
-    public StepRaterRunner(String[] tussleArgs) throws IOException, ReflectiveOperationException  {
+    public StepRater(String[] tussleArgs) throws IOException, ReflectiveOperationException  {
         this.runnerConfig = loadTussleConfig(tussleArgs);
     }
 

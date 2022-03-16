@@ -106,6 +106,7 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws InterruptedException {
+        recorder.startRecording(getOperationName(), "op/s", "ms");
         return getTargetRunner().runWorkload(getOperationName(), targetRate, runTime * 1000, getWorkload(), recorder);
     }
 }

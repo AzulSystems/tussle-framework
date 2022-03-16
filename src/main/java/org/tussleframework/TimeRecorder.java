@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,5 +33,6 @@
 package org.tussleframework;
 
 public interface TimeRecorder {
-    void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, boolean success);
+    void startRecording(String operationName, String rateUnits, String timeUnits);
+    void recordTimes(String operationName, long startTime, long intendedStartTime, long finishTime, boolean success);
 }

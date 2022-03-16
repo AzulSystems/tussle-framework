@@ -32,14 +32,14 @@
 
 package org.tussleframework.examples;
 
-import org.tussleframework.steprater.StepRaterRunner;
+import org.tussleframework.steprater.StepRater;
 import org.tussleframework.tools.LoggerTool;
 
 public class PiBenchmarkStepRaterRunner {
     public static void main(String[] args) {
         LoggerTool.init("benchmark");
         try {
-            new StepRaterRunner().initAndRun(PiBenchmark.class, args);
+            new StepRater().initAndRun(PiBenchmark.class, args);
         } catch (Exception e) {
             e.printStackTrace();
         }

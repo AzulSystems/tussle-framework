@@ -67,6 +67,6 @@ public class PiBenchmark extends WlBenchmark {
 
     @Override
     public String getOperationName() {
-        return "pi_calc";
+        return "pi";
     }
 }

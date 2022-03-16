@@ -90,7 +90,7 @@ public class StepRaterAnalyser extends Analyzer {
     private HashMap<String,ArrayList<HdrResult>> getResultsMap() {
         HashMap<String, ArrayList<HdrResult>> resultsMap = new HashMap<>();
         for (HdrResult result : hdrResults) {
-            String name = result.getMetricName();
+            String name = result.metricName;
             ArrayList<HdrResult> specificResuls;
             if (resultsMap.containsKey(name)) {
                 specificResuls = resultsMap.get(name);
@@ -145,8 +145,8 @@ public class StepRaterAnalyser extends Analyzer {
             ArrayList<String> xValuesBuff = new ArrayList<>();
             int empyCount = 0;
             for (HdrResult result: specificResuls) {
-                xValuesBuff.add(FormatTool.format(result.getTargetRate()));
-                if (0 == result.getRecordsCount()) {
+                xValuesBuff.add(FormatTool.format(result.targetRate));
+                if (0 == result.recordsCount) {
                     empyCount++;
                     continue;
                 }

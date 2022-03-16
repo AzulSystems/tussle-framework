@@ -69,12 +69,12 @@ public class HdrIntervalResult {
         return reportedTypes[index];
     }
 
-    private MovingWindowSLE[] sleConfig;
     private Metric metric;
     private Interval interval;
     private Histogram histogram;
     private double histogramFactor;
     private double[] movingWindowMax;
+    private MovingWindowSLE[] sleConfig;
     private DoubleStream.Builder[] valBuffers;
     private DoubleStream.Builder[] mwBuffValues;
     private DoubleStream.Builder[] mwBuffCounts;
@@ -150,7 +150,6 @@ public class HdrIntervalResult {
     }
 
     public void processHistogram(HdrResult hdrResult, MetricData metricData, double[] percentiles, int mergeHistos) {
-        String opName = hdrResult.getOperationName();
         String metricIntervalName = (hdrResult.metricName + " " + interval.name).trim();
         long totalCount = histogram.getTotalCount();
         long start = histogram.getStartTimeStamp();
@@ -164,7 +163,7 @@ public class HdrIntervalResult {
         metric = Metric.builder()
                 .name(metricIntervalName)
                 .units("ms")
-                .operation(opName)
+                .operation(hdrResult.operationName)
                 .start(start)
                 .finish(finish)
                 .delay(hdrResult.intervalLength * mergeHistos)
@@ -199,7 +198,7 @@ public class HdrIntervalResult {
             Metric mwMetric = Metric.builder()
                     .name(mwMetricName)
                     .units("ms")
-                    .operation(opName)
+                    .operation(hdrResult.operationName)
                     .start(start)
                     .finish(finish)
                     .delay(hdrResult.intervalLength)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,7 +32,9 @@
 
 package org.tussleframework;
 
-import static org.tussleframework.tools.FormatTool.*;
+import static org.tussleframework.tools.FormatTool.parseTimeLength;
+import static org.tussleframework.tools.FormatTool.parseValue;
+import static org.tussleframework.tools.FormatTool.roundFormat;
 
 import java.lang.reflect.Constructor;
 import java.util.logging.Level;
@@ -92,18 +94,19 @@ public class BasicRunner {
                 logResult(runResult, resultsRecorder, benchmarkConfig.getHistogramFactor(), step);
             }
             benchmark.cleanup();
-            if (benchmarkConfig.isMakeReport()) {
-                AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-                analyzerConfig.setMakeReport(benchmarkConfig.isMakeReport());
-                analyzerConfig.setResultsDir(benchmarkConfig.getHistogramsDir());
-                analyzerConfig.setReportDir(benchmarkConfig.getReportDir());
-                try {
-                    new Analyzer().processResults(analyzerConfig);
-                } catch (Exception e) {
-                }
-            }
         } catch (Exception e) {
             LoggerTool.logException(logger, e);
+            return;
+        }
+        if (benchmarkConfig.isMakeReport()) {
+            AnalyzerConfig analyzerConfig = new AnalyzerConfig();
+            analyzerConfig.setMakeReport(benchmarkConfig.isMakeReport());
+            analyzerConfig.setResultsDir(benchmarkConfig.getHistogramsDir());
+            analyzerConfig.setReportDir(benchmarkConfig.getReportDir());
+            try {
+                new Analyzer().processResults(analyzerConfig);
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -114,19 +117,14 @@ public class BasicRunner {
         log("Time: %s s", roundFormat(runResult.time / 1000d));
         log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits != null ? runResult.rateUnits : "");
         log("Errors: %d", runResult.errors);
-        Histogram h1 = resultsRecorder.responseTimeWriter.getAllHistogram();
-        if (h1.getTotalCount() > 0) {
-            for (int i = 0; i < basicPercentiles.length; i++) {
-                log("%sth percentile response time: %s ms", roundFormat(basicPercentiles[i]), roundFormat(h1.getValueAtPercentile(basicPercentiles[i]) / histogramFactor));
+        resultsRecorder.getResults().forEach(result -> {
+            Histogram h = result.allHistogram;
+            if (h.getTotalCount() > 0) {
+                for (int i = 0; i < basicPercentiles.length; i++) {
+                    log("%s %s %sp: %s ms", result.operationName, result.metricName, roundFormat(basicPercentiles[i]), roundFormat(h.getValueAtPercentile(basicPercentiles[i]) / histogramFactor), result.timeUnits);
+                }
+                log("%s %s mean: %s ms", result.operationName, result.metricName, roundFormat(h.getMean() / histogramFactor), result.timeUnits);
             }
-            log("Mean response time: %s ms", roundFormat(h1.getMean() / histogramFactor));
-        }
-        Histogram h2 = resultsRecorder.serviceTimeWriter.getAllHistogram();
-        if (h2.getTotalCount() > 0) {
-            for (int i = 0; i < basicPercentiles.length; i++) {
-                log("%sth percentile service time: %s ms", roundFormat(basicPercentiles[i]), roundFormat(h2.getValueAtPercentile(basicPercentiles[i]) / histogramFactor));
-            }
-            log("Mean service time: %s ms", roundFormat(h2.getMean() / histogramFactor));
-        }
+        });
     }
 }
