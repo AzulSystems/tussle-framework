@@ -121,7 +121,7 @@ public class BasicRunner {
             Histogram h = result.allHistogram;
             if (h.getTotalCount() > 0) {
                 for (int i = 0; i < basicPercentiles.length; i++) {
-                    log("%s %s %sp: %s ms", result.operationName, result.metricName, roundFormat(basicPercentiles[i]), roundFormat(h.getValueAtPercentile(basicPercentiles[i]) / histogramFactor), result.timeUnits);
+                    log("%s %s p%s: %s ms", result.operationName, result.metricName, roundFormat(basicPercentiles[i]), roundFormat(h.getValueAtPercentile(basicPercentiles[i]) / histogramFactor), result.timeUnits);
                 }
                 log("%s %s mean: %s ms", result.operationName, result.metricName, roundFormat(h.getMean() / histogramFactor), result.timeUnits);
             }
