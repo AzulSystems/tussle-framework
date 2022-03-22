@@ -361,7 +361,7 @@ public class Analyzer {
 
     public void processResultHistograms(String fileName, InputStream inputStream) {
         log("Processing histogram file '%s'...", fileName);
-        HdrResult result = HdrResult.getIterationResult(fileName);
+        HdrResult result = HdrResult.getIterationResult(fileName, analyzerConfig.opName);
         addAndProcessHistograms(result, inputStream);
     }
 

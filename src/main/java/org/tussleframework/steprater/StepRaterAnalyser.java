@@ -34,11 +34,11 @@ package org.tussleframework.steprater;
 
 import static org.tussleframework.HdrIntervalResult.reportedType;
 import static org.tussleframework.HdrIntervalResult.reportedTypeCount;
-import static org.tussleframework.WithException.*;
+import static org.tussleframework.WithException.withException;
+import static org.tussleframework.WithException.wrapException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;

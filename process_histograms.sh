@@ -37,6 +37,7 @@ INT0=${INT0:-${INT0_DEF}}
 MAKE_REPORT=${MAKE_REPORT:-false}
 MH=${MH:-3}
 STEPRATER=${STEPRATER:-false}
+OPNAME=${OPNAME:-op}
 
 while [[ "${1}" == *=* ]]
 do
@@ -66,6 +67,7 @@ metricsConf="
 resultsDir: . 
 makeReport: ${MAKE_REPORT}
 mergeHistos: ${MH}
+opName: ${OPNAME}
 intervals:
 ${INT0}
 ${INT1}

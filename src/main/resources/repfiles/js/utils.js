@@ -30,7 +30,6 @@
  * 
  */
 
-
 // Constants
 
 let c_idx = 1;
@@ -1954,6 +1953,16 @@ function fixMetricFields(metric) {
     metric.highBound = metric.highBound || metric.high_bound;
     metric.units = metric.units || metric.scale; // scale == units
     metric.xunits = metric.xunits || metric.xscale; // xscale == xunits
+    if (metric.targetRate) {
+        metric.operation = metric.operation || 'op';
+        if (metric.percentOfHighBound) {
+            metric.operation += '_' + parseInt(metric.percentOfHighBound);
+        }
+        metric.operation += '_' + parseInt(metric.targetRate);
+        if (metric.retry) {
+            metric.operation += '_' + parseInt(metric.retry);
+        }
+    }
     if (!metric.step || metric.step < 0) {
         metric.step = 0;
     }

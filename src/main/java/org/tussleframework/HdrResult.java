@@ -64,6 +64,11 @@ public class HdrResult {
     public Histogram allHistogram = new Histogram(3);
     public List<HdrIntervalResult> subIntervalHistograms = new ArrayList<>();
 
+    private static String responseTime = "response_time";
+    private static String serviceTime = "service_time";
+    private static String responseTime2 = "response-time";
+    private static String serviceTime2 = "service-time";
+    
     public HdrResult() {
         ///
     }
@@ -83,8 +88,8 @@ public class HdrResult {
         this.retry = retry;
     }
 
-    public void detectValues(String fileName) {
-        String[] parts = fileName.split("_");
+    public void detectValues(String fileName, String defOperationName) {
+        String[] parts = fileName.replace(serviceTime, serviceTime2).replace(responseTime, responseTime2).split("_");
         int nums = 0;
         try {
             retry = Integer.valueOf(parts[parts.length - 1]);
@@ -116,8 +121,9 @@ public class HdrResult {
             operationName = metricName.substring(0, pos);
             metricName = metricName.substring(pos + 1);
         } else {
-            operationName = "op";
+            operationName = defOperationName;
         }
+        metricName = metricName.replace(serviceTime2, serviceTime).replace(responseTime2, responseTime);
     }
 
     public String getOpName() {
@@ -136,7 +142,7 @@ public class HdrResult {
         return fileName;
     }
 
-    public static HdrResult getIterationResult(String fileName) {
+    public static HdrResult getIterationResult(String fileName, String defOperationName) {
         HdrResult result = new HdrResult();
         result.hdrFile = fileName;
         result.intervalLength = 1000;
@@ -146,13 +152,13 @@ public class HdrResult {
             result.operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
             if (result.operationName.startsWith("INTENDED-")) {
                 result.operationName = result.operationName.substring("INTENDED-".length());
-                result.metricName = "response_time";
+                result.metricName = responseTime;
             } else {
-                result.metricName = "service_time";
+                result.metricName = serviceTime;
             }
         } else {
             result.histogramFactor = 1000_000;
-            result.detectValues(clearPathAndExtension(fileName));
+            result.detectValues(clearPathAndExtension(fileName), defOperationName);
         }
         return result;
     }

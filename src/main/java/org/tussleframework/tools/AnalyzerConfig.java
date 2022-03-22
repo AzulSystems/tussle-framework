@@ -49,6 +49,7 @@ public class AnalyzerConfig implements AbstractConfig {
     public String resultsDir = "./results";
     public String reportDir = "./report";
     public String highBound = "0";
+    public String opName = "op";
     public MovingWindowSLE[] sleConfig = {};
     public Interval[] intervals = {};
 
