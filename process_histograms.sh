@@ -36,13 +36,20 @@ INT0_DEF="start: 0, finish: 36000, name: ''"
 INT0=${INT0:-${INT0_DEF}}
 MAKE_REPORT=${MAKE_REPORT:-false}
 MH=${MH:-3}
+STEPRATER=${STEPRATER:-false}
 
 while [[ "${1}" == *=* ]]
 do
-export "${1}"
-echo "Exported: '${1}'"
-shift
+    export "${1}"
+    echo "Exported: '${1}'"
+    shift
 done
+
+if  [[ "${1}" == STEPRATER ]]
+then
+    STEPRATER=true
+    shift
+fi
 
 RES_DIR=${RES_DIR:-${1:-.}}
 
@@ -70,6 +77,9 @@ ${SLE2}
 ${SLE3}
 "
 
+analyzer=org.tussleframework.tools.Analyzer
+[[ "${STEPRATER}" == true ]] && analyzer=org.tussleframework.steprater.StepRaterAnalyser
+
 process_dir() {
     local res_dir=$1
     local run_props=$( find "${res_dir}" -type f -name "run.properties.json" )
@@ -80,7 +90,7 @@ process_dir() {
         echo "No any run.properties found. Processing topmost results dir: ${resultsDir} ..."
         (
         cd "${resultsDir}" && \
-        java -cp ${BASE_DIR}/tussle-framework-*.jar org.tussleframework.tools.Analyzer -s "${metricsConf}"
+        java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
         return
     fi
@@ -90,7 +100,7 @@ process_dir() {
         echo "Processing results dir: ${resultsDir} ..."
         (
         cd "${resultsDir}" && \
-        java -cp ${BASE_DIR}/tussle-framework-*.jar org.tussleframework.tools.Analyzer -s "${metricsConf}"
+        java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
     done
 }

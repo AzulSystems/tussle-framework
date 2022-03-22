@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -38,6 +38,7 @@ import static org.tussleframework.WithException.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -87,10 +88,10 @@ public class StepRaterAnalyser extends Analyzer {
         printResults();
     }
 
-    private HashMap<String,ArrayList<HdrResult>> getResultsMap() {
+    private HashMap<String, ArrayList<HdrResult>> getResultsMap() {
         HashMap<String, ArrayList<HdrResult>> resultsMap = new HashMap<>();
         for (HdrResult result : hdrResults) {
-            String name = result.metricName;
+            String name = result.operationName + " " + result.metricName;
             ArrayList<HdrResult> specificResuls;
             if (resultsMap.containsKey(name)) {
                 specificResuls = resultsMap.get(name);
@@ -106,29 +107,29 @@ public class StepRaterAnalyser extends Analyzer {
 
     public void processSummary() {
         MovingWindowSLE[] sleConfig = analyzerConfig.sleConfig;
-        // split results by metric names: response_time, service_time, etc.
+        // split results by operation and metric names: reads response_time, reads service_time, writes response_time, etc.
         HashMap<String, ArrayList<HdrResult>> resultsMap = getResultsMap();
         // process each metric group separately
-        resultsMap.forEach((metricName, specificResuls) -> {
+        resultsMap.forEach((opAndMetricName, specificResults) -> {
             ArrayList<MovingWindowSLE> unprocessedSlaConfig = new ArrayList<>();
             Collections.addAll(unprocessedSlaConfig, sleConfig);
             ArrayList<Marker> slaMarkers = new ArrayList<>();
             HashMap<String, Double> slaBroken = new HashMap<>();
-            for (HdrResult result : specificResuls) {
+            for (HdrResult result : specificResults) {
                 Iterator<MovingWindowSLE> iterator = unprocessedSlaConfig.iterator();
                 while (iterator.hasNext()) {
                     MovingWindowSLE sla = iterator.next();
                     if (!result.checkSLE(sla)) {
-                        log(metricName + " SLA for " + sla + " broken on " + result.targetRate + " msgs/s");
+                        log(opAndMetricName + " SLA for " + sla + " broken on " + result.targetRate + " msgs/s");
                         iterator.remove();
                         slaBroken.put(sla.longName(), result.targetRate);
-                        slaMarkers.add(new Marker(sla.nameWithMax(), result.targetRate,sla. maxValue));
+                        slaMarkers.add(new Marker(sla.nameWithMax(), result.targetRate, sla.maxValue));
                     }
                 }
             }
             for (int i = 0; i < unprocessedSlaConfig.size(); i++) {
                 MovingWindowSLE sla = unprocessedSlaConfig.get(i);
-                log(metricName + " SLA for " + sla + " was not broken");
+                log(opAndMetricName + " SLA for " + sla + " was not broken");
             }
             DoubleStream.Builder[] valBuffersHdr = new DoubleStream.Builder[reportedTypeCount()];
             DoubleStream.Builder[] valBuffersMax = new DoubleStream.Builder[reportedTypeCount()];
@@ -144,7 +145,7 @@ public class StepRaterAnalyser extends Analyzer {
             }
             ArrayList<String> xValuesBuff = new ArrayList<>();
             int empyCount = 0;
-            for (HdrResult result: specificResuls) {
+            for (HdrResult result : specificResults) {
                 xValuesBuff.add(FormatTool.format(result.targetRate));
                 if (0 == result.recordsCount) {
                     empyCount++;
@@ -169,28 +170,30 @@ public class StepRaterAnalyser extends Analyzer {
                 }
             }
             log("findConformingRate - empyCount=" + empyCount);
-            if (empyCount == specificResuls.size()) {
+            if (empyCount == specificResults.size()) {
                 return;
             }
-            String units = "op/s";
+            HdrResult specificResult = specificResults.stream().filter(result -> result.recordsCount > 0).findFirst().get();
             String[] xValues = xValuesBuff.toArray(EMPT);
             Metric mHdr = Metric.builder()
-                    .name(metricName)
+                    .name(specificResult.metricName + " summary_hdr")
+                    .operation(specificResult.operationName)
                     .units("ms")
-                    .xunits(units)
-                    .operation("summary_hdr")
-                    .xValues(xValues).build();
+                    .xunits(specificResult.rateUnits)
+                    .xValues(xValues)
+                    .build();
             Metric mMax = Metric.builder()
-                    .name(metricName)
+                    .name(specificResult.metricName + " summary_max")
+                    .operation(specificResult.operationName)
                     .units("ms")
-                    .xunits(units)
-                    .operation("summary_max")
-                    .xValues(xValues).build();
+                    .xunits(specificResult.rateUnits)
+                    .xValues(xValues)
+                    .build();
             Metric mAvg = Metric.builder()
-                    .name(metricName)
+                    .name(specificResult.metricName + " summary_avg" )
+                    .operation(specificResult.operationName)
                     .units("ms")
-                    .xunits(units)
-                    .operation("summary_avg")
+                    .xunits(specificResult.rateUnits)
                     .xValues(xValues).build();
             for (int i = 0; i < reportedTypeCount(); i++) {
                 mHdr.add(new MetricValue(reportedType(i).name(), valBuffersHdr[i].build().toArray()));
@@ -200,33 +203,37 @@ public class StepRaterAnalyser extends Analyzer {
             metricData.add(mHdr);
             metricData.add(mMax);
             metricData.add(mAvg);
-            double maxRate = specificResuls.get(specificResuls.size() - 1).targetRate;
+            double maxRate = specificResults.get(specificResults.size() - 1).targetRate;
             String[] slaTypes = getTypes(sleConfig);
             for (int i = 0; i < sleConfig.length; i++) {
                 MovingWindowSLE sla = sleConfig[i];
-                String suff = " (" + metricName.substring(0, 4) + ")";
                 String slaName = sla.longName();
+                String oName = specificResult.operationName + " " + slaName;
+                String mName = specificResult.metricName;
                 if (slaBroken.containsKey(slaName)) {
                     metricData.add(Metric.builder()
-                            .name("conforming_rate")
-                            .units(units)
-                            .operation(slaName + suff)
-                            .value(slaBroken.get(slaName)).build());
+                            .name(mName + " conforming_rate")
+                            .operation(oName)
+                            .units(specificResult.rateUnits)
+                            .value(slaBroken.get(slaName))
+                            .build());
                 } else {
                     metricData.add(Metric.builder()
-                            .name("conforming_rate")
-                            .units(units)
-                            .operation(slaName + suff + " (unbroken)")
-                            .value(maxRate).build());
+                            .name(mName + " conforming_rate (unbroken)")
+                            .operation(oName)
+                            .units(specificResult.rateUnits)
+                            .value(maxRate)
+                            .build());
                 }
                 metricData.add(Metric.builder()
-                        .name(metricName)
+                        .name(mName + " summary_max")
+                        .operation(oName)
                         .units("ms")
-                        .xunits(units)
+                        .xunits(specificResult.rateUnits)
                         .xValues(xValues)
-                        .operation(slaName + " summary_max")
-                        .group("mw summary_max" + suff)
-                        .build().add(new MetricValue(slaTypes[i], valBuffersMW[i].build().toArray())));
+                        .group(opAndMetricName + " mw_summary_max")
+                        .build()
+                        .add(new MetricValue(slaTypes[i], valBuffersMW[i].build().toArray())));
             }
             mHdr.setMarkers(slaMarkers);
             mMax.setMarkers(slaMarkers);

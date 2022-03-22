@@ -45,6 +45,7 @@ public class Metric {
     protected Long finish;
     protected Long totalValues;
     protected Integer delay;
+    protected Integer retry;
     protected String name;
     protected String host;
     protected String type;
@@ -57,6 +58,7 @@ public class Metric {
     protected Double actualRate;
     protected Double value;
     protected Double meanValue;
+    protected Double percentOfHighBound;
     protected String[] xValues;
     protected ArrayList<Marker> markers;
     protected ArrayList<MetricValue> metricValues;
