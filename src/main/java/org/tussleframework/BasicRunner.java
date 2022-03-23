@@ -106,6 +106,7 @@ public class BasicRunner {
             try {
                 new Analyzer().processResults(analyzerConfig);
             } catch (Exception e) {
+                log("Analyzer failed to process results: %s", e.toString());
             }
         }
     }
