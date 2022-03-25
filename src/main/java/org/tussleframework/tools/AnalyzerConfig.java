@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -44,7 +44,7 @@ import lombok.Data;
 public class AnalyzerConfig implements AbstractConfig {
     public int mergeHistos = 1;
     public boolean doc = true;
-    public boolean makeReport = true;
+    public boolean makeReport = false;
     public boolean allPercentiles = true;
     public String resultsDir = "./results";
     public String reportDir = "./report";

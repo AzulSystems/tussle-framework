@@ -61,7 +61,7 @@ public class TargetRunnerST implements TargetRunner {
     }
 
     @Override
-    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) {
+    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws Exception {
         if (runTime <= 0) {
             return null;
         }
@@ -75,17 +75,13 @@ public class TargetRunnerST implements TargetRunner {
         long startTime = startRunTime;
         while (startTime < finishRunTime) {
             long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
-            boolean success = false;
-            try {
-                success = workload.call();
-            } catch (Exception e) {
-            }
+            boolean success = workload.call();
             long finishTime = System.nanoTime();
             if (recorder != null) {
-                recorder.recordTimes(operationName, startTime + timeOffset, throttled ? intendedStartTime + timeOffset : 0, finishTime + timeOffset, success);
+                recorder.recordTimes(operationName, startTime + timeOffset, throttled ? intendedStartTime + timeOffset : 0, finishTime + timeOffset, 1, success);
             }
             if (throttled) {
-                long intendedNextStartTime = (long) (startRunTime + (opIndex + 1) * delayBetweenOps);
+                long intendedNextStartTime = (startRunTime + (opIndex + 1) * delayBetweenOps);
                 SleepTool.sleepUntil(intendedNextStartTime);
             }
             opIndex++;

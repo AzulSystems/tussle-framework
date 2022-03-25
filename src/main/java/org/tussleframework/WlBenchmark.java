@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -58,6 +58,7 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     public abstract RunnableWithError getWorkload();
+
     public abstract String getOperationName();
 
     @Override
@@ -85,9 +86,9 @@ public abstract class WlBenchmark implements Benchmark {
                 doSomeWork(targetRate, warmupTime, null);
             }
             return doSomeWork(targetRate, runTime, recorder);
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             Thread.currentThread().interrupt();
-            return RunResult.builder().runError(e).build(); 
+            return RunResult.builder().runError(e).build();
         }
     }
 
@@ -105,8 +106,10 @@ public abstract class WlBenchmark implements Benchmark {
         }
     }
 
-    protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws InterruptedException {
+    protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws Exception {
         recorder.startRecording(getOperationName(), "op/s", "ms");
-        return getTargetRunner().runWorkload(getOperationName(), targetRate, runTime * 1000, getWorkload(), recorder);
+        RunResult result = getTargetRunner().runWorkload(getOperationName(), targetRate, runTime * 1000, getWorkload(), recorder);
+        recorder.stopRecording();
+        return result;
     }
 }

@@ -34,5 +34,6 @@ package org.tussleframework;
 
 public interface TimeRecorder {
     void startRecording(String operationName, String rateUnits, String timeUnits);
-    void recordTimes(String operationName, long startTime, long intendedStartTime, long finishTime, boolean success);
+    void stopRecording();
+    void recordTimes(String operationName, long startTime, long intendedStartTime, long finishTime, long count, boolean success);
 }

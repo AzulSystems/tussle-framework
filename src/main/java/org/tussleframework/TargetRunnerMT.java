@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -60,16 +60,34 @@ public class TargetRunnerMT implements TargetRunner {
     public TargetRunnerMT(int threads) {
         this.threadCount = threads;
     }
+    
+    class ThreadRunner {
+        Exception error;
+        RunResult result;
+        void run(String operationName, double targetPerThread, int runTime, Callable<Boolean> workload, TimeRecorder recorder) {
+            try {
+                result = new TargetRunnerST().runWorkload(operationName, targetPerThread, runTime, workload, recorder);
+            } catch (Exception e) {
+                error = e;
+            }
+        }
+    }
 
     @Override
-    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws InterruptedException {
+    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws Exception {
         log("Starting: target rate %s op/s, time %d ms...", roundFormat(targetRate), runTime);
         final ConcurrentHashMap<Integer, RunResult> runResults = new ConcurrentHashMap<>(threadCount);
         final Thread[] threads = new Thread[threadCount];
+        final Exception[] errors = new Exception[threadCount];
         double targetPerThread = targetRate / threadCount;
         for (int i = 0; i < threadCount; i++) {
             final int idx = i;
-            threads[i] = new Thread(() -> runResults.put(idx, new TargetRunnerST().runWorkload(operationName, targetPerThread, runTime, workload, recorder)));
+            threads[i] = new Thread(() -> {
+                ThreadRunner tr = new ThreadRunner();
+                tr.run(operationName, targetPerThread, runTime, workload, recorder);
+                runResults.put(idx, tr.result);
+                errors[idx] = tr.error;
+            });
         }
         for (Thread thread : threads) {
             thread.start();
@@ -77,6 +95,11 @@ public class TargetRunnerMT implements TargetRunner {
         Thread.sleep(runTime);
         for (Thread thread : threads) {
             thread.join();
+        }
+        for (Exception error : errors) {
+            if (error != null) {
+                throw error;
+            }
         }
         long maxTime = 0;
         long countSum = 0;

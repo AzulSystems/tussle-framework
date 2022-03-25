@@ -83,13 +83,18 @@ public class SleepWlTest {
 //    @Test
     public void testSleepWorkload() {
         int ms = 3000;
-//        sleepWorkload(5, ms);
-        sleepWorkload(10, ms);
-//        sleepWorkload(50, ms);
-//        sleepWorkload(95, ms);
-//        sleepWorkload(99, ms);
-        sleepWorkload(100, ms);
-//        sleepWorkload(120, ms);
+        try {
+//          sleepWorkload(5, ms);
+            sleepWorkload(10, ms);
+//            sleepWorkload(50, ms);
+//            sleepWorkload(95, ms);
+//            sleepWorkload(99, ms);
+            sleepWorkload(100, ms);
+//          sleepWorkload(120, ms);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 
 //    @Test
@@ -114,7 +119,7 @@ public class SleepWlTest {
             sleepWorkloadMT(800, ms, 2);
             sleepWorkloadMT(800, ms, 4);
             sleepWorkloadMT(800, ms, 8);
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             fail();
         }
@@ -125,28 +130,28 @@ public class SleepWlTest {
         int ms = 3000;
         try {
             sleepWorkloadMT(800, ms, 1);
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             fail();
         }
     }
 
-    public void sleepWorkload(double targetRate, int timeInMs) {
+    public void sleepWorkload(double targetRate, int timeInMs) throws Exception {
         RunnableWithError workload = () -> sleep(10);
         runWorkload(targetRate, timeInMs, workload);
     }
 
-    public void sleepWorkloadMT(double targetRate, int timeInMs, int threads) throws InterruptedException {
+    public void sleepWorkloadMT(double targetRate, int timeInMs, int threads) throws Exception {
         RunnableWithError workload = () -> sleep(10);
         runWorkloadMT(targetRate, timeInMs, threads, workload);
     }
 
-    public void sleepRandomWorkloadMT(double targetRate, int timeInMs, int threads) throws InterruptedException {
+    public void sleepRandomWorkloadMT(double targetRate, int timeInMs, int threads) throws Exception {
         RunnableWithError workload = () -> sleepR(10, 1);
         runWorkloadMT(targetRate, timeInMs, threads, workload);
     }
 
-    public void runWorkload(double targetRate, int timeInMs, RunnableWithError workload) {
+    public void runWorkload(double targetRate, int timeInMs, RunnableWithError workload) throws Exception {
         log("runWorkload targetRate=" + targetRate + ", timeInMs=" + timeInMs);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
         double actualThroughput = new TargetRunnerST().runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;
@@ -155,7 +160,7 @@ public class SleepWlTest {
         log(" latency(ms): " + formatPercentiles(timeRecorder.responseTimeRecorder.getIntervalHistogram()));
     }
 
-    public void runWorkloadMT(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws InterruptedException {
+    public void runWorkloadMT(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws Exception {
         log("runWorkloadMT targetRate=" + targetRate + ", timeInMs=" + timeInMs + ". threads=" + threads);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
         double actualThroughput = new TargetRunnerMT(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;
@@ -164,7 +169,7 @@ public class SleepWlTest {
         log(" latency(ms): " + formatPercentiles(timeRecorder.responseTimeRecorder.getIntervalHistogram()));
     }
 
-    public void runWorkloadAsync(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws InterruptedException {
+    public void runWorkloadAsync(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws Exception {
         log("runWorkloadAsync targetRate=" + targetRate + ", timeInMs=" + timeInMs + ". threads=" + threads);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
         double actualThroughput = new TargetRunnerAsync(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;

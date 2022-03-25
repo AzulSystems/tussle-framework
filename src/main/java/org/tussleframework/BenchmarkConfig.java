@@ -83,7 +83,7 @@ public class BenchmarkConfig implements AbstractConfig {
     public void createDirs() {
         File histogramsDirFile = new File(histogramsDir);
         File reportDirFile = new File(reportDir);
-        if (FileTool.isFileOrNonEmptyDir(histogramsDirFile)) {
+        if (FileTool.isFileOrNonEmptyDir(histogramsDirFile) && !FileTool.backupDir(histogramsDirFile)) {
             throw new IllegalArgumentException(String.format("Non-empty histograms dir '%s' already exists", histogramsDirFile));
         }
         if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile)) {

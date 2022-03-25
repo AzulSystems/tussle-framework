@@ -77,7 +77,7 @@ public class BasicRunner {
             int runTime = parseTimeLength(benchmarkConfig.getRunTime());
             int steps = benchmarkConfig.getRunSteps();
             for (int step = 0; step < steps; step++) {
-                log("Benchmark: %s (step: %d)", benchmark.getName(), step + 1);
+                log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
                 if (benchmarkConfig.isReset()) {
                     log("Resetting benchmark: %s", benchmark.getName());
                     benchmark.reset();
@@ -113,7 +113,7 @@ public class BasicRunner {
 
     public void logResult(RunResult runResult, ResultsRecorder resultsRecorder, double histogramFactor, int step) {
         double[] basicPercentiles = { 0, 50, 90, 99, 99.9, 99.99, 100 };
-        log("Results (%d):", step + 1);
+        log("Results (step %d)", step + 1);
         log("Count: %d", runResult.count);
         log("Time: %s s", roundFormat(runResult.time / 1000d));
         log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits != null ? runResult.rateUnits : "");

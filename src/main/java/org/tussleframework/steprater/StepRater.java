@@ -205,7 +205,7 @@ public class StepRater {
     }
 
     public void iterateTargets(Benchmark benchmark, double highBound, double startingRatePercent, double finishingRatePercent, double ratePercentStep, int finerRateSteps, List<HdrResult> results) throws Exception {
-        log("Iterating target rates agains high-bound: %s from %s%% to %s%%, step %s%%...", roundFormat(highBound), roundFormat(startingRatePercent), roundFormat(finishingRatePercent), roundFormat(ratePercentStep));
+        log("Iterating target rates agains high-bound %s from %s%% to %s%%, step %s%%...", roundFormat(highBound), roundFormat(startingRatePercent), roundFormat(finishingRatePercent), roundFormat(ratePercentStep));
         int retry = 0;
         int retriesMax = runnerConfig.getRetriesMax();
         double ratePercent = startingRatePercent;
@@ -287,7 +287,7 @@ public class StepRater {
                 return;
             }
         } else {
-            log("High-bound from setup: " + highBound);
+            log("High-bound from setup: %s", roundFormat(highBound));
         }
         if (highBound > 0) {
             ArrayList<HdrResult> results = new ArrayList<>();

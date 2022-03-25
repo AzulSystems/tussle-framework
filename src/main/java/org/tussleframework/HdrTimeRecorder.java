@@ -40,13 +40,21 @@ public class HdrTimeRecorder implements TimeRecorder {
     public final Recorder errorsRecorder = new Recorder(Long.MAX_VALUE, 3);
 
     @Override
-    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, boolean success) {
+    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
         if (success) {
             if (startTime > 0) {
-                serviceTimeRecorder.recordValue(finishTime - startTime);
+                if (count == 1) {
+                    serviceTimeRecorder.recordValue(finishTime - startTime);
+                } else {
+                    serviceTimeRecorder.recordValueWithCount(finishTime - startTime, count);
+                }
             }
             if (intendedStartTime > 0) {
-                responseTimeRecorder.recordValue(finishTime - intendedStartTime);
+                if (count == 1) {
+                    responseTimeRecorder.recordValue(finishTime - intendedStartTime);
+                } else {
+                    responseTimeRecorder.recordValueWithCount(finishTime - intendedStartTime, count);
+                }
             }
         } else {
             errorsRecorder.recordValue(finishTime - intendedStartTime);
@@ -55,6 +63,11 @@ public class HdrTimeRecorder implements TimeRecorder {
 
     @Override
     public void startRecording(String operation, String rateUnits, String timeUnits) {
+        ///
+    }
+
+    @Override
+    public void stopRecording() {
         ///
     }
 }

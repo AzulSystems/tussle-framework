@@ -95,9 +95,13 @@ public class HdrLogWriterTask extends TimerTask {
         this.startTime = startTime;
     }
 
-    public void recordTime(long value) {
+    public void recordTime(long value, long count) {
         if (value > 0) {
-            recorder.recordValue(value);
+            if (count == 1) {
+                recorder.recordValue(value);
+            } else {
+                recorder.recordValueWithCount(value, count);
+            }
         }
     }
 
@@ -115,8 +119,9 @@ public class HdrLogWriterTask extends TimerTask {
         if (intervalHistogram.getTotalCount() != 0) {
             hdrResult.allHistogram.add(intervalHistogram);
             progressHistogram.add(intervalHistogram);
-            if (writer != null) {
-                writer.outputIntervalHistogram(intervalHistogram);
+            HistogramLogWriter w = this.writer;
+            if (w != null) {
+                w.outputIntervalHistogram(intervalHistogram);
                 countWrites.incrementAndGet();
             }
         }
@@ -169,15 +174,17 @@ public class HdrLogWriterTask extends TimerTask {
     @Override
     public boolean cancel() {
         boolean result = super.cancel();
-        progressCount = progressIntervals;
-        run();
+//        progressCount = progressIntervals;
+//        run();
         /// log("Closing %s", shortName)
-        if (writer != null) {
-            writer.close();
+        HistogramLogWriter w = this.writer;
+        this.writer = null;
+        if (w != null) {
+            w.close();
             if (countWrites.get() == 0) {
                 try {
                     Files.delete(hdrFile);
-                    log("Deleted empty hdr file without records %s", hdrFile);
+                    /// log("Deleted empty hdr file without records %s", hdrFile)
                 } catch (IOException e) {
                     log("Failed to delete empty hdr file %s", hdrFile);
                 }

@@ -92,7 +92,7 @@ public class TargetRunnerAsync implements TargetRunner {
                 errorsCount.incrementAndGet();
             }
             if (recorder != null) {
-                recorder.recordTimes(operation, startTime + timeOffset, intendedStartTime + timeOffset, finishTime + timeOffset, success);
+                recorder.recordTimes(operation, startTime + timeOffset, intendedStartTime + timeOffset, finishTime + timeOffset, 1, success);
             }
         }
     }

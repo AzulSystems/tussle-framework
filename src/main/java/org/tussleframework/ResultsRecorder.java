@@ -83,20 +83,21 @@ class OperationsRecorder {
         }
     }
 
-    void recordTimes(long startTime, long intendedStartTime, long finishTime, boolean success) {
+    void recordTimes(long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
         if (success) {
             if (startTime > 0) {
-                serviceTimeWriter.recordTime(finishTime - startTime);
+                serviceTimeWriter.recordTime(finishTime - startTime, count);
             }
             if (intendedStartTime > 0) {
-                responseTimeWriter.recordTime(finishTime - intendedStartTime);
+                responseTimeWriter.recordTime(finishTime - intendedStartTime, count);
             }
         } else {
-            errorsWriter.recordTime(finishTime - startTime);
+            errorsWriter.recordTime(finishTime - startTime, count);
         }
-        if (rawDataOutputStream != null) {
+        OutputStream rawStream = this.rawDataOutputStream;
+        if (rawStream != null) {
             try {
-                rawDataOutputStream.write(String.format("%d,%d,%d,%d,%d,%d,%s%n"
+                rawStream.write(String.format("%d,%d,%d,%d,%d,%d,%s%n"
                         , startTime > 0 ? (startTime - startTime0) / NS_IN_US : -1
                         , intendedStartTime > 0 ? (intendedStartTime - startTime0) / NS_IN_US : -1
                         , (finishTime - startTime0) / NS_IN_US
@@ -107,11 +108,11 @@ class OperationsRecorder {
             } catch (IOException e) {
                 LoggerTool.logException(null, e);
                 try {
-                    rawDataOutputStream.close();
+                    rawStream.close();
                 } catch (IOException e2) {
                     ///
                 }
-                rawDataOutputStream = null;
+                this.rawDataOutputStream = null;
             }
         }
     }
@@ -126,9 +127,11 @@ class OperationsRecorder {
     }
 
     void cancel() {
-        if (rawDataOutputStream != null) {
+        OutputStream rawStream = this.rawDataOutputStream;
+        this.rawDataOutputStream = null;
+        if (rawStream != null) {
             try {
-                rawDataOutputStream.close();
+                rawStream.close();
             } catch (IOException e) {
                 ///
             }
@@ -188,9 +191,14 @@ public class ResultsRecorder implements TimeRecorder {
     }
 
     @Override
-    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, boolean success) {
+    public void stopRecording() {
+        cancel();
+    }
+
+    @Override
+    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
         startRecording();
-        operationsMap.get(operation).recordTimes(startTime, intendedStartTime, finishTime, success);
+        operationsMap.get(operation).recordTimes(startTime, intendedStartTime, finishTime, count, success);
     }
 
     public ResultsRecorder(BenchmarkConfig config, double percentOfHighBound, double targetRate, int retry, int totalTime, boolean writeHdr) {

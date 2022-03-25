@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -50,5 +50,21 @@ public class FileTool {
         } else {
             return false;
         }
+    }
+
+    public static boolean backupDir(File fileDir) {
+        if (!fileDir.isDirectory()) {
+            return false;
+        }
+        int i = 1;
+        File dir = new File(fileDir.getParent(), String.format("%s.%d", fileDir.getName(), i));
+        while (dir.exists()) {
+            if (i == 1000) {
+                return false;
+            }
+            i++;
+            dir = new File(fileDir.getParent(), String.format("%s.%d", fileDir.getName(), i));
+        }
+        return fileDir.renameTo(dir);
     }
 }
