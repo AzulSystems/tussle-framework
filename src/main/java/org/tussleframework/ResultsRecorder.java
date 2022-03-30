@@ -79,7 +79,7 @@ class OperationsRecorder {
             startTime0 = System.currentTimeMillis();
             rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0).getBytes());
             startTime0 *= NS_IN_MS;
-            rawDataOutputStream.write(String.format("operation,startTime(us),intendedStartTime(us),finishTime(us),success,finishTime-startTime(us),finishTime-intendedStartTime(us),threadName%n").getBytes());
+            rawDataOutputStream.write(String.format("startTime(us),intendedStartTime(us),finishTime(us),count,finishTime-startTime(us),finishTime-intendedStartTime(us),threadName%n").getBytes());
         }
     }
 
@@ -101,7 +101,7 @@ class OperationsRecorder {
                         , startTime > 0 ? (startTime - startTime0) / NS_IN_US : -1
                         , intendedStartTime > 0 ? (intendedStartTime - startTime0) / NS_IN_US : -1
                         , (finishTime - startTime0) / NS_IN_US
-                        , success ? 1 : 0
+                        , count
                         , startTime > 0 && finishTime > startTime ? (finishTime - startTime) / NS_IN_US : -1
                         , intendedStartTime > 0 && finishTime > intendedStartTime ? (finishTime - intendedStartTime) / NS_IN_US : -1
                         , Thread.currentThread().getName()).getBytes());
