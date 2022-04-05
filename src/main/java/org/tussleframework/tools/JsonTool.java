@@ -63,11 +63,16 @@ public class JsonTool {
      * Read object from json file (stream)
      */
     public static <T> T readJson(InputStream in, Class<T> klass) throws Exception {
-        ObjectReader objectReader = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                .reader();
-        return objectReader.readValue(in, klass);
+        return readJson(in, klass, false, true);
     }
 
+    public static <T> T readJson(InputStream in, Class<T> klass, boolean failOnUnknownProperties, boolean snakeCase) throws Exception {
+        ObjectMapper mapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, failOnUnknownProperties);
+        if (snakeCase) {
+            mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        }
+        ObjectReader objectReader = mapper.reader();
+        return objectReader.readValue(in, klass);
+    }
 }

@@ -162,29 +162,21 @@ public class ResultsRecorder implements TimeRecorder {
     private Map<String, OperationsRecorder> operationsMap = new HashMap<>();
     private Timer timer = new Timer();
     private BenchmarkConfig config;
-    private volatile boolean recordingStarted;
     private boolean writeHdr;
     private double percentOfHighBound;
     private double targetRate;
     private int totalTime;
     private int retry;
 
-    private void startRecording() {
-        if (!recordingStarted) {
-            synchronized (this) {
-                if (!recordingStarted) {
-                    recordingStarted = true;
-                    long startTime = System.currentTimeMillis();
-                    operationsMap.forEach((s, r) -> r.startRecording(timer, startTime));
-                }
-            }
-        }
-    }
-
     @Override
     public void startRecording(String operationName, String rateUnits, String timeUnits) {
+        if (operationsMap.containsKey(operationName)) {
+            throw new RuntimeException("Operation already being recorded: " + operationName);
+        }
         try {
-            operationsMap.put(operationName, new OperationsRecorder(operationName, rateUnits, timeUnits, config, percentOfHighBound, targetRate, retry, totalTime, writeHdr));
+            OperationsRecorder opRecorder = new OperationsRecorder(operationName, rateUnits, timeUnits, config, percentOfHighBound, targetRate, retry, totalTime, writeHdr);
+            operationsMap.put(operationName, opRecorder);
+            opRecorder.startRecording(timer, System.currentTimeMillis());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -197,7 +189,6 @@ public class ResultsRecorder implements TimeRecorder {
 
     @Override
     public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
-        startRecording();
         operationsMap.get(operation).recordTimes(startTime, intendedStartTime, finishTime, count, success);
     }
 

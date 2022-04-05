@@ -52,6 +52,8 @@ import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.processors.DiskstatProcessor;
 import org.tussleframework.tools.processors.HiccupProcessor;
 import org.tussleframework.tools.processors.IpstatProcessor;
+import org.tussleframework.tools.processors.MpstatProcessor;
+import org.tussleframework.tools.processors.OMBProcessor;
 import org.tussleframework.tools.processors.RunPropertiesProcessor;
 import org.tussleframework.tools.processors.SamplesProcessor;
 import org.tussleframework.tools.processors.TLPStressProcessor;
@@ -215,6 +217,10 @@ public class Analyzer {
         return name.startsWith("samples") && name.endsWith(".csv");
     }
 
+    public static boolean isOMBFile(String name) {
+        return name.startsWith("workload") && name.indexOf("OMB") >= 0 && name.endsWith(".json");
+    }
+
     public static boolean isResultsFile(String fileName) {
         return isRunPropertiesFile(fileName)
                 || isTopFile(fileName)
@@ -224,7 +230,8 @@ public class Analyzer {
                 || isHiccupFile(fileName)
                 || isHistogramFile(fileName)
                 || isTLPStressResults(fileName)
-                || isSamplesFile(fileName);
+                || isSamplesFile(fileName)
+                || isOMBFile(fileName);
     }
 
     public boolean processResultsStream(InputStream inputStream, String host, String fileName) {
@@ -234,7 +241,7 @@ public class Analyzer {
         } else if (isTopFile(fileName)) {
             new TopProcessor().processData(metricData, inputStream, host, logger);
         } else if (isMpstatFile(fileName)) {
-            /// TODO
+            new MpstatProcessor().processData(metricData, inputStream, host, logger);
         } else if (isDiskstatFile(fileName)) {
             new DiskstatProcessor().processData(metricData, inputStream, host, logger);
         } else if (isIpstatFile(fileName)) {
@@ -247,6 +254,8 @@ public class Analyzer {
             new TLPStressProcessor().processData(metricData, inputStream, host, logger);
         } else if (isSamplesFile(fileName)) {
             new SamplesProcessor().processData(metricData, inputStream, host, logger);
+        } else if (isOMBFile(fileName)) {
+            new OMBProcessor().processData(metricData, inputStream, host, logger);
         } else {
             res = false;
         }

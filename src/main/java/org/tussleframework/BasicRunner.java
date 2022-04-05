@@ -77,6 +77,7 @@ public class BasicRunner {
             int runTime = parseTimeLength(benchmarkConfig.getRunTime());
             int steps = benchmarkConfig.getRunSteps();
             for (int step = 0; step < steps; step++) {
+                log("===================================================================");
                 log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
                 if (benchmarkConfig.isReset()) {
                     log("Resetting benchmark: %s", benchmark.getName());

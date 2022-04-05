@@ -276,7 +276,6 @@ public class StepRater {
         if (startupWarmupTime > 0) {
             double warmupTargetRate = parseValue(benchmarkConfig.getTargetRate());
             log("Starting warmup %s %s (%ds)...", roundFormat(warmupTargetRate), rateUnits, startupWarmupTime);
-            benchmark.run(warmupTargetRate, startupWarmupTime, 0, null);
             runSingle(benchmark, warmupTargetRate, startupWarmupTime, 0, 0, 0, null, false, false);
         }
         double highBound = parseValue(runnerConfig.getHighBound());
