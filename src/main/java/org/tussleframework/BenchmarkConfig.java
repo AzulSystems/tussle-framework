@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -57,6 +57,7 @@ public class BenchmarkConfig implements AbstractConfig {
     public String warmupTime = "0"; // sec, test warmup time
     public String reportDir = "./report"; // location for report files
     public String histogramsDir = "./histograms"; // location for histogram (hdr) files
+    public String[] collectOps = {}; // if set collect metrics for only specified operations 
 
     @Override
     public void validate(boolean runMode) {

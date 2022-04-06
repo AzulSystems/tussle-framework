@@ -61,10 +61,10 @@ public class AnalyzerConfig implements AbstractConfig {
         if (runMode) {
             File resultsDirFile = new File(resultsDir);
             File reportDirFile = new File(reportDir);
-            if (FileTool.isFileOrNonEmptyDir(resultsDirFile)) {
+            if (FileTool.isFileOrNonEmptyDir(resultsDirFile) && !FileTool.backupDir(resultsDirFile)) {
                 throw new IllegalArgumentException(String.format("Non-empty results dir '%s' already exists", resultsDirFile));
             }
-            if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile)) {
+            if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile) && !FileTool.backupDir(reportDirFile)) {
                 throw new IllegalArgumentException(String.format("Non-empty report dir '%s' already exists", reportDirFile));
             }
             if (!resultsDirFile.exists() && !resultsDirFile.mkdirs()) {

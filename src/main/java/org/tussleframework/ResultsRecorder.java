@@ -39,9 +39,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 
 import org.tussleframework.tools.FormatTool;
@@ -159,7 +162,8 @@ class OperationsRecorder {
 
 public class ResultsRecorder implements TimeRecorder {
 
-    private Map<String, OperationsRecorder> operationsMap = new HashMap<>();
+    private Map<String, OperationsRecorder> recordingsMap = new HashMap<>();
+    private Set<String> recordingsFilter = new HashSet<>();
     private Timer timer = new Timer();
     private BenchmarkConfig config;
     private boolean writeHdr;
@@ -170,15 +174,18 @@ public class ResultsRecorder implements TimeRecorder {
 
     @Override
     public void startRecording(String operationName, String rateUnits, String timeUnits) {
-        if (operationsMap.containsKey(operationName)) {
-            throw new RuntimeException("Operation already being recorded: " + operationName);
+        if (!recordingsFilter.isEmpty() && !recordingsFilter.contains(operationName)) {
+            return;
+        }
+        if (recordingsMap.containsKey(operationName)) {
+            throw new TussleRuntimeException("Operation already being recorded: " + operationName);
         }
         try {
             OperationsRecorder opRecorder = new OperationsRecorder(operationName, rateUnits, timeUnits, config, percentOfHighBound, targetRate, retry, totalTime, writeHdr);
-            operationsMap.put(operationName, opRecorder);
+            recordingsMap.put(operationName, opRecorder);
             opRecorder.startRecording(timer, System.currentTimeMillis());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new TussleRuntimeException(e);
         }
     }
 
@@ -189,7 +196,10 @@ public class ResultsRecorder implements TimeRecorder {
 
     @Override
     public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
-        operationsMap.get(operation).recordTimes(startTime, intendedStartTime, finishTime, count, success);
+        OperationsRecorder opRecorder = recordingsMap.get(operation);
+        if (opRecorder != null) {
+            opRecorder.recordTimes(startTime, intendedStartTime, finishTime, count, success);
+        }
     }
 
     public ResultsRecorder(BenchmarkConfig config, double percentOfHighBound, double targetRate, int retry, int totalTime, boolean writeHdr) {
@@ -199,16 +209,19 @@ public class ResultsRecorder implements TimeRecorder {
         this.retry = retry;
         this.totalTime = totalTime;
         this.writeHdr = writeHdr;
+        if (config.collectOps != null) {
+            Collections.addAll(recordingsFilter, config.collectOps);
+        }
         HdrLogWriterTask.progressHeaderPrinted(false);
     }
 
     public void cancel() {
         timer.cancel();
-        operationsMap.forEach((s,r) -> r.cancel());
+        recordingsMap.forEach((s,r) -> r.cancel());
     }
 
     public void getResults(List<HdrResult> results) {
-        operationsMap.forEach((s,r) -> r.getResults(results));
+        recordingsMap.forEach((s,r) -> r.getResults(results));
     }
 
     public Collection<HdrResult> getResults() {
