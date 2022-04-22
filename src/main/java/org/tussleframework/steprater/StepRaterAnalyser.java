@@ -56,7 +56,6 @@ import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.metrics.ServiceLevelExpectation;
 import org.tussleframework.tools.Analyzer;
 import org.tussleframework.tools.AnalyzerConfig;
-import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
@@ -69,11 +68,6 @@ public class StepRaterAnalyser extends Analyzer {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public AnalyzerConfig loadConfig(String[] args) throws TussleException {
-        return ConfigLoader.loadObject(args, StepRaterConfig.class);
     }
 
     @Override

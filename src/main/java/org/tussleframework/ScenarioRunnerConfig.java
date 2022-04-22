@@ -64,12 +64,6 @@ public class ScenarioRunnerConfig extends RunnerConfig {
 
     @Override
     public void validate(boolean runMode) {
-        if (scenario == null) {
-            throw new IllegalArgumentException("Invalid scenario - null");
-        }
-        if (scenario.length == 0) {
-            throw new IllegalArgumentException("Invalid scenario - 0 length");
-        }
         if (def != null) {
             if (def.startsWith("SPIKE")) {
                 scenario = RunParams.spike(
@@ -81,8 +75,14 @@ public class ScenarioRunnerConfig extends RunnerConfig {
                 scenario = RunParams.ramp(
                         parseInt(getParam(def, 1, "10")),
                         parseValue(getParam(def, 2, "1k")),
-                        parseValue(getParam(def, 3, "100k")));
+                        parseValue(getParam(def, 3, "10k")));
             }
+        }
+        if (scenario == null) {
+            throw new IllegalArgumentException("Invalid scenario - null");
+        }
+        if (scenario.length == 0) {
+            throw new IllegalArgumentException("Invalid scenario - 0 length");
         }
         Arrays.asList(scenario).forEach(s -> s.validate(runMode));
         for (int step = 0; step < scenario.length; step++) {
