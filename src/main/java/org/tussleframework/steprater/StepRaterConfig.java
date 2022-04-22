@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,7 +32,11 @@
 
 package org.tussleframework.steprater;
 
-import org.tussleframework.tools.AnalyzerConfig;
+import org.tussleframework.BasicRunnerConfig;
+import org.tussleframework.TussleException;
+import org.tussleframework.metrics.Interval;
+import org.tussleframework.metrics.MovingWindowSLE;
+import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.FormatTool;
 
 import lombok.Data;
@@ -40,10 +44,9 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class StepRaterConfig extends AnalyzerConfig {
+public class StepRaterConfig extends BasicRunnerConfig {
     public int retriesMax = 2;
     public int ratePercentStep = 1;
-    public int intervalLength = 1000;
     public int startingRatePercent = 50;
     public int finishingRatePercent = 110;
     public int finerRateSteps = 0;
@@ -52,14 +55,17 @@ public class StepRaterConfig extends AnalyzerConfig {
     public boolean resetEachStep = true;
     public boolean highboundOnly = false;
     public boolean processHistograms = false;
+    public String highBound = "0";
     public String highBoundTime = "0";
     public String highBoundWarmupTime = "0";
-    public String startupWarmupTime = "60";
+    public String initialWarmupTime = "60";
+    public String initialTargetRate = "1000";
     public int[] highBoundSteps = { 20000, 10000, 5000, 1000 };
+    public MovingWindowSLE[] sleConfig = {};
+    public Interval[] intervals = {};
 
     @Override
     public void validate(boolean runMode) {
-        super.validate(runMode);
         if (FormatTool.parseValue(highBound) < 0) {
             throw new IllegalArgumentException(String.format("Invalid highBound(%s) - should be non-negative", highBound));
         }
@@ -91,5 +97,21 @@ public class StepRaterConfig extends AnalyzerConfig {
                 throw new IllegalArgumentException(String.format("Invalid highBoundStep[%d](%d) - should be > highBoundStep[%d](%d)", i, highBoundSteps[i], i - 1, highBoundSteps[i - 1]));
             }
         }
+        super.validate(runMode);
+    }
+
+    public static StepRaterConfig load(String[] args) throws TussleException  {
+        StepRaterConfig runnerConfig = ConfigLoader.loadObject(args, StepRaterConfig.class);
+        if (runnerConfig.sleConfig.length == 0) {
+            runnerConfig.sleConfig = new MovingWindowSLE[] {
+                    new MovingWindowSLE(90, 0, 10),
+            };
+        }
+        if (runnerConfig.intervals.length == 0) {
+            runnerConfig.intervals = new Interval[] {
+                    new Interval(0, Long.MAX_VALUE, ""),
+            };
+        }
+        return runnerConfig;
     }
 }

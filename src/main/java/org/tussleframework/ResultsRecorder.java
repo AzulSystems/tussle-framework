@@ -42,7 +42,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -50,32 +49,35 @@ import java.util.Timer;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
+import static org.tussleframework.tools.FormatTool.NS_IN_US;
+import static org.tussleframework.tools.FormatTool.NS_IN_MS;
+
+public class ResultsRecorder implements TimeRecorder {
+
 class OperationsRecorder {
 
-    private static final long NS_IN_MS = 1000000L;
-    private static final long NS_IN_US = 1000L;
-
-    public final HdrLogWriterTask responseTimeWriter;
-    public final HdrLogWriterTask serviceTimeWriter;
-    public final HdrLogWriterTask errorsWriter;
-
+    private HdrLogWriterTask responseTimeWriter;
+    private HdrLogWriterTask serviceTimeWriter;
+    private HdrLogWriterTask errorsWriter;
     private OutputStream rawDataOutputStream;
-    private long startTime0 = 8;
+    private boolean serviceTimeOnly;
+    private long startTime0;
     private int intervalLength;
 
-    public OperationsRecorder(String operationName, String rateUnits, String timeUnits, BenchmarkConfig config, double percentOfHighBound, double targetRate, int retry, int totalTime, boolean writeHdr) throws IOException {
-        String percentStr = FormatTool.roundFormatPercent(percentOfHighBound);
-        String parameters = String.format("%s_%s_%d", percentStr, FormatTool.format(targetRate), retry);
+    public OperationsRecorder(String operationName, String rateUnits, String timeUnits) throws IOException {
+        serviceTimeOnly = config.serviceTimeOnly;
+        String percentStr = FormatTool.roundFormatPercent(runArgs.ratePercent);
+        String parameters = String.format("%s_%s_%d", percentStr, FormatTool.format(runArgs.targetRate), runArgs.step);
         intervalLength = config.getIntervalLength();
         String respHdrFile = String.format("%s/%s_response_time_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult resp = new HdrResult(operationName, "response_time", rateUnits, timeUnits, respHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry);
-        responseTimeWriter = new HdrLogWriterTask(resp, totalTime, writeHdr, config.getProgressIntervals());
+        HdrResult resp = new HdrResult(operationName, "response_time", rateUnits, timeUnits, respHdrFile, runArgs, 0, config);
+        responseTimeWriter = new HdrLogWriterTask(resp, runArgs.runTime, writeHdr, config.getProgressIntervals());
         String servHdrFile = String.format("%s/%s_service_time_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult serv = new HdrResult(operationName, "service_time", rateUnits, timeUnits, servHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry);
-        serviceTimeWriter = new HdrLogWriterTask(serv, totalTime, writeHdr, config.getProgressIntervals());
+        HdrResult serv = new HdrResult(operationName, "service_time", rateUnits, timeUnits, servHdrFile, runArgs, 0, config);
+        serviceTimeWriter = new HdrLogWriterTask(serv, runArgs.runTime, writeHdr, config.getProgressIntervals());
         String errorsHdrFile = String.format("%s/%s_errors_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult erro = new HdrResult(operationName, "errors", rateUnits, timeUnits, errorsHdrFile, targetRate, 0, config.getHistogramFactor(), percentOfHighBound, intervalLength, 0, retry);
-        errorsWriter = new HdrLogWriterTask(erro, totalTime, writeHdr, config.getProgressIntervals());
+        HdrResult erro = new HdrResult(operationName, "errors", rateUnits, timeUnits, errorsHdrFile, runArgs, 0, config);
+        errorsWriter = new HdrLogWriterTask(erro, runArgs.runTime, writeHdr, config.getProgressIntervals());
         if (config.isRawData()) {
             String rawName = String.format("%s_samples_data_%s.raw", operationName, parameters);
             rawDataOutputStream = new BufferedOutputStream(new FileOutputStream(new File(config.getHistogramsDir(), rawName)), 128 * 1024 * 1024);
@@ -91,7 +93,7 @@ class OperationsRecorder {
             if (startTime > 0) {
                 serviceTimeWriter.recordTime(finishTime - startTime, count);
             }
-            if (intendedStartTime > 0) {
+            if (intendedStartTime > 0 && !serviceTimeOnly) {
                 responseTimeWriter.recordTime(finishTime - intendedStartTime, count);
             }
         } else {
@@ -144,7 +146,7 @@ class OperationsRecorder {
         errorsWriter.cancel();
     }
 
-    void getResults(List<HdrResult> results) {
+    void getResults(Collection<HdrResult> results) {
         if (results == null) {
             return;
         }
@@ -159,18 +161,12 @@ class OperationsRecorder {
         }
     }
 }
-
-public class ResultsRecorder implements TimeRecorder {
-
     private Map<String, OperationsRecorder> recordingsMap = new HashMap<>();
     private Set<String> recordingsFilter = new HashSet<>();
     private Timer timer = new Timer();
-    private BenchmarkConfig config;
+    private RunnerConfig config;
+    private RunArgs runArgs;
     private boolean writeHdr;
-    private double percentOfHighBound;
-    private double targetRate;
-    private int totalTime;
-    private int retry;
 
     @Override
     public void startRecording(String operationName, String rateUnits, String timeUnits) {
@@ -178,10 +174,11 @@ public class ResultsRecorder implements TimeRecorder {
             return;
         }
         if (recordingsMap.containsKey(operationName)) {
-            throw new TussleRuntimeException("Operation already being recorded: " + operationName);
+            /// throw new TussleRuntimeException("Operation already being recorded: " + operationName) ///
+            return;
         }
         try {
-            OperationsRecorder opRecorder = new OperationsRecorder(operationName, rateUnits, timeUnits, config, percentOfHighBound, targetRate, retry, totalTime, writeHdr);
+            OperationsRecorder opRecorder = new OperationsRecorder(operationName, rateUnits, timeUnits);
             recordingsMap.put(operationName, opRecorder);
             opRecorder.startRecording(timer, System.currentTimeMillis());
         } catch (IOException e) {
@@ -202,12 +199,9 @@ public class ResultsRecorder implements TimeRecorder {
         }
     }
 
-    public ResultsRecorder(BenchmarkConfig config, double percentOfHighBound, double targetRate, int retry, int totalTime, boolean writeHdr) {
+    public ResultsRecorder(RunnerConfig config, RunArgs runArgs, boolean writeHdr) {
         this.config = config;
-        this.percentOfHighBound = percentOfHighBound;
-        this.targetRate = targetRate;
-        this.retry = retry;
-        this.totalTime = totalTime;
+        this.runArgs = runArgs;
         this.writeHdr = writeHdr;
         if (config.collectOps != null) {
             Collections.addAll(recordingsFilter, config.collectOps);
@@ -220,13 +214,12 @@ public class ResultsRecorder implements TimeRecorder {
         recordingsMap.forEach((s,r) -> r.cancel());
     }
 
-    public void getResults(List<HdrResult> results) {
+    public Collection<HdrResult> getResults(Collection<HdrResult> results) {
         recordingsMap.forEach((s,r) -> r.getResults(results));
+        return results;
     }
 
     public Collection<HdrResult> getResults() {
-        ArrayList<HdrResult> results = new ArrayList<>();
-        getResults(results);
-        return results;
+        return getResults(new ArrayList<>());
     }
 }

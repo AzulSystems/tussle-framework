@@ -32,12 +32,15 @@
 
 package org.tussleframework.tools;
 
+import static org.tussleframework.WithException.withException;
+import static org.tussleframework.WithException.wrapException;
+
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -46,6 +49,7 @@ import java.util.zip.ZipFile;
 
 import org.tussleframework.HdrResult;
 import org.tussleframework.RunProperties;
+import org.tussleframework.TussleException;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MovingWindowSLE;
@@ -108,17 +112,23 @@ public class Analyzer {
         }
     }
 
-    public void processResults(String[] args) throws Exception {
+    public void processResults(String[] args) throws TussleException {
         processResults(loadConfig(args));
     }
 
-    public void processResults(AnalyzerConfig config) throws Exception {
+    public void processResults(AnalyzerConfig config) throws TussleException {
         init(config);
         processRecursive();
         printResults();
     }
 
-    public void init(String[] args) throws IOException, ReflectiveOperationException {
+    public void processResults(AnalyzerConfig config, Collection<HdrResult> results) throws TussleException {
+        init(config);
+        withException(() -> results.forEach(result -> wrapException(() -> processResultHistograms(result))));
+        printResults();
+    }
+
+    public void init(String[] args) throws TussleException {
         init(loadConfig(args));
     }
 
@@ -142,15 +152,15 @@ public class Analyzer {
         hdrResults = new ArrayList<>();
     }
 
-    public AnalyzerConfig loadConfig(String[] args) throws IOException, ReflectiveOperationException  {
+    public AnalyzerConfig loadConfig(String[] args) throws TussleException {
         return ConfigLoader.loadObject(args, AnalyzerConfig.class);
     }
 
-    public void processRecursive() throws Exception {
+    public void processRecursive() throws TussleException {
         processRecursive(new File(analyzerConfig.getResultsDir()));
     }
 
-    public void printResults() throws Exception {
+    public void printResults() throws TussleException {
         if (metricData.getRunProperties() == null) {
             metricData.setRunProperties(new RunProperties());
         }
@@ -161,6 +171,8 @@ public class Analyzer {
             } else {
                 JsonTool.printJson(metricData, out);
             }
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
         if (analyzerConfig.isMakeReport()) {
             if (analyzerConfig.doc) {
@@ -262,10 +274,10 @@ public class Analyzer {
         return res;
     }
 
-    protected void processRecursive(File dir) throws Exception {
+    protected void processRecursive(File dir) throws TussleException {
         log("processRecursive: " + dir);
         if (!dir.exists()) {
-            throw new IOException(String.format("Input dir '%s' does not exists", dir));
+            throw new TussleException(String.format("Input dir '%s' does not exists", dir));
         }
         File[] files = dir.listFiles();
         if (files == null) {
@@ -280,7 +292,7 @@ public class Analyzer {
         }
     }
 
-    public boolean processFile(File file) throws IOException {
+    public boolean processFile(File file) throws TussleException {
         if (file.getName().endsWith(".zip")) {
             processZipFile(file);
             return true;
@@ -289,7 +301,7 @@ public class Analyzer {
         }
     }
 
-    public void processZipFile(File file) throws IOException {
+    public void processZipFile(File file) throws TussleException {
         log("Processing ZIP file: " + file);
         try (ZipFile zipFile = new ZipFile(file)) {
             Enumeration<? extends ZipEntry> entries = zipFile.entries();
@@ -300,6 +312,8 @@ public class Analyzer {
                 }
                 processResultsFile(file, zipFile, zipEntry);
             }
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
     }
 
@@ -338,7 +352,7 @@ public class Analyzer {
         return host;
     }
 
-    public boolean processResultsFile(File file, ZipFile zipFile, ZipEntry zipEntry) throws IOException {
+    public boolean processResultsFile(File file, ZipFile zipFile, ZipEntry zipEntry) throws TussleException {
         File dir = file.getParentFile();
         if (zipEntry != null) {
             File fileZip = new File(zipEntry.getName());
@@ -356,11 +370,15 @@ public class Analyzer {
                 log("Processing file from archive '%s//%s'...", dir, file.getName());
                 try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
                     return processResultsStream(inputStream, host, file.getName());
+                } catch (Exception e) {
+                    throw new TussleException(e);
                 }
             } else {
                 log("Processing file '%s'...", file);
                 try (InputStream inputStream = new FileInputStream(file)) {
                     return processResultsStream(inputStream, host, file.getName());
+                } catch (Exception e) {
+                    throw new TussleException(e);
                 }
             }
         } else {
@@ -374,10 +392,12 @@ public class Analyzer {
         addAndProcessHistograms(result, inputStream);
     }
 
-    public void processResultHistograms(HdrResult result) throws IOException {
+    public void processResultHistograms(HdrResult result) throws TussleException {
         log("Processing histogram file '%s'...", result.hdrFile);
         try (InputStream inputStream = new FileInputStream(result.hdrFile)) {
             addAndProcessHistograms(result, inputStream);
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
     }
 

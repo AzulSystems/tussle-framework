@@ -179,6 +179,39 @@ function getMetricData(hits, benchmark, operation, heap, host) {
     };
 }
 
+function makeConfigDescription(vm, runProperties) {
+    let configDescription = vm;
+    let confAdded = 0;
+    const inConf = runProperties.config || runProperties.build || runProperties.workload_parameters;
+    if (inConf) {
+        configDescription += ' [';
+    }
+    if (runProperties.config) {
+        configDescription += runProperties.config;
+        confAdded++;
+    }
+    if (runProperties.workload_parameters) {
+        if (confAdded > 0) {
+            configDescription += ', ';
+        }
+        configDescription += runProperties.workload_parameters;
+        confAdded++;
+    }
+    if (runProperties.build) {
+        if (confAdded > 0) {
+            configDescription += ', ';
+        }
+        configDescription += 'build ' + runProperties.build;
+    }
+    if (inConf) {
+        configDescription += ']';
+    }
+    if (confAdded === 0) {
+        configDescription = vm;
+    }
+    return configDescription;
+}
+
 function produceAggregatedComparisonReport($scope, hits, reducedResults, existingSummary) {
     const resultToggles = $scope.resultToggles;
     const showDataElements = $scope.showDataElements;
@@ -193,7 +226,7 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
     const benchmarks = [];
     const operations = [];
     const checkUnits = showOptions.includes('check_units');
-    const confs = !showOptions.includes('no_confs');
+    const includeConfs = !showOptions.includes('no_confs');
     let confCount = 0;
     for (let hit_i = 0; hit_i < hits.length; hit_i++) {
         const hit = hits[hit_i];
@@ -274,11 +307,15 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
     if (operations.length === 0) {
         operations.push('');
     }
-    console.log('operations ' + operations.length + ': ' + operations.join());
-    console.log('heaps ' + heaps.length + ': ' + heaps.join());
-    console.log('hosts ' + hosts.length + ': ' + hosts.join());
+    console.log(`benchmarks ${benchmarks.length} - [${benchmarks.join('] [')}]`);
+    console.log(`operations ${operations.length} - [${operations.join('] [')}]`);
+    console.log(`heaps ${heaps.length} - [${heaps.join('] [')}]`);
+    console.log(`hosts ${hosts.length} - [${hosts.join('] [')}]`);
     for (const benchmark of benchmarks) for (const operation of operations) for (const heap of heaps) for (const host of hosts) {
         const hd = getMetricData(hits, benchmark, operation, heap, host);
+        if (hd.metricData.length === 0) {
+            continue;
+        }
         let prefix = '';
         if (benchmarks.length > 1) {
             prefix += '[' + benchmark + '] ';
@@ -291,129 +328,90 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
         }
         const metricData = hd.metricData;
         const metricName = operation;
-        if (metricData.length > 0) {
-            const dataDataValues = {};
-            const dataDataLabels = {};
-            const datasets = [];
-            const chartConfigs = confCount ? [] : null;
-            let hlines = [];
-            for (let i = 0; i < metricData.length; i++) {
-                const vm = metricData[i].runProperties.vm_name;
-                let vm_num = vm;
-                const configName = 'm' + (i + 1);
-                if (confs) {
-                    if (configName !== 'unknown') {
-                        vm_num += ' [' + configName + ']';
-                    }
-                    let conf = vm;
-                    let confAdded = 0;
-                    const inConf = metricData[i].runProperties.config || metricData[i].runProperties.build || metricData[i].runProperties.workload_parameters;
-                    if (inConf) {
-                        conf += ' [';
-                    }
-                    if (metricData[i].runProperties.config) {
-                        conf += metricData[i].runProperties.config;
-                        confAdded++;
-                    }
-                    if (metricData[i].runProperties.workload_parameters) {
-                        if (confAdded > 0) {
-                            conf += ', ';
-                        }
-                        conf += metricData[i].runProperties.workload_parameters;
-                        confAdded++;
-                    }
-                    if (metricData[i].runProperties.build) {
-                        if (confAdded > 0) {
-                            conf += ', ';
-                        }
-                        conf += 'build ' + metricData[i].runProperties.build;
-                    }
-                    if (inConf) {
-                        conf += ']';
-                    }
-                    if (confAdded === 0) {
-                        conf = vm;   
-                    }
-                    if (confCount > 0) {
-                        chartConfigs.push({
-                            name: configName,
-                            config: conf
-                        });
-                    }
-                } else {
-                    for (let i0 = 0; i0 < i; i0++) {
-                        const vm0 = metricData[i0].runProperties.vm_name;
-                        const host0 = metricData[i0].runProperties.host;
-                        if (vm0 === vm && host0 !== host) {
-                            vm_num = vm + '(' + host + ')';
-                        }
+        const dataDataValues = {};
+        const dataDataLabels = {};
+        const dataDataDatasets = {};
+        const chartConfigs = confCount ? [] : null;
+        let hlines = [];
+        for (let i = 0; i < metricData.length; i++) {
+            const vm = metricData[i].runProperties.vm_name;
+            let vmLabel = vm;
+            const configName = 'm' + (i + 1);
+            if (includeConfs) {
+                if (configName !== 'unknown') {
+                    vmLabel += ' [' + configName + ']';
+                }
+                let configDescription = makeConfigDescription(vm, metricData[i].runProperties);
+                if (confCount > 0) {
+                    chartConfigs.push({ name: configName, config: configDescription });
+                }
+            } else {
+                for (let i0 = 0; i0 < i; i0++) {
+                    const vm0 = metricData[i0].runProperties.vm_name;
+                    const host0 = metricData[i0].runProperties.host;
+                    if (vm0 === vm && host0 !== host) {
+                        vmLabel = vm + '(' + host + ')';
                     }
                 }
-                if (confCount === 0) {
-                    vm_num = '';
-                }
-                const metric = metricData[i].metric;
-                hlines = hlines.concat(getHLines(metric, i));
-                if (metric.percentile_values) {
-                    datasetsPercentiles1.push({ type: 'line', label: vm_num });
-                    dataPercentiles1.push(metric.percentile_values);
-                }
-                if (metric.latency_percentile_values) {
-                    datasetsPercentilesLatency.push({ type: 'line', label: vm_num });
-                    dataPercentilesLatency.push(metric.latency_percentile_values);
-                }
-                let diffStop = false;
-                metric.metricValues.forEach(mv => {
-                    if (!diffStop && mv.name !== 'percentile_names') {
-                        if (!dataDataValues[mv.name]) {
-                            dataDataValues[mv.name] = [];
-                        }
-                        if (!mv.isPercentiles) {
-                            if (!dataDataLabels[mv.name]) {
-                                dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
-                            } else if (!checkUnits || equalXvalues(metric, metricData[0].metric)) {
-                                if (mv.values.length > dataDataLabels[mv.name].labels.length) {
-                                    dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
-                                }
-                            } else {
-                                console.log('Different x-scales!');
-                                diffStop = true;
-                            }
-                        }
-                        if (!diffStop) {
-                            dataDataValues[mv.name].push(mv);
-                            datasets.push({ type: 'line', label: vm_num, vlines: getVLines(metric) });
-                        }
-                    }
-                });
             }
-            for (const mvName in dataDataValues) {
-                const thisName = mvName ? `${metricName} [${mvName}]` : metricName;
-                console.log(`Adding aggregated chart: ${prefix} - ${thisName}`);
-                if (dataDataValues[mvName][0].isPercentiles) {
-                    charts.push({
-                        selected: showData(thisName + ' (chart)', TYPE_CHART, showDataElements),
-                        colors,
-                        metricName: thisName,
-                        configs: chartConfigs,
-                        data: dataDataValues[mvName].map(mv => mv.values),
-                        labels: hd.labels,
-                        datasets,
-                        options: getPercentilesChartOptions(prefix + thisName, 'percentiles', hd.units, hd)
-                    });
-                } else {
-                    charts.push({
-                        selected: showData(thisName + ' (chart)', TYPE_CHART, showDataElements) || showData(metricName + ' (chart)', TYPE_CHART, showDataElements),
-                        colors,
-                        metricName: thisName,
-                        configs: chartConfigs,
-                        data: dataDataValues[mvName].map(mv => mv.values),
-                        labels: dataDataLabels[mvName].labels,
-                        labelsSet: dataDataLabels[mvName],
-                        datasets,
-                        options: getChartOptions(prefix + thisName, hd.xscale, hd.units, null, hlines, [], dataDataLabels[mvName].labels.length > 100, showOptions),
-                    });
+            if (confCount === 0) {
+                vmLabel = '';
+            }
+            const metric = metricData[i].metric;
+            hlines = hlines.concat(getHLines(metric, i));
+            let diffStop = false;
+            metric.metricValues.forEach(mv => {
+                if (!diffStop && mv.name !== 'percentile_names') {
+                    if (!dataDataValues[mv.name]) {
+                        dataDataValues[mv.name] = [];
+                        dataDataDatasets[mv.name] = [];
+                    }
+                    if (!mv.isPercentiles) {
+                        if (!dataDataLabels[mv.name]) {
+                            dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
+                        } else if (!checkUnits || equalXvalues(metric, metricData[0].metric)) {
+                            if (mv.values.length > dataDataLabels[mv.name].labels.length) {
+                                dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
+                            }
+                        } else {
+                            console.log('Different x-scales!');
+                            diffStop = true;
+                        }
+                    }
+                    if (!diffStop) {
+                        dataDataValues[mv.name].push(mv);
+                        dataDataDatasets[mv.name].push({ type: 'line', label: vmLabel, vlines: getVLines(metric) });
+                    }
                 }
+            });
+        }
+        for (const mvName in dataDataValues) {
+            const thisName = mvName ? `${metricName} [${mvName}]` : metricName;
+            const mv = dataDataValues[mvName][0];
+            const units = mv.isCounts ? 'counts' : hd.units;
+            if (mv.isPercentiles) {
+                charts.push({
+                    selected: showData(thisName + ' (chart)', TYPE_CHART, showDataElements),
+                    colors,
+                    metricName: thisName,
+                    configs: chartConfigs,
+                    data: dataDataValues[mvName].map(mv => mv.values),
+                    datasets: dataDataDatasets[mvName],
+                    labels: hd.labels,
+                    options: getPercentilesChartOptions(prefix + thisName, 'percentiles', units, hd)
+                });
+            } else {
+                charts.push({
+                    selected: showData(thisName + ' (chart)', TYPE_CHART, showDataElements) || showData(metricName + ' (chart)', TYPE_CHART, showDataElements),
+                    colors,
+                    metricName: thisName,
+                    configs: chartConfigs,
+                    data: dataDataValues[mvName].map(mv => mv.values),
+                    datasets: dataDataDatasets[mvName],
+                    labels: dataDataLabels[mvName].labels,
+                    labelsSet: dataDataLabels[mvName],
+                    options: getChartOptions(prefix + thisName, hd.xscale, units, null, hlines, [], dataDataLabels[mvName].labels.length > 100, showOptions),
+                });
             }
         }
     }
@@ -485,7 +483,7 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
         });
         chartsPos = summary.length;
     }
-    // Charts content section 
+    // Charts content section
     if (charts.length > 0) {
         charts.forEach(chart => {
             toggles.push({
@@ -2376,7 +2374,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             let docs = [];
             localMetrics.forEach(adoc => adoc.forEach(doc => docs.push(doc)));
             $scope.display = DISPLAY_REPORT;
-            $scope.showDataElements = ['summary_max_latency_(chart)', 'summary_max_response_time_(chart)'];
+            $scope.showDataElements = ['.*response_time_summary_max'];
             $scope.wide_charts = true;
             handleResultResponse({ data: { docs } });
             return;
@@ -2458,7 +2456,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             $scope.showDetailedReportOrSummary();
         }
     }
-    $scope.openResultsDir = function(event, results_dir) {
+    $scope.openResultsDir = (event, results_dir) => {
         event.stopPropagation();
         if (results_dir) {
             window.open(getWebPath(results_dir));

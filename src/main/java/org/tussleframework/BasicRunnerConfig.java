@@ -32,22 +32,22 @@
 
 package org.tussleframework;
 
-public interface WithException {
-    void run() throws TussleException;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
-    }
+/**
+ * Basic benchmark configuration
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class BasicRunnerConfig extends RunnerConfig {
+    public String targetRate = "1k";   // op/s, expected target throughput
+    public String warmupTime = "0";    // benchmark warmup time
+    public String runTime = "1m";      // benchmark run time, examples, 1m - one minute, 40 = 40s - seconds, 1h - hour, etc.
 
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
-        }
+    @Override
+    public void validate(boolean runMode) {
+        new RunParams(targetRate, warmupTime, runTime).validate(runMode);
+        super.validate(runMode);
     }
 }

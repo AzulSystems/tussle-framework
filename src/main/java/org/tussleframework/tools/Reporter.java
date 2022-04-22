@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -44,6 +44,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 
+import org.tussleframework.TussleException;
 import org.tussleframework.metrics.MetricData;
 
 public class Reporter {
@@ -71,34 +72,42 @@ public class Reporter {
         }
     }
 
-    public static void make(MetricData metricData, String reportDir) throws Exception {
-        Files.createDirectories(Paths.get(reportDir));
-        File dataJson = new File(reportDir, "data.json");
-        try (PrintStream out = new PrintStream(dataJson)) {
-            log("Generating data.json: " + dataJson);
-            JsonTool.printJson(metricData, out);
+    public static void make(MetricData metricData, String reportDir) throws TussleException {
+        try {
+            Files.createDirectories(Paths.get(reportDir));
+            File dataJson = new File(reportDir, "data.json");
+            try (PrintStream out = new PrintStream(dataJson)) {
+                log("Generating data.json: " + dataJson);
+                JsonTool.printJson(metricData, out);
+            }
+            make(reportDir, dataJson.getAbsolutePath());
+            Files.delete(dataJson.toPath());
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
-        make(reportDir, dataJson.getAbsolutePath());
-        Files.delete(dataJson.toPath());
     }
 
-    public static void make(String reportDir, String metricsJson) throws IOException {
-        extractReportFiles(reportDir);
-        File reportDirJs = new File(reportDir, "js");
-        File dataJs = new File(reportDirJs, "data.js");
-        Files.deleteIfExists(dataJs.toPath());
-        log("Generating report data.js: " + metricsJson);
-        try (PrintStream out = new PrintStream(dataJs); BufferedReader br = new BufferedReader(new FileReader(metricsJson))) {
-            out.print("const metricsData = [{ \"_source\": ");
-            String line = br.readLine();
-            int i = 0;
-            while (line != null) {
-                if (i > 0) out.println();
-                out.print(line);
-                line = br.readLine();
-                i++;
+    public static void make(String reportDir, String metricsJson) throws TussleException {
+        try {
+            extractReportFiles(reportDir);
+            File reportDirJs = new File(reportDir, "js");
+            File dataJs = new File(reportDirJs, "data.js");
+            Files.deleteIfExists(dataJs.toPath());
+            log("Generating report data.js: " + metricsJson);
+            try (PrintStream out = new PrintStream(dataJs); BufferedReader br = new BufferedReader(new FileReader(metricsJson))) {
+                out.print("const metricsData = [{ \"_source\": ");
+                String line = br.readLine();
+                int i = 0;
+                while (line != null) {
+                    if (i > 0) out.println();
+                    out.print(line);
+                    line = br.readLine();
+                    i++;
+                }
+                out.println(" }];");
             }
-            out.println(" }];");
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
     }
 

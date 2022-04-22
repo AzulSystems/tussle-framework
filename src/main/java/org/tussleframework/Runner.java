@@ -32,22 +32,7 @@
 
 package org.tussleframework;
 
-public interface WithException {
-    void run() throws TussleException;
-
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
-    }
-
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
-        }
-    }
+public interface Runner {
+    void init(String[] args) throws TussleException;
+    void run(Benchmark benchmark) throws TussleException;
 }

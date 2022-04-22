@@ -1,5 +1,5 @@
-Tussle Framework
-================
+About
+=====
 
 Tussle Framework - Throughput under Service Level Expectation testing framework which includes common interfaces, tools, benchmark runners, metrics, and etc.
 
@@ -61,10 +61,23 @@ $ ./build.sh
 Basic Runner
 ============
 
-Basic Runner is a "classical" benchmark runner which simply runs provided benchmark and collects results basically represented as histogram data and summary scores (throughput, latency percentiles, etc.). 
+Basic Runner is a "classical" and default benchmark runner which simply runs provided benchmark and collects results basically represented as histogram data and summary scores (throughput, latency percentiles, etc.). 
 
 ###### Basic Runner workflow
     * benchmark.run(target, warmup, run) -> result histogram and summary
+
+
+Scenario Runner
+===============
+
+Scenario Runner performs run of a benchmark using sequence of provided target rates and run times.
+
+###### Scenario Runner workflow
+    * benchmark.run(target1, warmup1, run1) -> result 1 histogram and summary
+    * benchmark.run(target2, warmup2, run2) -> result 2 histogram and summary
+    * benchmark.run(target3, warmup3, run3) -> result 3 histogram and summary
+    ...
+
 
 StepRater
 =========
@@ -86,6 +99,33 @@ StepRater fully realizes Throughput under SLE concept. It is multi-step benchmar
 
 
 ![tussle image 2](assets/tussle2.png)
+
+Run
+===
+
+Run syntax is following:
+
+     $ java -jar tussle-framework-$version.jar benchmark-class-name [benchmark-args...] [--runner runner-class-name [runner-args...]]
+
+
+
+Examples
+========
+
+Run PI benchmark using default Basic runner and default benchmark parameters:
+
+    $ java -jar tussle-framework-1.3.3.jar PiBenchmark
+
+using benchmark parameters:
+
+    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=4
+ 
+using benchmark parameters and runner parameters:
+
+    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=2 --runner BasicRunner warmupTime=20s runTime=2m targetRate=1.5k
+     
+    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=2 --runner ScenarioRunner scenario=[[100,0,1m],[1k,0,10s],[100,0,1m]] makeReport=true
+
 
 Tussle Metrics
 ==============

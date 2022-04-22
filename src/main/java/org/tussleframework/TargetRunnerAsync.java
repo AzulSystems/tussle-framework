@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -67,8 +67,8 @@ public class TargetRunnerAsync implements TargetRunner {
     private final AtomicLong errorsCount = new AtomicLong();
     private final int threadsCount;
 
-    public TargetRunnerAsync (int threads) {
-        this.threadsCount = threads;    
+    public TargetRunnerAsync(int threads) {
+        this.threadsCount = threads;
     }
 
     @AllArgsConstructor
@@ -98,9 +98,9 @@ public class TargetRunnerAsync implements TargetRunner {
     }
 
     @Override
-    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws InterruptedException {
+    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws TussleException {
         if (targetRate <= 0) {
-            throw new IllegalArgumentException(String.format("Ivalid targetRate value for %s", TargetRunnerAsync.class.getSimpleName()));
+            throw new IllegalArgumentException(String.format("Ivalid targetRate=%f value for %s", targetRate, TargetRunnerAsync.class.getSimpleName()));
         }
         long delayBetweenOps = (long) (NS_IN_S / targetRate);
         ExecutorService executor = Executors.newFixedThreadPool(threadsCount);
@@ -124,14 +124,22 @@ public class TargetRunnerAsync implements TargetRunner {
             if (lastOne != null) {
                 try {
                     lastOne.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new TussleException(e);
                 } catch (ExecutionException e) {
-                    ///
+                    throw new TussleException(e);
                 }
             }
         }
         log("Executor shutdown...");
         executor.shutdownNow();
-        executor.awaitTermination(1, TimeUnit.SECONDS);
+        try {
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TussleException(e);
+        }
         long ops = opsCount.get();
         long errs = errorsCount.get();
         long actualFinishRunTime = System.nanoTime();

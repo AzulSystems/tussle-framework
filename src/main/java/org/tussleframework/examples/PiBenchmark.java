@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,10 +33,11 @@
 package org.tussleframework.examples;
 
 import org.tussleframework.RunnableWithError;
+import org.tussleframework.TussleException;
 import org.tussleframework.WlBenchmark;
 
 class PiCalc {
-    PiCalc(){}
+    PiCalc() {}
 
     public static double k(int k) {
         return (4.0 / (8 * k + 1) - 2.0 / (8 * k + 4) - 1.0 / (8 * k + 5) - 1.0 / (8 * k + 6)) * Math.pow(16, -k);
@@ -56,7 +57,7 @@ public class PiBenchmark extends WlBenchmark {
     public PiBenchmark() {
     }
 
-    public PiBenchmark(String[] args) throws Exception {
+    public PiBenchmark(String[] args) throws TussleException {
         init(args);
     }
 

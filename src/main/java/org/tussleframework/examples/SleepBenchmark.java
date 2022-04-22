@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,6 +33,7 @@
 package org.tussleframework.examples;
 
 import org.tussleframework.RunnableWithError;
+import org.tussleframework.TussleException;
 import org.tussleframework.WlBenchmark;
 import org.tussleframework.WlConfig;
 import org.tussleframework.tools.FormatTool;
@@ -43,12 +44,13 @@ public class SleepBenchmark extends WlBenchmark {
     public SleepBenchmark() {
     }
     
-    public SleepBenchmark(String[] args) throws Exception {
+    public SleepBenchmark(String[] args) throws TussleException {
         init(args);
     }
 
     public boolean sleep() {
-        SleepTool.sleepSpinning(FormatTool.parseTimeNs(((SleepBenchmarkConfig) config).sleep));
+        SleepBenchmarkConfig config = (SleepBenchmarkConfig) this.config;
+        SleepTool.sleepSpinning(FormatTool.parseTimeNs(config.sleep));
         return true;
     }
 

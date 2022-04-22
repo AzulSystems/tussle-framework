@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -30,18 +30,23 @@
  * 
  */
 
-package org.tussleframework.examples;
+package org.tussleframework;
 
-import org.tussleframework.steprater.StepRater;
-import org.tussleframework.tools.LoggerTool;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-public class PiBenchmarkStepRaterRunner {
-    public static void main(String[] args) {
-        LoggerTool.init("benchmark");
-        try {
-            new StepRater().initAndRun(PiBenchmark.class, args);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+@Data
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RunArgs {
+    public double targetRate;
+    public double ratePercent;
+    public int warmupTime;
+    public int runTime;
+    public int step;
 }

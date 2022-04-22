@@ -32,22 +32,14 @@
 
 package org.tussleframework;
 
-public interface WithException {
-    void run() throws TussleException;
+public class TussleException extends Exception {
+    private static final long serialVersionUID = 1L;
 
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
+    public TussleException(String msg) {
+        super(msg);
     }
 
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
-        }
+    public TussleException(Exception e) {
+        super(e);
     }
 }

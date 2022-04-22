@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -34,10 +34,11 @@ package org.tussleframework.tools;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 
 import org.tussleframework.AbstractConfig;
+import org.tussleframework.TussleException;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
@@ -50,24 +51,30 @@ public class ConfigLoader {
     static final IllegalArgumentException USAGE =
             new IllegalArgumentException("Expected parameters: -f yaml-file | -s yaml-string | -p prop1=value1 -p prop2=value2 ... | prop1=value1 prop2=value2 ...");
 
-    public static void readFile(String configFile, StringBuilder sb) throws IOException {
+    public static void readFile(String configFile, StringBuilder sb) throws TussleException {
         try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
             String line = br.readLine();
             while (line != null) {
                 sb.append(line).append('\n');
                 line = br.readLine();
             }
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T loadObject(String s, Class<?> klass, boolean skipMissingProperties) throws ReflectiveOperationException {
+    public static <T> T loadObject(String s, Class<?> klass, boolean skipMissingProperties) throws TussleException {
         Representer representer = new Representer();
         representer.getPropertyUtils().setSkipMissingProperties(skipMissingProperties);
         Yaml yaml = new Yaml(new Constructor(klass), representer);
         T config = yaml.load(new StringReader(s));
         if (config == null) {
-            config = (T) klass.getConstructor().newInstance();
+            try {
+                config = (T) klass.getConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                throw new TussleException(e);
+            }
         }
         return config;
     }
@@ -82,7 +89,7 @@ public class ConfigLoader {
         sb.append(propArg).append(": ").append(v).append('\n');
     }
 
-    public static <T> T loadObject(String[] args, Class<?> klass, boolean skipMissingProperties) throws IOException, ReflectiveOperationException {
+    public static <T> T loadObject(String[] args, Class<?> klass, boolean skipMissingProperties) throws TussleException {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         try {
@@ -112,17 +119,17 @@ public class ConfigLoader {
         return loadObject(sb.toString(), klass, skipMissingProperties);
     }
 
-    public static <T> T loadObject(String[] args, Class<?> klass) throws IOException, ReflectiveOperationException {
+    public static <T> T loadObject(String[] args, Class<?> klass) throws TussleException {
         return loadObject(args, klass, false);
     }
 
-    public static <T extends AbstractConfig> T loadConfig(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass, boolean skipMissingProperties) throws IOException, ReflectiveOperationException {
+    public static <T extends AbstractConfig> T loadConfig(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass, boolean skipMissingProperties) throws TussleException {
         T config = loadObject(args, configClass, skipMissingProperties);
         config.validate(runMode);
         return config;
     }
 
-    public static <T extends AbstractConfig> T load(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass) throws IOException, ReflectiveOperationException {
+    public static <T extends AbstractConfig> T loadConfig(String[] args, boolean runMode, Class<? extends AbstractConfig> configClass) throws TussleException {
         return loadConfig(args, runMode, configClass, false);
     }
 }

@@ -52,5 +52,5 @@ public class RunResult {
     public long errors;
     public long count;
     public long time;
-    // CustomCollectedResults
+    // TODO: CustomCollectedResults
 }

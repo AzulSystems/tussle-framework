@@ -1,3 +1,9 @@
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+import org.tussleframework.RunParams;
+import org.tussleframework.tools.FormatTool;
+
 /*
  * Copyright (c) 2021-2022, Azul Systems
  * 
@@ -30,24 +36,14 @@
  * 
  */
 
-package org.tussleframework;
+public class RunParamsTest {
 
-public interface WithException {
-    void run() throws TussleException;
-
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
-    }
-
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
-        }
+    @Test
+    public void testParamsRamp() {
+        int num = 20;
+        RunParams[] params = RunParams.ramp(num, 1.0, 100.0);
+        assertEquals(num, params.length);
+        assertEquals(1.0, FormatTool.parseValue(params[0].targetRate), 0.00000001);
+        assertEquals(100.0, FormatTool.parseValue(params[params.length - 1].targetRate), 0.00000001);
     }
 }

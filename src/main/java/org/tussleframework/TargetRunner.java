@@ -35,5 +35,5 @@ package org.tussleframework;
 import java.util.concurrent.Callable;
 
 public interface TargetRunner {
-    RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws Exception;
+    RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws TussleException;
 }

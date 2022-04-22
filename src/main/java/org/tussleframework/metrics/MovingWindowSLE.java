@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -46,19 +46,27 @@ public class MovingWindowSLE implements ServiceLevelExpectation {
     public double maxValue;
     public int movingWindow;
 
+    @Override
+    public double markerValue() {
+        return maxValue;
+    }
+
+    @Override
     public String toString() {
-        return "p" + percentile + " percentile = " + maxValue + "ms in " + movingWindow;
+        return "percentile p" + percentile + " value " + maxValue + "ms in moving window " + movingWindow + "s";
     }
 
     // Format:
     // p50-sle1ms-mw10s
+    @Override
     public String longName() {
         return "p" + format(percentile) + "-sle" + format(maxValue) + "ms-mw" + (movingWindow) + "s";
     }
 
     // Format:
     // p50-sle1ms
-    public String nameWithMax() {
+    @Override
+    public String markerName() {
         return "p" + format(percentile) + "-sle" + format(maxValue) + "ms";
     }
 

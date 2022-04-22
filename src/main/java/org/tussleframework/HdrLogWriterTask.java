@@ -118,7 +118,9 @@ public class HdrLogWriterTask extends TimerTask {
         intervalHistogram = recorder.getIntervalHistogram(intervalHistogram);
         if (intervalHistogram.getTotalCount() != 0) {
             hdrResult.allHistogram.add(intervalHistogram);
-            progressHistogram.add(intervalHistogram);
+            if (progressIntervals > 0) {
+                progressHistogram.add(intervalHistogram);
+            }
             HistogramLogWriter w = this.writer;
             if (w != null) {
                 w.outputIntervalHistogram(intervalHistogram);
@@ -174,9 +176,6 @@ public class HdrLogWriterTask extends TimerTask {
     @Override
     public boolean cancel() {
         boolean result = super.cancel();
-//        progressCount = progressIntervals;
-//        run();
-        /// log("Closing %s", shortName)
         HistogramLogWriter w = this.writer;
         this.writer = null;
         if (w != null) {
@@ -184,7 +183,6 @@ public class HdrLogWriterTask extends TimerTask {
             if (countWrites.get() == 0) {
                 try {
                     Files.delete(hdrFile);
-                    /// log("Deleted empty hdr file without records %s", hdrFile)
                 } catch (IOException e) {
                     log("Failed to delete empty hdr file %s", hdrFile);
                 }

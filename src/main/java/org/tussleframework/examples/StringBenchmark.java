@@ -30,24 +30,62 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.examples;
 
-public interface WithException {
-    void run() throws TussleException;
+import java.util.Random;
 
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
+import org.tussleframework.RunnableWithError;
+import org.tussleframework.TussleException;
+import org.tussleframework.WlBenchmark;
+import org.tussleframework.WlConfig;
+import org.tussleframework.tools.FormatTool;
+
+public class StringBenchmark extends WlBenchmark {
+
+    public long sumLenghs;
+    protected Random random = new Random();
+
+    public StringBenchmark() {
     }
 
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
+    public StringBenchmark(String[] args) throws TussleException {
+        init(args);
+    }
+
+    public boolean string() {
+        StringBenchmarkConfig config = (StringBenchmarkConfig) this.config;
+        int len = FormatTool.parseInt(config.len);
+        int lenMax = FormatTool.parseInt(config.lenMax);
+        if (lenMax > len) {
+            len = random.nextInt(lenMax - len) + len;
         }
+        char[] azul = "Azul".toCharArray();
+        StringBuilder s = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            s.append(azul[random.nextInt(azul.length)]);
+        }
+        sumLenghs += s.length();
+        return true;
+    }
+
+    @Override
+    public RunnableWithError getWorkload() {
+        return this::string;
+    }
+
+    @Override
+    public String getOperationName() {
+        return "string";
+    }
+    
+    @Override
+    public void cleanup() {
+        super.cleanup();
+        log("StringBenchmark sumLenghs = %d", sumLenghs);
+    }
+
+    @Override
+    public Class<? extends WlConfig> getConfigClass() {
+        return StringBenchmarkConfig.class;
     }
 }

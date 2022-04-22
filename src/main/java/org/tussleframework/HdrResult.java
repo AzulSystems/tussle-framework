@@ -44,6 +44,7 @@ import org.HdrHistogram.HistogramLogReader;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MovingWindowSLE;
+import org.tussleframework.metrics.ServiceLevelExpectation;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
@@ -54,13 +55,11 @@ public class HdrResult {
     public String hdrFile;
     public String rateUnits;
     public String timeUnits;
-    public double targetRate;
+    public RunArgs runArgs;
     public double actualRate;
     public double histogramFactor;
-    public double percentOfHighBound;
     public int intervalLength;
     public int recordsCount;
-    public int retry;
     public Histogram allHistogram = new Histogram(3);
     public List<HdrIntervalResult> subIntervalHistograms = new ArrayList<>();
 
@@ -73,39 +72,37 @@ public class HdrResult {
         ///
     }
 
-    public HdrResult(String operationName, String metricName, String rateUnits, String timeUnits, String hdrFile, double targetRate, double actualRate, double histogramFactor, double percentOfHighBound, int intervalLength, int recordsCount, int retry) {
+    public HdrResult(String operationName, String metricName, String rateUnits, String timeUnits, String hdrFile, RunArgs runArgs, double actualRate, RunnerConfig config) {
         this.operationName = operationName;
         this.metricName = metricName;
         this.rateUnits = rateUnits;
         this.timeUnits = timeUnits;
         this.hdrFile = hdrFile;
-        this.targetRate = targetRate;
+        this.runArgs = runArgs;
         this.actualRate = actualRate;
-        this.histogramFactor  = histogramFactor;
-        this.percentOfHighBound = percentOfHighBound;
-        this.intervalLength = intervalLength;
-        this.recordsCount = recordsCount;
-        this.retry = retry;
+        this.histogramFactor  = config.histogramFactor;
+        this.intervalLength = config.intervalLength;
     }
 
     public void detectValues(String fileName, String defOperationName) {
         String[] parts = fileName.replace(serviceTime, serviceTime2).replace(responseTime, responseTime2).split("_");
         int nums = 0;
+        runArgs = new RunArgs();
         try {
-            retry = Integer.valueOf(parts[parts.length - 1]);
-            targetRate = Double.valueOf(parts[parts.length - 2]);
-            percentOfHighBound = Double.valueOf(parts[parts.length - 3]);
+            runArgs.step = Integer.valueOf(parts[parts.length - 1]);
+            runArgs.targetRate = Double.valueOf(parts[parts.length - 2]);
+            runArgs.ratePercent = Double.valueOf(parts[parts.length - 3]);
             nums = 3;
         } catch (NumberFormatException e) {
             try {
-                retry = Integer.valueOf(parts[parts.length - 1]);
-                targetRate = 0;
-                percentOfHighBound = Double.valueOf(parts[parts.length - 2]);
+                runArgs.step = Integer.valueOf(parts[parts.length - 1]);
+                runArgs.targetRate = 0;
+                runArgs.ratePercent = Double.valueOf(parts[parts.length - 2]);
                 nums = 2;
             } catch (NumberFormatException e2) {
-                retry = 0;
-                targetRate = 0;
-                percentOfHighBound = 0;
+                runArgs.step = 0;
+                runArgs.targetRate = 0;
+                runArgs.ratePercent = 0;
             }
         }
         StringBuilder sb = new StringBuilder();
@@ -127,7 +124,7 @@ public class HdrResult {
     }
 
     public String getOpName() {
-        return String.format("%s_%s_%s_%d", operationName, FormatTool.roundFormatPercent(percentOfHighBound), FormatTool.format(targetRate), retry);
+        return String.format("%s_%s_%s_%d", operationName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.step);
     }
 
     public static String clearPathAndExtension(String fileName) {
@@ -206,7 +203,11 @@ public class HdrResult {
         }
     }
 
-    public boolean checkSLE(MovingWindowSLE sla) {
+    public boolean checkSLE(ServiceLevelExpectation aSLE) {
+        if (!(aSLE instanceof MovingWindowSLE)) {
+            return false;
+        }
+        MovingWindowSLE mwSLE = (MovingWindowSLE) aSLE;
         try (HistogramLogReader hdrReader = new HistogramLogReader(hdrFile)) {
             double rangeStartTimeSec = 0.0;
             double rangeEndTimeSec = Double.MAX_VALUE;
@@ -214,7 +215,7 @@ public class HdrResult {
             Histogram intervalHistogram = (Histogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);
             Histogram movingWindowSumHistogram = new Histogram(3);
             while (intervalHistogram != null) {
-                long windowCutOffTimeStamp = intervalHistogram.getEndTimeStamp() - sla.movingWindow * 1000;
+                long windowCutOffTimeStamp = intervalHistogram.getEndTimeStamp() - mwSLE.movingWindow * 1000;
                 movingWindowSumHistogram.add(intervalHistogram);
                 Histogram head = movingWindowQueue.peek();
                 while (head != null && head.getEndTimeStamp() <= windowCutOffTimeStamp) {
@@ -223,7 +224,7 @@ public class HdrResult {
                     head = movingWindowQueue.peek();
                 }
                 movingWindowQueue.add(intervalHistogram);
-                if (movingWindowSumHistogram.getValueAtPercentile(sla.percentile) / histogramFactor > sla.maxValue) {
+                if (movingWindowSumHistogram.getValueAtPercentile(mwSLE.percentile) / histogramFactor > mwSLE.maxValue) {
                     return false;
                 }
                 intervalHistogram = (Histogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);

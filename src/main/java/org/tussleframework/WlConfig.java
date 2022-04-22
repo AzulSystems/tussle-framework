@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,25 +32,19 @@
 
 package org.tussleframework;
 
-import org.tussleframework.tools.FormatTool;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 @Data
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-public class WlConfig extends BenchmarkConfig {
+@ToString(callSuper = false)
+@EqualsAndHashCode(callSuper = false)
+public class WlConfig implements AbstractConfig {
     public int threads = 1;
     public boolean asyncMode = false;
 
     @Override
     public void validate(boolean runMode) {
-        super.validate(runMode);
-        if (FormatTool.parseValue(targetRate) == 0 && asyncMode) {
-            throw new IllegalArgumentException(String.format("Invalid targetRate(%s) - should be positive for async mode", targetRate));
-        }
         if (threads < 1) {
             throw new IllegalArgumentException(String.format("Invalid threads(%d) - should be non-negative", threads));
         }

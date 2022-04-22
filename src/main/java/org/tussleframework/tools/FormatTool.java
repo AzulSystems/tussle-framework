@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -36,6 +36,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -163,6 +164,33 @@ public class FormatTool {
         return Double.parseDouble(s) * m;
     }
 
+    public static int parseInt(String s) {
+        s = s.toLowerCase();
+        int m = 1;
+        int end = 0;
+        if (s.endsWith("kib")) {
+            m = 102;
+            end = 3;
+        } else if (s.endsWith("mib")) {
+            m = 1024 * 1024;
+            end = 3;
+        } else if (s.endsWith("gib")) {
+            m = 1024 * 1024 * 1024;
+            end = 3;
+        } else if (s.endsWith("k")) {
+            m = 1000;
+            end = 1;
+        } else if (s.endsWith("m")) {
+            m = 1000_000;
+            end = 1;
+        } else if (s.endsWith("g")) {
+            m = 1000_000_000;
+            end = 1;
+        }
+        s = s.substring(0, s.length() - end).trim();
+        return Integer.parseInt(s) * m;
+    }
+
     /**
      * Value examples: 60 -> 60 seconds, 10m -> 600 seconds, 1h -> 3600 seconds, etc.
      * 
@@ -240,5 +268,29 @@ public class FormatTool {
         }
         s = s.substring(0, s.length() - end).trim();
         return Long.parseLong(s) * m;
+    }
+
+    public static String join(Collection<?> c, String sep) {
+        StringBuilder sb = new StringBuilder();
+        c.forEach(o -> {
+            sb.append(o);
+            if (sep != null && sb.length() > 0) {
+                sb.append(sep);
+            }
+        });
+        return sb.toString();
+    }
+
+    public static String withS(long count, String name) {
+        if (count == 1 || count == -1) {
+            return count + " " + name;
+        } else {
+            return count + " " + name + "s";
+        }
+    }
+
+    public static String getParam(String p, int idx, String defval) {
+        String[] params = p.split("_");
+        return idx < params.length ? params[idx] : defval;
     }
 }

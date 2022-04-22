@@ -271,7 +271,8 @@ function pushRowVal(row, val, idx, clss) {
     row[idx] = {
         orig_value: val,
         value: row.type === TYPE_NUMBER ? roundNumber(val) : val,
-        cls: clss + ' data_col nowrap'
+        //cls: clss + ' data_col nowrap'
+        cls: clss + ' data_col'
     };
     return row[idx];
 }
@@ -1197,14 +1198,14 @@ function getPercentileValue(percentileNames, percentileValues, percentile) {
 }
 
 function getMetricPercentileValue(metric, percentile) {
-    const percentileNames = metric.getValues("percentile_names");
-    const percentileValues = metric.getValues("percentile_values");
+    const percentileNames = metric.getValues('percentile_names');
+    const percentileValues = metric.getValues('percentile_values');
     return getPercentileValue(percentileNames, percentileValues, percentile);
 }
 
 function getMetricLatencyPercentileValue(metric, percentile) {
-    const percentileNames = metric.getValues("latency_percentile_names");
-    const percentileValues = metric.getValues("latency_percentile_values");
+    const percentileNames = metric.getValues('latency_percentile_names');
+    const percentileValues = metric.getValues('latency_percentile_values');
     return getPercentileValue(percentileNames, percentileValues, percentile);
 }
 
@@ -1614,17 +1615,17 @@ function getMetricChart(metric, showOptions, vals, valMax, label, units) {
 }
 
 function getMetricThroughputChart(metric, showOptions) {
-   return getMetricChart(metric, showOptions, metric.getValues("throughput"), metric.maxCount, 'Throughput', 'op/s');
+   return getMetricChart(metric, showOptions, metric.getValues('throughput'), metric.maxCount, 'Throughput', 'op/s');
 }
 
 function getMetricCountChart(metric, showOptions) {
-    return getMetricChart(metric, showOptions, metric.getValues("counts"), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
+    return getMetricChart(metric, showOptions, metric.getValues('counts'), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
 }
 
 function getMetricPercentilesChart(metric, showOptions) {
-    const percentileNames = metric.getValues("percentile_names");
-    const percentileValues = metric.getValues("percentile_values");
-    const latencyPercentileValues = metric.getValues("latency_percentile_values");
+    const percentileNames = metric.getValues('percentile_names');
+    const percentileValues = metric.getValues('percentile_values');
+    const latencyPercentileValues = metric.getValues('latency_percentile_values');
     if (!percentileNames || !percentileValues)
         return null;
     /// const commonLabel = (metric.latencies && metric.name.startsWith('response_time') ? 'Service time' : getMetricsShortName(metric).capitalize()) + ' HDR';
@@ -1651,9 +1652,9 @@ function getMetricPercentilesChart(metric, showOptions) {
 }
 
 function getMetricPercentilesCountChart(metric, showOptions) {
-    const percentileNames = metric.getValues("percentile_names");
-    const percentileCounts = metric.getValues("percentile_counts");
-    const latencyPercentileCounts = metric.getValues("latency_percentile_counts");
+    const percentileNames = metric.getValues('percentile_names');
+    const percentileCounts = metric.getValues('percentile_counts');
+    const latencyPercentileCounts = metric.getValues('latency_percentile_counts');
     if (!percentileNames || !percentileCounts) {
         return null;
     }
@@ -1662,7 +1663,7 @@ function getMetricPercentilesCountChart(metric, showOptions) {
     const labels = percentileNames;
     const data = [percentileCounts];
     const vlines = getVLines(metric);
-    const datasets = [getLineChartDatasetOptions("HDR Counts")];
+    const datasets = [getLineChartDatasetOptions('HDR Counts')];
     if (latencyPercentileCounts) {
         data.push(latencyPercentileCounts);
         datasets.push(getLineChartDatasetOptions('HDR Counts'));
@@ -1745,20 +1746,21 @@ function getVMName(vm_type, config) {
 function normalizeWorkloadParams(benchmark, par) {
     let ret = [];
     par.split('+').forEach(step => {
-        step = step.replace(/\.warmup-iterations=/g, '.wi=')
-            .replace(/\.target-throughput=/g, '.tt=')
-            .replace(/\.clients=/g, '.c=')
-            .replace(/\.iterations=/g, '.i=');
-        if (benchmark.startsWith('esrally')) {
-            let words = step.split(',');
-            if (words.length > 1) {
-                let sub_wl = words[0];
-                words.splice(0, 1);
-                words.sort();
-                step = sub_wl + ',' + words.join(',');
-            }
-        }
-        ret.push(step);
+//        step = step.replace(/\.warmup-iterations=/g, '.wi=')
+//            .replace(/\.target-throughput=/g, '.tt=')
+//            .replace(/\.clients=/g, '.c=')
+//            .replace(/\.iterations=/g, '.i=');
+//        if (benchmark.startsWith('esrally')) {
+//            let words = step.split(',');
+//            if (words.length > 1) {
+//                let sub_wl = words[0];
+//                words.splice(0, 1);
+//                words.sort();
+//                step = sub_wl + ',' + words.join(',');
+//            }
+//        }
+        //ret.push(step);
+        ret.push(step.split(',').sort().join(' '));
     });
     return ret.join(';');
 }
@@ -1890,7 +1892,7 @@ function prepareNormedMetrics(metrics, mapMinLength) {
             return;
         }
         const metricLabel = getMetricLabel(metric);
-        const values = metric.getValues("values") || metric.getValues("p50_values");
+        const values = metric.getValues('values') || metric.getValues('p50_values');
         let vals = null;
         if (values) {
             const length = mapMinLength.get(metricLabel) ? mapMinLength.get(metricLabel) : values.length;
@@ -1990,13 +1992,14 @@ function fixMetricValues(metric) {
         }
     }
     if (metric.latencies) {
-        metric.metricValues.push({ type: 'latency_values', values: metric[type] });
+        metric.metricValues.push({ type: 'latency_values', values: metric.latencies });
         metric.latencies = undefined;        
     }
+    //metric.metricValues = [metric.metricValues[0]]; /// DEBUG !!!
     metric.metricValues.forEach(mv => {
         mv.type = mv.type.toLowerCase();
         if (!mv.name) {
-            if (mv.type.indexOf('percentile') < 0) {
+            if (mv.type.indexOf('percentile') < 0 && mv.type.indexOf('values') >= 0) {
                 mv.name = mv.type.substring(0, mv.type.length - 'values'.length).toLowerCase().replace(/_/g, ''); /// || getMetricsShortName(metric);
             } else{
                 mv.name = mv.type;
@@ -2094,15 +2097,15 @@ function calcMetricAverages(metric) {
 
 function collectMetricStats(metric, mapRespMax, mapRespMaxCount, mapMinLength) {
     const metricLabel = getMetricLabel(metric);
-    const metricMax = metric.getValues("values")?.max() || null;
+    const metricMax = metric.getValues('values')?.max() || null;
     if (metricMax && !mapRespMax.has(metricLabel) || mapRespMax.get(metricLabel) < metricMax) {
         mapRespMax.set(metricLabel, metricMax);
     }
-    const metricMaxCount = metric.getValues("counts")?.max() || null;
+    const metricMaxCount = metric.getValues('counts')?.max() || null;
     if (metricMaxCount && !mapRespMaxCount.has(metricLabel) || mapRespMaxCount.get(metricLabel) < metricMaxCount) {
         mapRespMaxCount.set(metricLabel, metricMaxCount);
     }
-    const values = metric.getValues("values") || metric.getValues("p50_values");
+    const values = metric.getValues('values') || metric.getValues('p50_values');
     const metricLength = values ? values.length : null;
     if (metricLength && !mapMinLength.has(metricLabel) || mapMinLength.get(metricLabel) > metricLength) {
         mapMinLength.set(metricLabel, metricLength);
@@ -2124,8 +2127,8 @@ function groupMetrics(metrics) {
         const name = group;
         const operation = '';
         grMetrics.forEach(m => {
-            metricValues.push({ name: m.operation, type: 'VALUES',  values: m.getValues("values") });
-            metricValues.push({ name: m.operation, type: 'COUNTS',  values: m.getValues("counts") });
+            metricValues.push({ name: m.operation, type: 'VALUES',  values: m.getValues('values') });
+            metricValues.push({ name: m.operation, type: 'COUNTS',  values: m.getValues('counts') });
         });
         const metric = {
             name,
@@ -2148,13 +2151,13 @@ function normalizeMetricsStart(metrics, filterDataElements, showOpts, mapRespMax
     metrics.forEach(fixMetricValues);
     if (!showOpts.noSortMetrics) {
         console.log('Sorting metrics...')
-        metrics.sortNum("name", 1, ["operation", "operation_step"]);
+        metrics.sortNum('name', 1, ['operation', 'operation_step']);
     }
     if (filterDataElements && filterDataElements.length > 0) {
         for (let i = metrics.length - 1; i >= 0; i--) {
             const metricLabel = getMetricLabel(metrics[i]);
             if (!checkDataPatterns([metrics[i].name, metricLabel], filterDataElements, 'FILTER')) {
-                console.log(`normalizeMetricsStart excliding metric ${metricLabel}`);
+                console.log(`normalizeMetricsStart excluding metric ${metricLabel}`);
                 metrics.splice(i, 1);
             }
         }
@@ -2216,12 +2219,13 @@ function parseShowOpts(showOptions) {
 }
 
 function normalizeHitsMetrics(hits, showOptions, filterDataElements) {
-    console.log('normalizeHitsMetrics showOptions: ' + showOptions + ", " + filterDataElements);
+    console.log('normalizeHitsMetrics showOptions: ' + showOptions + ', ' + filterDataElements);
     const showOpts = parseShowOpts(showOptions);
     console.log(`normalizeHitsMetrics showOpts=${showOpts}`);
     hits.mapRespMax = new Map();
     hits.mapMinLength = new Map();
     hits.mapRespMaxCount = new Map();
+    //hits.forEach(hit => hit._source.metrics = [hit._source.metrics[0],hit._source.metrics[1]]); /// DEBUG !!!
     hits.forEach(hit => normalizeMetricsStart(hit._source.metrics, filterDataElements, showOpts, hits.mapRespMax, hits.mapRespMaxCount, hits.mapMinLength));
     hits.forEach(hit => normalizeMetricsFinish(hit._source.metrics, hits.mapRespMax, hits.mapRespMaxCount, showOpts));
     if (showOpts.normalizeWarmup) {
@@ -2236,8 +2240,7 @@ function normalizeRunProperties(doc) {
     }
     if (!doc.runProperties && doc.run_properties) {
         doc.runProperties = doc.run_properties;
-    }
-    if (!doc.runProperties) {
+    } else if (!doc.runProperties) {
         return;
     }
     const runProperties = doc.runProperties;

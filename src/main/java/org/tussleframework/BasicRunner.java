@@ -36,17 +36,20 @@ import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
 import static org.tussleframework.tools.FormatTool.roundFormat;
 
-import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.HdrHistogram.Histogram;
 import org.tussleframework.tools.Analyzer;
 import org.tussleframework.tools.AnalyzerConfig;
+import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.LoggerTool;
 import org.yaml.snakeyaml.Yaml;
 
-public class BasicRunner {
+public class BasicRunner implements Runner {
 
     private static final Logger logger = Logger.getLogger(BasicRunner.class.getName());
 
@@ -56,70 +59,120 @@ public class BasicRunner {
         }
     }
 
-    public void run(Class<? extends Benchmark> benchmarkClass, String[] args) {
-        Benchmark benchmark = null;
+    protected RunnerConfig runnerConfig;
+    protected String rateUnits = "op/s";
+
+    public BasicRunner() {
+    }
+
+    public BasicRunner(String[] args) throws TussleException {
+        init(args);
+    }
+
+    @Override
+    public void init(String[] args) throws TussleException {
+        this.runnerConfig = ConfigLoader.loadConfig(args, true, BasicRunnerConfig.class);
+    }
+
+    @Override
+    public void run(Benchmark benchmark) throws TussleException {
+        BasicRunnerConfig config = (BasicRunnerConfig) this.runnerConfig;
         try {
-            Constructor<? extends Benchmark> benchmarkCtor = benchmarkClass.getConstructor();
-            benchmark = benchmarkCtor.newInstance();
-            benchmark.init(args);
-            run(benchmark);
+            log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
+            log("Runner config: %s", new Yaml().dump(config).trim());
+            double targetRate = parseValue(config.getTargetRate());
+            int warmupTime = parseTimeLength(config.getWarmupTime());
+            int runTime = parseTimeLength(config.getRunTime());
+            ArrayList<HdrResult> results = new ArrayList<>();
+            for (int step = 0; step < config.runSteps; step++) {
+                log("===================================================================");
+                log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
+                RunResult runResult = runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, true, config.reset);
+                log("Run finished: %s", benchmark.getName());
+                logResult(runResult, results, config.getHistogramFactor(), step);
+            }
+            makeReport(results);
         } catch (Exception e) {
             LoggerTool.logException(logger, e);
         }
     }
 
-    public void run(Benchmark benchmark) {
-        BenchmarkConfig benchmarkConfig = benchmark.getConfig();
+    /**
+     * Reset and run benchmark using run once recorder
+     * 
+     * @param benchmark
+     * @param runArgs
+     * @param results
+     * @param writeHdr
+     * @param reset
+     * @return Run results
+     * @throws TussleException
+     */
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, List<HdrResult> results, boolean writeHdr, boolean reset) throws TussleException {
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, writeHdr);
+        RunResult result;
         try {
-            log("Test config: %s", new Yaml().dump(benchmarkConfig).trim());
-            double targetRate = parseValue(benchmarkConfig.getTargetRate());
-            int warmupTime = parseTimeLength(benchmarkConfig.getWarmupTime());
-            int runTime = parseTimeLength(benchmarkConfig.getRunTime());
-            int steps = benchmarkConfig.getRunSteps();
-            for (int step = 0; step < steps; step++) {
-                log("===================================================================");
-                log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
-                if (benchmarkConfig.isReset()) {
-                    log("Resetting benchmark: %s", benchmark.getName());
-                    benchmark.reset();
-                }
-                ResultsRecorder resultsRecorder = new ResultsRecorder(benchmarkConfig, 100, targetRate, step, runTime, true);
-                RunResult runResult;
-                try {
-                    log("Reguesting rate %s, warmup %ds, time %ds...", roundFormat(targetRate), warmupTime, runTime);
-                    runResult = benchmark.run(targetRate, warmupTime, runTime, resultsRecorder);
-                } finally {
-                    resultsRecorder.cancel();
-                }
-                log("Run finished: %s", benchmark.getName());
-                logResult(runResult, resultsRecorder, benchmarkConfig.getHistogramFactor(), step);
+            if (reset) {
+                log("Benchmark reset...");
+                benchmark.reset();
             }
-            benchmark.cleanup();
-        } catch (Exception e) {
-            LoggerTool.logException(logger, e);
-            return;
+            result = runSimple(benchmark, runArgs, results, recorder);
+        } finally {
+            recorder.cancel();
         }
-        if (benchmarkConfig.isMakeReport()) {
+        return result;
+    }
+
+    /**
+     * Just benchmark.run
+     * 
+     * @param benchmark
+     * @param runArgs
+     * @param results
+     * @param recorder
+     * @return Run results
+     * @throws TussleException
+     */
+    public RunResult runSimple(Benchmark benchmark, RunArgs runArgs, List<HdrResult> results, ResultsRecorder recorder) throws TussleException {
+        log("Benchmark run at target rate %s %s (%s%%), warmup %d s, run time %d s...", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), runArgs.warmupTime, runArgs.runTime);
+        RunResult result = benchmark.run(runArgs.targetRate, runArgs.warmupTime, runArgs.runTime, recorder);
+        rateUnits = result.rateUnits != null ? result.rateUnits : "op/s";
+        if (runArgs.ratePercent > 0) {
+            log("Reguested rate %s %s (%s%%), actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), roundFormat(result.rate), rateUnits);
+        } else {
+            log("Reguested rate %s %s, actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(result.rate), rateUnits);
+        }
+        log("-----------------------------------------------------");
+        if (result.rate < 0) {
+            log("Failed to find actual rate: %s", roundFormat(result.rate));
+            return null;
+        }
+        recorder.getResults(results);
+        return result;
+    }
+
+    public void makeReport(Collection<HdrResult> results) throws TussleException {
+        if (runnerConfig.isMakeReport()) {
             AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-            analyzerConfig.setMakeReport(benchmarkConfig.isMakeReport());
-            analyzerConfig.setResultsDir(benchmarkConfig.getHistogramsDir());
-            analyzerConfig.setReportDir(benchmarkConfig.getReportDir());
+            analyzerConfig.setMakeReport(runnerConfig.isMakeReport());
+            analyzerConfig.setResultsDir(runnerConfig.getHistogramsDir());
+            analyzerConfig.setReportDir(runnerConfig.getReportDir());
             try {
-                new Analyzer().processResults(analyzerConfig);
+                new Analyzer().processResults(analyzerConfig, results);
             } catch (Exception e) {
                 log("Analyzer failed to process results: %s", e.toString());
             }
         }
     }
 
-    public void logResult(RunResult runResult, ResultsRecorder resultsRecorder, double histogramFactor, int step) {
+    public void logResult(RunResult runResult, Collection<HdrResult> results, double histogramFactor, int step) {
         double[] basicPercentiles = { 0, 50, 90, 99, 99.9, 99.99, 100 };
         log("Results (step %d)", step + 1);
         log("Count: %d", runResult.count);
         log("Time: %s s", roundFormat(runResult.time / 1000d));
         log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits != null ? runResult.rateUnits : "");
         log("Errors: %d", runResult.errors);
-        resultsRecorder.getResults().forEach(result -> {
+        results.forEach(result -> {
             Histogram h = result.allHistogram;
             if (h.getTotalCount() > 0) {
                 for (int i = 0; i < basicPercentiles.length; i++) {

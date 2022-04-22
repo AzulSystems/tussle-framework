@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,13 +33,14 @@
 package org.tussleframework.examples;
 
 import org.tussleframework.BasicRunner;
+import org.tussleframework.Run;
 import org.tussleframework.tools.LoggerTool;
 
 public class SleepBenchmarkBasicRunner {
     public static void main(String[] args) {
         LoggerTool.init("benchmark");
         try {
-            new BasicRunner().run(new SleepBenchmark(args));
+            new BasicRunner(Run.runnerArgs(args)).run(new SleepBenchmark(Run.benchmarkArgs(args)));
         } catch (Exception e) {
             e.printStackTrace();
         }

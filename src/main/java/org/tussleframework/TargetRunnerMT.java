@@ -62,19 +62,18 @@ public class TargetRunnerMT implements TargetRunner {
     }
     
     class ThreadRunner {
-        Exception error;
         RunResult result;
         void run(String operationName, double targetPerThread, int runTime, Callable<Boolean> workload, TimeRecorder recorder) {
             try {
                 result = new TargetRunnerST().runWorkload(operationName, targetPerThread, runTime, workload, recorder);
             } catch (Exception e) {
-                error = e;
+                result = RunResult.builder().runError(e).build();
             }
         }
     }
 
     @Override
-    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws Exception {
+    public RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws TussleException {
         log("Starting: target rate %s op/s, time %d ms...", roundFormat(targetRate), runTime);
         final ConcurrentHashMap<Integer, RunResult> runResults = new ConcurrentHashMap<>(threadCount);
         final Thread[] threads = new Thread[threadCount];
@@ -86,19 +85,23 @@ public class TargetRunnerMT implements TargetRunner {
                 ThreadRunner tr = new ThreadRunner();
                 tr.run(operationName, targetPerThread, runTime, workload, recorder);
                 runResults.put(idx, tr.result);
-                errors[idx] = tr.error;
+                errors[idx] = tr.result.runError;
             });
         }
         for (Thread thread : threads) {
             thread.start();
         }
-        Thread.sleep(runTime);
-        for (Thread thread : threads) {
-            thread.join();
+        try {
+            for (Thread thread : threads) {
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TussleException(e);
         }
         for (Exception error : errors) {
             if (error != null) {
-                throw error;
+                throw new TussleException(error);
             }
         }
         long maxTime = 0;

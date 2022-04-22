@@ -55,6 +55,10 @@ public class LoggerTool {
         }
     }
 
+    public static void logException(Exception e) {
+        logException(Logger.getGlobal(), e);
+    }
+
     public static void logException(Logger loggerIn, Exception e) {
         Logger logger = loggerIn == null ? Logger.getGlobal() : loggerIn;
         if (e.getMessage() == null) {

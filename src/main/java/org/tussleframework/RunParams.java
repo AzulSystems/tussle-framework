@@ -32,32 +32,26 @@
 
 package org.tussleframework;
 
-import java.io.File;
+import java.util.ArrayList;
 
-import org.tussleframework.tools.FileTool;
 import org.tussleframework.tools.FormatTool;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-/**
- * Basic benchmark configuration
- * 
- */
 @Data
-public class BenchmarkConfig implements AbstractConfig {
-    public int runSteps = 1; // number of run steps
-    public int intervalLength = 1000; // ms, histogram write interval length
-    public int progressIntervals = 5; // ms, output progress interval count
-    public double histogramFactor = 1000000; // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
-    public boolean reset = true; // reset benchmark before run in the Runner scenario
-    public boolean rawData = false; // collect each request raw data: start and finish times
-    public boolean makeReport = false; // generate detailed report in addition to the summary results printed to log
-    public String runTime = "60"; // sec, test run time
-    public String targetRate = "1k"; // op/s, expected target throughput
-    public String warmupTime = "0"; // sec, test warmup time
-    public String reportDir = "./report"; // location for report files
-    public String histogramsDir = "./histograms"; // location for histogram (hdr) files
-    public String[] collectOps = {}; // if set collect metrics for only specified operations 
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RunParams implements AbstractConfig {
+
+    public String targetRate;
+    public String warmupTime;
+    public String runTime;
 
     @Override
     public void validate(boolean runMode) {
@@ -72,30 +66,28 @@ public class BenchmarkConfig implements AbstractConfig {
         }
         if (FormatTool.parseTimeLength(warmupTime) + FormatTool.parseTimeLength(runTime) <= 0) {
             throw new IllegalArgumentException(String.format("Invalid warmupTime(%s) or runTime(%s) - sum should be positive", warmupTime, runTime));
-        }
-        if (histogramsDir == null) {
-            throw new IllegalArgumentException("Invalid histogramsDir - null");
-        }
-        if (runMode) {
-            createDirs();
-        }
+        }        
     }
 
-    public void createDirs() {
-        File histogramsDirFile = new File(histogramsDir);
-        File reportDirFile = new File(reportDir);
-        if (FileTool.isFileOrNonEmptyDir(histogramsDirFile) && !FileTool.backupDir(histogramsDirFile)) {
-            throw new IllegalArgumentException(String.format("Non-empty histograms dir '%s' already exists", histogramsDirFile));
-        }
-        if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile) && !FileTool.backupDir(reportDirFile)) {
-            throw new IllegalArgumentException(String.format("Non-empty report dir '%s' already exists", reportDirFile));
-        }
-        if (!histogramsDirFile.exists() && !histogramsDirFile.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create histograms dir '%s'", histogramsDirFile));
-        }
-        if (makeReport && !reportDirFile.exists() && !reportDirFile.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create report dir '%s'", reportDirFile));
-        }
+    public static RunParams[] spike(String min, String max, String minLen, String maxLen) {
+        return new RunParams[] {
+                new RunParams(min, "0", minLen),
+                new RunParams(max, "0", maxLen),
+                new RunParams(min, "0", minLen)
+        };
     }
 
+    public static RunParams[] ramp(int n, double from, double to) {
+        ArrayList<RunParams> arr = new ArrayList<>();
+        if (n > 1) {
+            double d = (to - from) / (n - 1);
+            for (int i = 0; i < n; i++) {
+                arr.add(new RunParams(String.valueOf(from), "0", "1m"));
+                from += d;
+            }
+        } else if (n == 1) {
+            arr.add(new RunParams(String.valueOf(from), "0", "1m"));
+        }
+        return arr.toArray(new RunParams[0]);
+    }
 }

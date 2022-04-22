@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -44,19 +44,19 @@ public interface Benchmark {
      * @param args
      * @throws Exception
      */
-    void init(String[] args) throws Exception;
+    void init(String[] args) throws TussleException;
 
     /**
      * Benchmark reset, can be invoked by Benchmark Runner before run operation.
      * 
      * @throws Exception
      */
-    void reset() throws Exception;
+    void reset() throws TussleException;
 
     /**
      * Benchmark cleanup, invoked by Benchmark Runner after all other operations
      */
-    void cleanup() throws Exception;
+    void cleanup() throws TussleException;
 
     /**
      * Get Benchmark name
@@ -70,7 +70,7 @@ public interface Benchmark {
      * 
      * @return Benchmark configuration
      */
-    BenchmarkConfig getConfig();
+    AbstractConfig getConfig();
 
     /**
      * Runs Benchmark at the specified target rate for specified run time  
@@ -82,5 +82,5 @@ public interface Benchmark {
      * 
      * @return RunResult 
      */
-    RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) throws Exception;
+    RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) throws TussleException;
 }

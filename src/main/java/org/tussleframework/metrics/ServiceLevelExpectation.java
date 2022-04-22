@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,4 +33,7 @@
 package org.tussleframework.metrics;
 
 public interface ServiceLevelExpectation {
+    double markerValue();
+    String longName();
+    String markerName();
 }

@@ -30,24 +30,19 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.examples;
 
-public interface WithException {
-    void run() throws TussleException;
+import org.tussleframework.Run;
+import org.tussleframework.ScenarioRunner;
+import org.tussleframework.tools.LoggerTool;
 
-    public static void wrapException(WithException r) {
+public class PiBenchmarkScenarioRunner {
+    public static void main(String[] args) {
+        LoggerTool.init("benchmark");
         try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
-    }
-
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
+            Run.run(new PiBenchmark(), new ScenarioRunner(), args);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

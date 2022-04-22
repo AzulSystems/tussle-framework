@@ -30,24 +30,27 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.examples;
 
-public interface WithException {
-    void run() throws TussleException;
+import org.tussleframework.WlConfig;
+import org.tussleframework.tools.FormatTool;
 
-    public static void wrapException(WithException r) {
-        try {
-            r.run();
-        } catch (TussleException e) {
-            throw new TussleRuntimeException(e);
-        }
-    }
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-    public static void withException(WithException r) throws TussleException {
-        try {
-            r.run();
-        } catch (TussleRuntimeException e) {
-            throw (TussleException) e.getCause();
-        }
+@Data
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class StringBenchmarkConfig extends WlConfig {
+    public String len = "1k";
+    public String lenMax = "0";
+
+    @Override
+    public void validate(boolean runMode) {
+        super.validate(runMode);
+        if (FormatTool.parseInt(len) <= 0) {
+            throw new IllegalArgumentException(String.format("Invalid len value (%s) - should be positive", len));
+        }        
     }
 }

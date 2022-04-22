@@ -53,8 +53,8 @@ public abstract class WlBenchmark implements Benchmark {
 
     protected WlConfig config;
 
-    public void init(String[] args) throws Exception {
-        config = ConfigLoader.load(args, true, getConfigClass());
+    public void init(String[] args) throws TussleException {
+        config = ConfigLoader.loadConfig(args, true, getConfigClass());
     }
 
     public abstract RunnableWithError getWorkload();
@@ -62,7 +62,7 @@ public abstract class WlBenchmark implements Benchmark {
     public abstract String getOperationName();
 
     @Override
-    public BenchmarkConfig getConfig() {
+    public AbstractConfig getConfig() {
         return config;
     }
 
@@ -72,7 +72,7 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     @Override
-    public void reset() throws Exception {
+    public void reset() throws TussleException {
     }
 
     @Override
@@ -80,16 +80,11 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     @Override
-    public RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) {
-        try {
-            if (warmupTime > 0) {
-                doSomeWork(targetRate, warmupTime, null);
-            }
-            return doSomeWork(targetRate, runTime, recorder);
-        } catch (Exception e) {
-            Thread.currentThread().interrupt();
-            return RunResult.builder().runError(e).build();
+    public RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) throws TussleException {
+        if (warmupTime > 0) {
+            doSomeWork(targetRate, warmupTime, null);
         }
+        return doSomeWork(targetRate, runTime, recorder);
     }
 
     public Class<? extends WlConfig> getConfigClass() {
@@ -106,10 +101,14 @@ public abstract class WlBenchmark implements Benchmark {
         }
     }
 
-    protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws Exception {
-        recorder.startRecording(getOperationName(), "op/s", "ms");
+    protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws TussleException {
+        if (recorder != null) {
+            recorder.startRecording(getOperationName(), "op/s", "ms");
+        }
         RunResult result = getTargetRunner().runWorkload(getOperationName(), targetRate, runTime * 1000, getWorkload(), recorder);
-        recorder.stopRecording();
+        if (recorder != null) {
+            recorder.stopRecording();
+        }
         return result;
     }
 }
