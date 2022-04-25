@@ -75,7 +75,8 @@ public class ScenarioRunnerConfig extends RunnerConfig {
                 scenario = RunParams.ramp(
                         parseInt(getParam(def, 1, "10")),
                         parseValue(getParam(def, 2, "1k")),
-                        parseValue(getParam(def, 3, "10k")));
+                        parseValue(getParam(def, 3, "10k")),
+                        getParam(def, 4, "1m"));
             }
         }
         if (scenario == null) {

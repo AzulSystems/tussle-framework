@@ -41,7 +41,7 @@ public class RunParamsTest {
     @Test
     public void testParamsRamp() {
         int num = 20;
-        RunParams[] params = RunParams.ramp(num, 1.0, 100.0);
+        RunParams[] params = RunParams.ramp(num, 1.0, 100.0, "1s");
         assertEquals(num, params.length);
         assertEquals(1.0, FormatTool.parseValue(params[0].targetRate), 0.00000001);
         assertEquals(100.0, FormatTool.parseValue(params[params.length - 1].targetRate), 0.00000001);

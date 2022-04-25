@@ -77,16 +77,16 @@ public class RunParams implements AbstractConfig {
         };
     }
 
-    public static RunParams[] ramp(int n, double from, double to) {
+    public static RunParams[] ramp(int n, double from, double to, String len) {
         ArrayList<RunParams> arr = new ArrayList<>();
         if (n > 1) {
             double d = (to - from) / (n - 1);
             for (int i = 0; i < n; i++) {
-                arr.add(new RunParams(String.valueOf(from), "0", "1m"));
+                arr.add(new RunParams(String.valueOf(from), "0", len));
                 from += d;
             }
         } else if (n == 1) {
-            arr.add(new RunParams(String.valueOf(from), "0", "1m"));
+            arr.add(new RunParams(String.valueOf(from), "0", len));
         }
         return arr.toArray(new RunParams[0]);
     }
