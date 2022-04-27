@@ -59,6 +59,18 @@ Linux 5.4.0-1045-aws (ip-172-31-94-166) <------>09/08/21 <----->_x86_64_<------>
 06:33:16        loop2      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
 06:33:16      nvme1n1      0.60      0.00      4.80      8.00      0.00      0.00      4.00      0.24
 06:33:16      nvme0n1      0.20      0.80      0.00      4.00      0.00      1.00      4.00      0.08
+...
+
+or
+
+08:17:47 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+08:17:52 AM   nvme0n1     12.80     44.80    251.00     23.11      0.02      1.39      0.16      0.20
+
+08:17:52 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+08:17:57 AM   nvme0n1      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+08:17:57 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+...
      */
     @Override
     public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
@@ -87,6 +99,9 @@ Linux 5.4.0-1045-aws (ip-172-31-94-166) <------>09/08/21 <----->_x86_64_<------>
                         String[] s = line.split("\\s+");
                         if (s.length == 10 && s[0].length() == 8) {
                             accumValue += Double.valueOf(s[9].trim().replace(',', '.'));
+                            finish += intervalLength;
+                        } else if (s.length == 11 && s[0].length() == 8) {
+                            accumValue += Double.valueOf(s[10].trim().replace(',', '.'));
                             finish += intervalLength;
                         } else {
                             break;
