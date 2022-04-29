@@ -36,6 +36,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -169,7 +170,7 @@ public class FormatTool {
         int m = 1;
         int end = 0;
         if (s.endsWith("kib")) {
-            m = 102;
+            m = 1024;
             end = 3;
         } else if (s.endsWith("mib")) {
             m = 1024 * 1024;
@@ -270,15 +271,30 @@ public class FormatTool {
         return Long.parseLong(s) * m;
     }
 
-    public static String join(Collection<?> c, String sep) {
-        StringBuilder sb = new StringBuilder();
-        c.forEach(o -> {
-            sb.append(o);
-            if (sep != null && sb.length() > 0) {
+    public static StringBuilder join(StringBuilder sb, String sep, Collection<?> c) {
+        int i = 0;
+        for (Object o : c) {
+            if (o instanceof Collection) {
+                join(sb, sep, (Collection<?>) o);
+            } else if (o instanceof Object[]) {
+                join(sb, sep, Arrays.asList((Object[]) o));
+            } else {
+                sb.append(o);
+            }
+            if (sep != null && sb.length() > 0 && i < c.size() - 1) {
                 sb.append(sep);
             }
-        });
-        return sb.toString();
+            i++;
+        }
+        return sb;
+    }
+
+    public static String join(String sep, Object... c) {
+        return join(new StringBuilder(), sep, Arrays.asList(c)).toString();
+    }
+
+    public static String join(String sep, Collection<?> c) {
+        return join(new StringBuilder(), sep, c).toString();
     }
 
     public static String withS(long count, String name) {
