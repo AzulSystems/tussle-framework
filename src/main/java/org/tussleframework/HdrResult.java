@@ -145,6 +145,7 @@ public class HdrResult {
         result.intervalLength = 1000;
         final String hs = ".hdr-";
         if (fileName.startsWith("tlp_stress_metrics") && fileName.indexOf(hs) >= 0) {
+        	result.runArgs = new RunArgs();
             result.histogramFactor = 1000;
             result.operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
             if (result.operationName.startsWith("INTENDED-")) {

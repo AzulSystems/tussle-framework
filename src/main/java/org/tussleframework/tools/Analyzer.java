@@ -367,7 +367,7 @@ public class Analyzer {
                 return true;
             String host = detectHost(dir);
             if (zipEntry != null) {
-                log("Processing file from archive '%s//%s'...", dir, file.getName());
+                log("Processing file from archive '%s/%s'...", dir, file.getName());
                 try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
                     return processResultsStream(inputStream, host, file.getName());
                 } catch (Exception e) {
