@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.metrics;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -46,6 +46,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 
+import org.tussleframework.RunArgs;
+import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleRuntimeException;
+import org.tussleframework.runners.RunnerConfig;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
@@ -167,6 +171,7 @@ class OperationsRecorder {
     private RunnerConfig config;
     private RunArgs runArgs;
     private boolean writeHdr;
+    private boolean cancelOnStop;
 
     @Override
     public void startRecording(String operationName, String rateUnits, String timeUnits) {
@@ -188,7 +193,9 @@ class OperationsRecorder {
 
     @Override
     public void stopRecording() {
-        cancel();
+        if (cancelOnStop) {
+            cancel();
+        }
     }
 
     @Override
@@ -199,10 +206,11 @@ class OperationsRecorder {
         }
     }
 
-    public ResultsRecorder(RunnerConfig config, RunArgs runArgs, boolean writeHdr) {
+    public ResultsRecorder(RunnerConfig config, RunArgs runArgs, boolean writeHdr, boolean cancelOnStop) {
         this.config = config;
         this.runArgs = runArgs;
         this.writeHdr = writeHdr;
+        this.cancelOnStop = cancelOnStop;
         if (config.collectOps != null) {
             Collections.addAll(recordingsFilter, config.collectOps);
         }

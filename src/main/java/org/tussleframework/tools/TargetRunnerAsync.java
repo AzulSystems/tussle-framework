@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.tools;
 
 import static org.tussleframework.tools.FormatTool.*;
 
@@ -43,7 +43,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
-import org.tussleframework.tools.SleepTool;
+import org.tussleframework.RunResult;
+import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleException;
 
 import lombok.AllArgsConstructor;
 

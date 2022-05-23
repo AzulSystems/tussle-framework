@@ -30,12 +30,12 @@
  * 
  */
 
-package org.tussleframework.steprater;
+package org.tussleframework.runners;
 
-import static org.tussleframework.HdrIntervalResult.reportedType;
-import static org.tussleframework.HdrIntervalResult.reportedTypeCount;
 import static org.tussleframework.WithException.withException;
 import static org.tussleframework.WithException.wrapException;
+import static org.tussleframework.metrics.HdrIntervalResult.reportedType;
+import static org.tussleframework.metrics.HdrIntervalResult.reportedTypeCount;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,8 +46,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.DoubleStream;
 
-import org.tussleframework.HdrResult;
 import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Marker;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricType;

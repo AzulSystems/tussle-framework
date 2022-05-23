@@ -33,7 +33,7 @@
 package org.tussleframework.examples;
 
 import org.tussleframework.Run;
-import org.tussleframework.ScenarioRunner;
+import org.tussleframework.runners.ScenarioRunner;
 import org.tussleframework.tools.LoggerTool;
 
 public class PiBenchmarkScenarioRunner {

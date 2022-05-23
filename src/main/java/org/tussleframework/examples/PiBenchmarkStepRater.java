@@ -33,7 +33,7 @@
 package org.tussleframework.examples;
 
 import org.tussleframework.Run;
-import org.tussleframework.steprater.StepRater;
+import org.tussleframework.runners.StepRater;
 import org.tussleframework.tools.LoggerTool;
 
 public class PiBenchmarkStepRater {

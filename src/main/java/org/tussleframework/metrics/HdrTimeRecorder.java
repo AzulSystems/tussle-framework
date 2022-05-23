@@ -30,19 +30,45 @@
  * 
  */
 
-package org.tussleframework.examples;
+package org.tussleframework.metrics;
 
-import org.tussleframework.Run;
-import org.tussleframework.runners.BasicRunner;
-import org.tussleframework.tools.LoggerTool;
+import org.HdrHistogram.Recorder;
+import org.tussleframework.TimeRecorder;
 
-public class PiBenchmarkBasicRunner {
-    public static void main(String[] args) {
-        LoggerTool.init("benchmark");
-        try {
-            new BasicRunner(Run.runnerArgs(args)).run(new PiBenchmark(Run.benchmarkArgs(args)));
-        } catch (Exception e) {
-            e.printStackTrace();
+public class HdrTimeRecorder implements TimeRecorder {
+    public final Recorder serviceTimeRecorder = new Recorder(Long.MAX_VALUE, 3);
+    public final Recorder responseTimeRecorder = new Recorder(Long.MAX_VALUE, 3);
+    public final Recorder errorsRecorder = new Recorder(Long.MAX_VALUE, 3);
+
+    @Override
+    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
+        if (success) {
+            if (startTime > 0) {
+                if (count == 1) {
+                    serviceTimeRecorder.recordValue(finishTime - startTime);
+                } else {
+                    serviceTimeRecorder.recordValueWithCount(finishTime - startTime, count);
+                }
+            }
+            if (intendedStartTime > 0) {
+                if (count == 1) {
+                    responseTimeRecorder.recordValue(finishTime - intendedStartTime);
+                } else {
+                    responseTimeRecorder.recordValueWithCount(finishTime - intendedStartTime, count);
+                }
+            }
+        } else {
+            errorsRecorder.recordValue(finishTime - intendedStartTime);
         }
+    }
+
+    @Override
+    public void startRecording(String operation, String rateUnits, String timeUnits) {
+        ///
+    }
+
+    @Override
+    public void stopRecording() {
+        ///
     }
 }

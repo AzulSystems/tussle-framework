@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
 import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
@@ -43,6 +43,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.HdrHistogram.Histogram;
+import org.tussleframework.Benchmark;
+import org.tussleframework.RunArgs;
+import org.tussleframework.RunResult;
+import org.tussleframework.Runner;
+import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrLogWriterTask;
+import org.tussleframework.metrics.HdrResult;
+import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.Analyzer;
 import org.tussleframework.tools.AnalyzerConfig;
 import org.tussleframework.tools.ConfigLoader;
@@ -85,11 +93,7 @@ public class BasicRunner implements Runner {
             int runTime = parseTimeLength(config.getRunTime());
             ArrayList<HdrResult> results = new ArrayList<>();
             for (int step = 0; step < config.runSteps; step++) {
-                log("===================================================================");
-                log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
-                RunResult runResult = runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, true, config.reset);
-                log("Run finished: %s", benchmark.getName());
-                logResult(runResult, results, config.getHistogramFactor(), step);
+                runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, true, config.reset);
             }
             makeReport(results);
         } catch (Exception e) {
@@ -99,24 +103,12 @@ public class BasicRunner implements Runner {
 
     /**
      * Reset and run benchmark using run once recorder
-     * 
-     * @param benchmark
-     * @param runArgs
-     * @param results
-     * @param writeHdr
-     * @param reset
-     * @return Run results
-     * @throws TussleException
      */
     public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, List<HdrResult> results, boolean writeHdr, boolean reset) throws TussleException {
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, writeHdr);
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, writeHdr, true);
         RunResult result;
         try {
-            if (reset) {
-                log("Benchmark reset...");
-                benchmark.reset();
-            }
-            result = runSimple(benchmark, runArgs, results, recorder);
+            result = runOnce(benchmark, runArgs, results, recorder, reset);
         } finally {
             recorder.cancel();
         }
@@ -124,16 +116,16 @@ public class BasicRunner implements Runner {
     }
 
     /**
-     * Just benchmark.run
-     * 
-     * @param benchmark
-     * @param runArgs
-     * @param results
-     * @param recorder
-     * @return Run results
-     * @throws TussleException
+     * Just run benchmark
      */
-    public RunResult runSimple(Benchmark benchmark, RunArgs runArgs, List<HdrResult> results, ResultsRecorder recorder) throws TussleException {
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> results, ResultsRecorder recorder, boolean reset) throws TussleException {
+        log("===================================================================");
+        log("Run once: %s (step %d) started", benchmark.getName(), runArgs.step + 1);
+        HdrLogWriterTask.progressHeaderPrinted(false);
+        if (reset) {
+            log("Benchmark reset...");
+            benchmark.reset();
+        }
         log("Benchmark run at target rate %s %s (%s%%), warmup %d s, run time %d s...", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), runArgs.warmupTime, runArgs.runTime);
         RunResult result = benchmark.run(runArgs.targetRate, runArgs.warmupTime, runArgs.runTime, recorder);
         rateUnits = result.rateUnits != null ? result.rateUnits : "op/s";
@@ -148,6 +140,8 @@ public class BasicRunner implements Runner {
             return null;
         }
         recorder.getResults(results);
+        log("Run once: %s (step %d) finished", benchmark.getName(), runArgs.step + 1);
+        logResult(result, results, runnerConfig.getHistogramFactor(), runArgs.step);
         return result;
     }
 

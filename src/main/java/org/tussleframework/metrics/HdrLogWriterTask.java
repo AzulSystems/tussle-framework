@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.metrics;
 
 import static org.tussleframework.tools.FormatTool.*;
 

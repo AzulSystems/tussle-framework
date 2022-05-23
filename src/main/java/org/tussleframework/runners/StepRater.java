@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework.steprater;
+package org.tussleframework.runners;
 
 import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
@@ -43,12 +43,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.tussleframework.BasicRunner;
 import org.tussleframework.Benchmark;
-import org.tussleframework.HdrResult;
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunResult;
 import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.tools.AnalyzerConfig;
 import org.yaml.snakeyaml.Yaml;
 

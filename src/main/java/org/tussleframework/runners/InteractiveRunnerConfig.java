@@ -30,10 +30,16 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
-import java.util.concurrent.Callable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-public interface TargetRunner {
-    RunResult runWorkload(String operationName, double targetRate, int runTime, Callable<Boolean> workload, TimeRecorder recorder) throws TussleException;
+/**
+ * Basic benchmark configuration
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class InteractiveRunnerConfig extends RunnerConfig {
+    public String input = "stdin"; // TBD
 }

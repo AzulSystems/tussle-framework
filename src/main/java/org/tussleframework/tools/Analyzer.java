@@ -47,9 +47,9 @@ import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.tussleframework.HdrResult;
 import org.tussleframework.RunProperties;
 import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MovingWindowSLE;

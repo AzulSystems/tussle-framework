@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.metrics;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -38,15 +38,6 @@ import java.util.stream.DoubleStream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
-import org.tussleframework.metrics.Interval;
-import org.tussleframework.metrics.Marker;
-import org.tussleframework.metrics.Metric;
-import org.tussleframework.metrics.MetricData;
-import org.tussleframework.metrics.MetricType;
-import org.tussleframework.metrics.MetricValue;
-import org.tussleframework.metrics.MovingWindowSLE;
-import org.tussleframework.metrics.MovingWindowSumHistogram;
-import org.tussleframework.metrics.ServiceLevelExpectation;
 import org.tussleframework.tools.LoggerTool;
 
 public class HdrIntervalResult {

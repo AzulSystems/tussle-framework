@@ -30,44 +30,27 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
-import org.HdrHistogram.Recorder;
+import org.tussleframework.RunParams;
 
-public class HdrTimeRecorder implements TimeRecorder {
-    public final Recorder serviceTimeRecorder = new Recorder(Long.MAX_VALUE, 3);
-    public final Recorder responseTimeRecorder = new Recorder(Long.MAX_VALUE, 3);
-    public final Recorder errorsRecorder = new Recorder(Long.MAX_VALUE, 3);
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-    @Override
-    public void recordTimes(String operation, long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
-        if (success) {
-            if (startTime > 0) {
-                if (count == 1) {
-                    serviceTimeRecorder.recordValue(finishTime - startTime);
-                } else {
-                    serviceTimeRecorder.recordValueWithCount(finishTime - startTime, count);
-                }
-            }
-            if (intendedStartTime > 0) {
-                if (count == 1) {
-                    responseTimeRecorder.recordValue(finishTime - intendedStartTime);
-                } else {
-                    responseTimeRecorder.recordValueWithCount(finishTime - intendedStartTime, count);
-                }
-            }
-        } else {
-            errorsRecorder.recordValue(finishTime - intendedStartTime);
-        }
-    }
+/**
+ * Basic benchmark configuration
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class BasicRunnerConfig extends RunnerConfig {
+    public String targetRate = "1k";   // op/s, expected target throughput
+    public String warmupTime = "0";    // benchmark warmup time
+    public String runTime = "1m";      // benchmark run time, examples, 1m - one minute, 40 = 40s - seconds, 1h - hour, etc.
+    public int runSteps = 1;           // number of run steps (iterations) used by BasicRunner 
 
     @Override
-    public void startRecording(String operation, String rateUnits, String timeUnits) {
-        ///
-    }
-
-    @Override
-    public void stopRecording() {
-        ///
+    public void validate(boolean runMode) {
+        new RunParams(targetRate, warmupTime, runTime).validate(runMode);
+        super.validate(runMode);
     }
 }

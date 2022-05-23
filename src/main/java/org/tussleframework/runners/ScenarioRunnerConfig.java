@@ -30,13 +30,15 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
 import static org.tussleframework.tools.FormatTool.parseValue;
 import static org.tussleframework.tools.FormatTool.parseInt;
 import static org.tussleframework.tools.FormatTool.getParam;
 
 import java.util.Arrays;
+
+import org.tussleframework.RunParams;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

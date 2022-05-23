@@ -29,6 +29,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+
 import static org.junit.Assert.fail;
 
 import java.util.Random;
@@ -36,11 +37,11 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.HdrHistogram.Histogram;
 import org.junit.Test;
-import org.tussleframework.HdrTimeRecorder;
 import org.tussleframework.RunnableWithError;
-import org.tussleframework.TargetRunnerAsync;
-import org.tussleframework.TargetRunnerMT;
-import org.tussleframework.TargetRunnerST;
+import org.tussleframework.metrics.HdrTimeRecorder;
+import org.tussleframework.tools.TargetRunnerAsync;
+import org.tussleframework.tools.TargetRunnerMT;
+import org.tussleframework.tools.TargetRunnerST;
 
 /**
  * 

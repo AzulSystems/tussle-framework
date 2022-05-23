@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
 import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
@@ -39,6 +39,13 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.tussleframework.Benchmark;
+import org.tussleframework.RunArgs;
+import org.tussleframework.RunParams;
+import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrLogWriterTask;
+import org.tussleframework.metrics.HdrResult;
+import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.LoggerTool;
 import org.yaml.snakeyaml.Yaml;
@@ -73,30 +80,24 @@ public class ScenarioRunner extends BasicRunner {
         for (int step = 0; step < scenario.length; step++) {
             runTimeSum += parseTimeLength(scenario[step].getRunTime());
         }
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0), true) {
-            @Override
-            public void stopRecording() {
-                /// skip
-            }
-        }; 
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0), true, false); 
+        log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
+        log("Runner config: %s", new Yaml().dump(config).trim());
         try {
-            log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
-            log("Runner config: %s", new Yaml().dump(config).trim());
             ArrayList<HdrResult> results = new ArrayList<>();
             if (config.reset) {
-                log("Benchmark reset...");
+                log("Benchmark initial reset...");
                 benchmark.reset();
             }
             for (int step = 0; step < scenario.length; step++) {
+                
                 log("===================================================================");
                 log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
                 HdrLogWriterTask.progressHeaderPrinted(false);
                 double targetRate = parseValue(scenario[step].getTargetRate());
                 int warmupTime = parseTimeLength(scenario[step].getWarmupTime());
                 int runTime = parseTimeLength(scenario[step].getRunTime());
-                RunResult runResult = runSimple(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, recorder);
-                log("Run finished: %s", benchmark.getName());
-                logResult(runResult, results, config.getHistogramFactor(), step);
+                runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, recorder, false);
             }
             makeReport(results);
         } catch (Exception e) {

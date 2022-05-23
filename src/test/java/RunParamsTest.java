@@ -1,9 +1,3 @@
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-import org.tussleframework.RunParams;
-import org.tussleframework.tools.FormatTool;
-
 /*
  * Copyright (c) 2021-2022, Azul Systems
  * 
@@ -35,6 +29,12 @@ import org.tussleframework.tools.FormatTool;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+import org.tussleframework.RunParams;
+import org.tussleframework.tools.FormatTool;
 
 public class RunParamsTest {
 

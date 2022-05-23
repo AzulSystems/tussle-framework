@@ -30,10 +30,11 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.runners;
 
 import java.io.File;
 
+import org.tussleframework.AbstractConfig;
 import org.tussleframework.tools.FileTool;
 
 import lombok.Data;
@@ -45,7 +46,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class RunnerConfig implements AbstractConfig {
-    public int runSteps = 1;           // number of run steps (iterations) used by BasicRunner 
     public int intervalLength = 1000;  // ms, histogram write interval length
     public int progressIntervals = 5;  // ms, output progress interval count
     public double histogramFactor = 1000000; // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000

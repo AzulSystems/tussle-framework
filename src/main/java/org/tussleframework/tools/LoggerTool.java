@@ -41,6 +41,8 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+import org.tussleframework.runners.BasicRunner;
+
 public class LoggerTool {
 
     private LoggerTool() {
@@ -57,6 +59,13 @@ public class LoggerTool {
 
     public static void logException(Exception e) {
         logException(Logger.getGlobal(), e);
+    }
+
+    public static void log(Logger loggerIn, String format, Object... args) {
+        Logger logger = loggerIn == null ? Logger.getGlobal() : loggerIn;
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info(String.format("[%s] %s", BasicRunner.class.getSimpleName(), String.format(format, args)));
+        }
     }
 
     public static void logException(Logger loggerIn, Exception e) {

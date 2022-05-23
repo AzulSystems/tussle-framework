@@ -30,9 +30,8 @@
  * 
  */
 
-package org.tussleframework.steprater;
+package org.tussleframework.runners;
 
-import org.tussleframework.BasicRunnerConfig;
 import org.tussleframework.TussleException;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MovingWindowSLE;

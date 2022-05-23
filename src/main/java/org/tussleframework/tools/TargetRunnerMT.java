@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.tools;
 
 import static org.tussleframework.tools.FormatTool.*;
 
@@ -38,7 +38,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
-import org.tussleframework.tools.SleepTool;
+import org.tussleframework.RunResult;
+import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleException;
 
 /**
  * 

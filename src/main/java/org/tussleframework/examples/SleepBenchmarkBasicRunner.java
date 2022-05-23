@@ -32,8 +32,8 @@
 
 package org.tussleframework.examples;
 
-import org.tussleframework.BasicRunner;
 import org.tussleframework.Run;
+import org.tussleframework.runners.BasicRunner;
 import org.tussleframework.tools.LoggerTool;
 
 public class SleepBenchmarkBasicRunner {

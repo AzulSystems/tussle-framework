@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.metrics;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -41,10 +41,8 @@ import java.util.Queue;
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramLogReader;
-import org.tussleframework.metrics.Interval;
-import org.tussleframework.metrics.MetricData;
-import org.tussleframework.metrics.MovingWindowSLE;
-import org.tussleframework.metrics.ServiceLevelExpectation;
+import org.tussleframework.RunArgs;
+import org.tussleframework.runners.RunnerConfig;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 

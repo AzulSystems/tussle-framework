@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -30,14 +30,16 @@
  * 
  */
 
-package org.tussleframework;
+package org.tussleframework.tools;
 
 import static org.tussleframework.tools.FormatTool.*;
 
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
-import org.tussleframework.tools.SleepTool;
+import org.tussleframework.RunResult;
+import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleException;
 
 /**
  * 
