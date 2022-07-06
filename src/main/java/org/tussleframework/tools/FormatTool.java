@@ -38,8 +38,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 public class FormatTool {
     private FormatTool() {
@@ -133,99 +138,104 @@ public class FormatTool {
     }
 
     /**
-     * Value examples: 100 as is, 10k -> 1000, 1M -> 1000000
+     * Value and result examples: 100 as is, 10k -> 1000, 1M -> 1000000
      * 
-     * @param s Input string value
+     * @param value Input string value
      * @return Parsed double value
      */
-    public static double parseValue(String s) {
-        s = s.toLowerCase();
+    public static double parseValue(String value) {
+        value = value.toLowerCase();
         double m = 1.0;
         int end = 0;
-        if (s.endsWith("kib")) {
+        if (value.endsWith("kib")) {
             m = 1024.0;
             end = 3;
-        } else if (s.endsWith("mib")) {
+        } else if (value.endsWith("mib")) {
             m = 1024.0 * 1024.0;
             end = 3;
-        } else if (s.endsWith("gib")) {
+        } else if (value.endsWith("gib")) {
             m = 1024.0 * 1024.0 * 1024.0;
             end = 3;
-        } else if (s.endsWith("k")) {
+        } else if (value.endsWith("k")) {
             m = 1000.0;
             end = 1;
-        } else if (s.endsWith("m")) {
+        } else if (value.endsWith("m")) {
             m = 1000_000.0;
             end = 1;
-        } else if (s.endsWith("g")) {
+        } else if (value.endsWith("g")) {
             m = 1000_000_000.0;
             end = 1;
         }
-        s = s.substring(0, s.length() - end).trim();
-        return Double.parseDouble(s) * m;
+        value = value.substring(0, value.length() - end).trim();
+        return Double.parseDouble(value) * m;
     }
 
-    public static int parseInt(String s) {
-        s = s.toLowerCase();
+    public static int parseInt(String value) {
+        value = value.toLowerCase();
         int m = 1;
         int end = 0;
-        if (s.endsWith("kib")) {
+        if (value.endsWith("kib")) {
             m = 1024;
             end = 3;
-        } else if (s.endsWith("mib")) {
+        } else if (value.endsWith("mib")) {
             m = 1024 * 1024;
             end = 3;
-        } else if (s.endsWith("gib")) {
+        } else if (value.endsWith("gib")) {
             m = 1024 * 1024 * 1024;
             end = 3;
-        } else if (s.endsWith("k")) {
+        } else if (value.endsWith("k")) {
             m = 1000;
             end = 1;
-        } else if (s.endsWith("m")) {
+        } else if (value.endsWith("m")) {
             m = 1000_000;
             end = 1;
-        } else if (s.endsWith("g")) {
+        } else if (value.endsWith("g")) {
             m = 1000_000_000;
             end = 1;
         }
-        s = s.substring(0, s.length() - end).trim();
-        return Integer.parseInt(s) * m;
+        value = value.substring(0, value.length() - end).trim();
+        return Integer.parseInt(value) * m;
     }
 
     /**
-     * Value examples: 60 -> 60 seconds, 10m -> 600 seconds, 1h -> 3600 seconds, etc.
+     * Value and result examples: 60 -> 60 seconds, 10m -> 600 seconds, 1h -> 3600 seconds, etc.
      * 
-     * @param s Input string value
+     * @param value Input string value
      * @return Time in seconds
      */
-    public static int parseTimeLength(String s) {
-        s = s.toLowerCase();
+    public static int parseTimeLength(String value) {
+        value = value.toLowerCase();
         int m = 1;
         int end = 0;
-        if (s.endsWith("seconds")) {
+        if (value.endsWith("seconds")) {
             end = 7;
-        } else if (s.endsWith("minutes")) {
+        } else if (value.endsWith("minutes")) {
             m = 60;
             end = 7;
-        } else if (s.endsWith("min")) {
+        } else if (value.endsWith("min")) {
             m = 60;
             end = 3;
-        } else if (s.endsWith("hrs")) {
+        } else if (value.endsWith("hrs")) {
             m = 3600;
             end = 3;
-        } else if (s.endsWith("m")) {
+        } else if (value.endsWith("m")) {
             m = 60;
             end = 1;
-        } else if (s.endsWith("h")) {
+        } else if (value.endsWith("h")) {
             m = 3600;
             end = 1;
-        } else if (s.endsWith("s")) {
+        } else if (value.endsWith("s")) {
             end = 1;
         }
-        s = s.substring(0, s.length() - end).trim();
-        return Integer.parseInt(s) * m;
+        value = value.substring(0, value.length() - end).trim();
+        return Integer.parseInt(value) * m;
     }
 
+    /**
+     * 
+     * @param s
+     * @return Time in nanoseconds
+     */
     public static long parseTimeNs(String s) {
         s = s.toLowerCase();
         long m = 1;
@@ -271,6 +281,14 @@ public class FormatTool {
         return Long.parseLong(s) * m;
     }
 
+    /**
+     * Joins collection into string buffer using specified separator. All array and collection objects will be joined recursively.  
+     * 
+     * @param sb
+     * @param sep
+     * @param c
+     * @return
+     */
     public static StringBuilder join(StringBuilder sb, String sep, Collection<?> c) {
         int i = 0;
         for (Object o : c) {
@@ -289,10 +307,24 @@ public class FormatTool {
         return sb;
     }
 
+    /**
+     * Joins object array into string using specified separator
+     * 
+     * @param sep
+     * @param c
+     * @return
+     */
     public static String join(String sep, Object... c) {
         return join(new StringBuilder(), sep, Arrays.asList(c)).toString();
     }
 
+    /**
+     * Joins collection into string using specified separator
+     * 
+     * @param sep
+     * @param c
+     * @return
+     */
     public static String join(String sep, Collection<?> c) {
         return join(new StringBuilder(), sep, c).toString();
     }
@@ -305,8 +337,149 @@ public class FormatTool {
         }
     }
 
-    public static String getParam(String p, int idx, String defval) {
+    /**
+     * Extracts value by index from from string in format 'value0_value1_value2_...' 
+     * 
+     * @param p
+     * @param idx
+     * @param defval
+     * @return
+     */
+    public static String getStringValue(String p, int idx, String defval) {
         String[] params = p.split("_");
         return idx < params.length ? params[idx] : defval;
+    }
+
+    public static class Param {
+        String name;
+        String value;
+        Param(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+    }
+
+    /**
+     * Splits string value in format 'key=name' into separate 'key' and 'value'
+     * 
+     * @param es
+     * @return
+     */
+    public static Param splitParam(String es) {
+        int pos = es.indexOf('=');
+        return new Param(es.substring(0, pos), es.substring(pos + 1));
+    }
+
+    public static String paramName(String es) {
+        int pos = es.indexOf('=');
+        return es.substring(0, pos);
+    }
+
+    public static String paramValue(String es) {
+        int pos = es.indexOf('=');
+        return es.substring(pos + 1);
+    }
+
+    public static boolean matchFilters(String name, String[] include, String[] exclude) {
+        boolean match = true;
+        if (include != null && include.length > 0) {
+            match = false;
+            for (String inc : include) {
+                Pattern regexp = Pattern.compile(inc);
+                if (regexp.matcher(name).matches()) {
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) {
+                return match;
+            }
+        }
+        if (exclude != null && exclude.length > 0) {
+            for (String exc : exclude) {
+                Pattern regexp = Pattern.compile(exc);
+                if (regexp.matcher(name).matches()) {
+                    match = false;
+                    break;
+                }
+            }
+        }
+        return match;
+    }
+
+    /**
+     * Replace parameters in the input string:
+     *    "some str_{key1} ... {key2}" -> "some str_value1 ... value2"
+     * 
+     * @param input
+     * @param params
+     * @return
+     */
+    public static String applyArg(String input, Map<String, String> params) {
+        String res = applyArgOnce(input, params);
+        if (res != null && !res.equals(input)) {
+            input = res;
+            res = applyArgOnce(input, params);
+            if (res != null && !res.equals(input)) {
+                res = applyArgOnce(input, params);
+            }
+        }
+        return res;
+    }
+
+    public static String applyArgOnce(String input, Map<String, String> params) {
+        if (input == null || params == null || params.isEmpty()) {
+            return input;
+        }
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (i < input.length()) {
+            int pos1 = input.indexOf('{', i);
+            if (pos1 >= 0) {
+                int pos2 = input.indexOf('}', pos1);
+                if (pos2 > pos1) {
+                    sb.append(input.substring(i, pos1));
+                    String key = input.substring(pos1 + 1, pos2);
+                    String value = key.isEmpty() ? null : params.get(key);
+                    if (value != null) {
+                        sb.append(value);
+                    } else {
+                        sb.append(input.substring(pos1, pos2 + 1));
+                    }
+                    i = pos2 + 1;
+                } else {
+                    sb.append(input.substring(i));
+                    i = input.length();
+                }
+            } else {
+                sb.append(input.substring(i));
+                i = input.length();
+            }
+        }
+        return sb.toString();
+    }
+
+    public static List<String> applyArgs(List<String> args, Map<String, String> params) {
+        for (int i = 0; i < args.size(); i++) {
+            args.set(i, applyArg(args.get(i), params));
+        }
+        return args;
+    }
+
+    public static Map<String, String> getSysMap(Properties vars) {
+        return new HashMap<String, String>() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public String get(Object key) {
+                String k = key.toString();
+                if (super.containsKey(k)) {
+                    return super.get(k);
+                } else if (vars != null && vars.containsKey(k)) {
+                    return vars.getProperty(k);
+                } else {
+                    return System.getProperty(k);
+                }
+            }
+        };
     }
 }

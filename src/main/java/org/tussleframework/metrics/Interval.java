@@ -40,26 +40,44 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Interval {
-    public long start;
-    public long finish;
+    public long start = Long.MIN_VALUE;
+    public long finish = Long.MAX_VALUE;
     public String name = "";
+    public boolean adjusted;
 
     public boolean contains(long start, long finish) {
         return start <= finish && this.start < finish && start <= this.finish;
     }
+    
+    public static long mul(long v, long m) {
+        if (v == Long.MAX_VALUE || v == Long.MIN_VALUE)
+            return v;
+        else
+            return v * m;
+    }
+
+    public Interval(Interval i) {
+        start = i.start;
+        finish = i.finish;
+        name = i.name;
+        adjusted = i.adjusted;
+    }
+
+    public Interval scale(long m) {
+        return new Interval(mul(start, m), mul(finish, m), name, adjusted);
+    }
 
     public void adjust(long stamp) {
+        if (adjusted) {
+            return;
+        }
         if (start != Long.MIN_VALUE) {
             start += stamp;
         }
         if (finish != Long.MAX_VALUE) {
             finish += stamp;
         }
-    }
-
-    public void reset() {
-        start = Long.MIN_VALUE;
-        finish = Long.MAX_VALUE;
+        adjusted = true;
     }
 
     public void update(long s, long f) {

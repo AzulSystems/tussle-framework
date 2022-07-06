@@ -1368,20 +1368,22 @@ function equalXvalues(metric1, metric2) {
     return true;
 }
 
-function getMetricValuesLabels(metric, values, showOptions) {
+function getMetricValuesLabels(metric, mvValues, showOptions) {
     const nums = showOptions.includes('nums');
     // TODO const loga = showOptions.includes('loga');
     const dateTime = showOptions.includes('dateTime');
     const utc = showOptions.includes('utc') || showOptions.includes('UTC');
     const noMin = showOptions.includes('noMin');
     // if (N > values.length)
-    const N = values.length;
+    const valuesLength = mvValues[0].values.length;
+    const N = valuesLength;
     const delay = metric.delay / 1000;
     let offset = 0;
     if (metric.trimLeft) {
         offset = metric.delay * metric.trimLeft;
     }
-    const numLabels = composeSimpleChartLabels(values.length, 1 + (metric.trimLeft ? metric.trimLeft : 0), 1);
+    const metricLabel = getMetricLabel(metric, true) + (mvValues[0].isCounts ? ' counts' : ' values');
+    const numLabels = composeSimpleChartLabels(valuesLength, 1 + (metric.trimLeft ? metric.trimLeft : 0), 1);
     let metricLabels;
     let chartType;
     if (metric.xvalues && metric.xvalues.length > 0 && metric.xvalues[0] > 150000000000) {
@@ -1407,7 +1409,7 @@ function getMetricValuesLabels(metric, values, showOptions) {
         console.log('getMetricValuesLabels: metricLabels -> xsvalues ' + metricLabels[0]);
     } else if (delay && delay > 0) {
         if (noMin) {
-            const stampLabels = composeSimpleChartLabels(values.length, metric.start + offset, metric.delay);
+            const stampLabels = composeSimpleChartLabels(valuesLength, metric.start + offset, metric.delay);
             if (utc) {
                 if (dateTime) {
                     metricLabels = stampLabels.map(xv => new Date(xv).formatDateTimeUTC());
@@ -1422,7 +1424,7 @@ function getMetricValuesLabels(metric, values, showOptions) {
                 }
             }
         } else {
-            metricLabels = composeChartLabels(values.length, delay, N, (metric.start + offset - metric.minStart) / 1000);
+            metricLabels = composeChartLabels(valuesLength, delay, N, (metric.start + offset - metric.minStart) / 1000);
         }
         console.log('getMetricValuesLabels: metricLabels -> composeChartLabels ' + metricLabels[0]);
     } else {
@@ -1459,6 +1461,31 @@ function getMetricValuesLabels(metric, values, showOptions) {
             if (chart.options.scales.yAxes) {
                 chart.options.scales.yAxes.forEach(yAxe => yAxe.type = 'linear');
             }
+        }
+    }
+    mlabels.toggleCsv = (chart) => {
+        chart.options.csv = false;
+        const data = [];
+        let s = `${metric.xunits ? metric.xunits : 'time'}`;
+        mvValues.forEach(mv => s += ',' + (mv.name || metric.units));
+        data.push(`${s}\n`);
+        for (let i = 0; i < metricLabels.length; i++) {
+            s = metricLabels[i];
+            mvValues.forEach(mv => s += ',' + mv.values[i]);
+            data.push(`${s}\n`);
+        }
+        const plain = chart.options.csvEvent?.ctrlKey;
+        const blob = new Blob(data, { type: plain ? 'text/plain' : 'text/csv' });
+        if (plain) {
+            window.open(URL.createObjectURL(blob), '_blank');
+        } else {
+            const fileName = `${metric.runProperties.benchmark} ${metricLabel}.csv`;
+            const file = new File([blob], fileName, { lastModified: new Date() });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(file);
+            a.target = '_blank'
+            a.download = fileName;
+            a.click();
         }
     }
     return mlabels;
@@ -1503,7 +1530,6 @@ function getHLines(metric, dataIndex) {
             offs += 0.1;
         });
     } else if (metric.markers) {
-        let offs = 0.3;
         metric.markers.forEach(marker => {
             hlines.push({ name: 'markers', label: marker.name, y: marker.yvalue, color: '#800000', labelPos: offs });
             offs += 0.1;
@@ -1558,7 +1584,7 @@ function getMetricValuesChart(metric, showOptions) {
         return;
     }
     const wide = showOptions.includes('wide');
-    const labelsSet = getMetricValuesLabels(metric, metric.getValues('values') || metric.getValues('p50_values'), showOptions);
+    const labelsSet = getMetricValuesLabels(metric, metric.collectValues(), showOptions);
     const data = [];
     const datasets = [];
     metric.metricValues.forEach(mv => {
@@ -1593,16 +1619,16 @@ function getMetricValuesChart(metric, showOptions) {
     };
 }
 
-function getMetricChart(metric, showOptions, vals, valMax, label, units) {    
-    if (!vals) {
+function getMetricChart(metric, showOptions, mv, valMax, label, units) {    
+    if (!mv) {
         return null;
     }
     const wide = showOptions.includes('wide');
-    const isLong = vals.length > 100;
-    const labelsSet = getMetricValuesLabels(metric, vals, showOptions);
-    const data = [vals];
+    const isLong = mv.values.length > 100;
+    const labelsSet = getMetricValuesLabels(metric, [mv], showOptions);
+    const data = [mv.values];
     const datasets = [getLineChartDatasetOptions(label)];
-    const hlines = getHLinesFromData(vals, showOptions);
+    const hlines = getHLinesFromData(mv.values, showOptions);
     const vlines = getVLines(metric);
     return {
         wide,
@@ -1615,11 +1641,11 @@ function getMetricChart(metric, showOptions, vals, valMax, label, units) {
 }
 
 function getMetricThroughputChart(metric, showOptions) {
-   return getMetricChart(metric, showOptions, metric.getValues('throughput'), metric.maxCount, 'Throughput', 'op/s');
+   return getMetricChart(metric, showOptions, metric.getMetricValues('throughput'), metric.maxCount, 'Throughput', 'op/s');
 }
 
 function getMetricCountChart(metric, showOptions) {
-    return getMetricChart(metric, showOptions, metric.getValues('counts'), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
+    return getMetricChart(metric, showOptions, metric.getMetricValues('counts'), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
 }
 
 function getMetricPercentilesChart(metric, showOptions) {
@@ -1795,8 +1821,9 @@ function normalizeAppName(runProperties) {
     if (!runProperties.application_name) {
         if (runProperties.application) {
             let pos = runProperties.application.indexOf('-');
-            if (pos < 0)
+            if (pos < 0) {
                 pos = runProperties.application.indexOf('_');
+            }
             if (pos > 0) {
                 runProperties.application_name = runProperties.application.substring(0, pos);
                 runProperties.application_version = runProperties.application.substring(pos + 1).replace(/_/g, '.');
@@ -1811,10 +1838,11 @@ function normalizeAppName(runProperties) {
     }
     runProperties.application_name = runProperties.application_name.toLowerCase();
     if (!runProperties.application_version) {
-        if (runProperties.benchmark.indexOf('-') >= 0)
+        if (runProperties.benchmark.indexOf('-') >= 0) {
             runProperties.application_version = runProperties.benchmark.substring(runProperties.benchmark.indexOf('-') + 1);
-        else if (runProperties.benchmark.indexOf('_') >= 0)
+        } else if (runProperties.benchmark.indexOf('_') >= 0) {
             runProperties.application_version = runProperties.benchmark.substring(runProperties.benchmark.indexOf('_') + 1).replace(/_/g, '.');
+        }
     }
     if (!runProperties.application) {
         runProperties.application = runProperties.application_name;
@@ -1985,7 +2013,8 @@ function fixMetricFields(metric) {
 
 function fixMetricValues(metric) {
     metric.metricValues = metric.metricValues || [];
-    for (const type of ['values', 'p0_values', 'p50_values', 'p90_values', 'p99_values', 'p999_values', 'p9999_values', 'p100_values', 'counts', 'throughput']) {
+    for (const type of ['values', 'p0_values', 'p50_values', 'p90_values', 'p99_values',
+        'p999_values', 'p99_9_values', 'p9999_values', 'p99_99_values', 'p100_values', 'counts', 'throughput']) {
         if (metric[type]) {
             metric.metricValues.push({ type, values: metric[type] });
             metric[type] = undefined;
@@ -1995,21 +2024,26 @@ function fixMetricValues(metric) {
         metric.metricValues.push({ type: 'latency_values', values: metric.latencies });
         metric.latencies = undefined;        
     }
-    //metric.metricValues = [metric.metricValues[0]]; /// DEBUG !!!
+    //metric.metricValues = [metric.metricValues[0]] /// DEBUG !!!
     metric.metricValues.forEach(mv => {
         mv.type = mv.type.toLowerCase();
         if (!mv.name) {
-            if (mv.type.indexOf('percentile') < 0 && mv.type.indexOf('values') >= 0) {
-                mv.name = mv.type.substring(0, mv.type.length - 'values'.length).toLowerCase().replace(/_/g, ''); /// || getMetricsShortName(metric);
+            if (mv.type.indexOf('percentile') < 0 && mv.type.endsWith('values')) {
+                if (mv.type.endsWith('_values')) {
+                    mv.name = mv.type.substring(0, mv.type.length - '_values'.length).toLowerCase();
+                } else {
+                    mv.name = mv.type.substring(0, mv.type.length - 'values'.length).toLowerCase();
+                }
+                mv.name = mv.name.replace(/_/, '.');
             } else{
                 mv.name = mv.type;
             }
         }
-        if (mv.name === 'p999') {
+        if (mv.name === 'p999' || mv.name === 'p99_9') {
             mv.name = 'p99.9';
-        } else if (mv.name === 'p9999') {
+        } else if (mv.name === 'p9999' || mv.name === 'p99_99') {
             mv.name = 'p99.99';
-        } else if (mv.name === 'p90999') {
+        } else if (mv.name === 'p99999' || mv.name === 'p99_999') {
             mv.name = 'p99.999';
         } else if (mv.name === 'percentile_values') {
             mv.name = 'HDR';
@@ -2020,6 +2054,9 @@ function fixMetricValues(metric) {
         } else if (mv.name === 'latency_percentile_counts') {
             mv.name = 'latency HDR counts';
         }
+        if (!mv.name) {
+            mv.name = metric.name;
+        }
         mv.isValues = mv.values && mv.values.length > 0 && mv.type.endsWith('values') && mv.type.indexOf('percentile') < 0;
         mv.isCounts = mv.values && mv.values.length > 0 && mv.type === 'counts';
         mv.isThroughput = mv.values && mv.values.length > 0 && mv.type === 'throughput';
@@ -2029,7 +2066,9 @@ function fixMetricValues(metric) {
     metric.hasCounts = () => !!metric.metricValues.find(mv => mv.isCounts && mv.values);
     metric.hasThroughput = () => !!metric.metricValues.find(mv => mv.isThroughput && mv.values);
     metric.hasPercentiles = () => !!metric.metricValues.find(mv => mv.isPercentiles && mv.values);
-    metric.getValues = (mvName) => metric.metricValues.find(mv => mv.type === mvName)?.values;
+    metric.getMetricValues = (mvName) => metric.metricValues.find(mv => mv.type === mvName);
+    metric.getValues = (mvName) => metric.getMetricValues(mvName)?.values;
+    metric.collectValues = () => metric.metricValues.filter(mv => mv.isValues);
 }
 
 function trimMetricValues(metric, showOpts) {
@@ -2143,10 +2182,11 @@ function groupMetrics(metrics) {
     });
 }
 
-function normalizeMetricsStart(metrics, filterDataElements, showOpts, mapRespMax, mapRespMaxCount, mapMinLength) {
+function normalizeMetricsStart(metrics, runProperties, filterDataElements, showOpts, mapRespMax, mapRespMaxCount, mapMinLength) {
     if (!metrics) {
         return;
     }
+    metrics.forEach(m => m.runProperties = runProperties);
     metrics.forEach(fixMetricFields);
     metrics.forEach(fixMetricValues);
     if (!showOpts.noSortMetrics) {
@@ -2226,7 +2266,7 @@ function normalizeHitsMetrics(hits, showOptions, filterDataElements) {
     hits.mapMinLength = new Map();
     hits.mapRespMaxCount = new Map();
     //hits.forEach(hit => hit._source.metrics = [hit._source.metrics[0],hit._source.metrics[1]]); /// DEBUG !!!
-    hits.forEach(hit => normalizeMetricsStart(hit._source.metrics, filterDataElements, showOpts, hits.mapRespMax, hits.mapRespMaxCount, hits.mapMinLength));
+    hits.forEach(hit => normalizeMetricsStart(hit._source.metrics, hit._source.runProperties, filterDataElements, showOpts, hits.mapRespMax, hits.mapRespMaxCount, hits.mapMinLength));
     hits.forEach(hit => normalizeMetricsFinish(hit._source.metrics, hits.mapRespMax, hits.mapRespMaxCount, showOpts));
     if (showOpts.normalizeWarmup) {
         addNormalizedMetrics(hits);
@@ -2359,8 +2399,9 @@ function initModule(module) {
     module.filter('textTime', ($filter) => (time) => $filter('date')(time, 'HH:mm:ss'));
     module.filter('textCurrency', ($filter) => (val) => $filter('currency')(val / 100, '$', 2));
     module.filter('field', ($filter) => (val, prop) => {
-        if (prop === 'start_time' || prop === 'finish_time')
+        if (prop === 'start_time' || prop === 'finish_time') {
             return val[prop] ? val[prop].formatDateTimeUTC() : '';
+        }
         return val[prop];
     });
     const getClassFunc = $sc => () => {
@@ -2379,17 +2420,18 @@ function initModule(module) {
     module.directive('toggle', () => {
         return {
             restrict: 'E',
-            // template: '<span ng-class='getClass()' ng-click='toggleX()'>{{bindName}}</span>\u200B', <- does not work on Chrome
-            template: '<span ng-class="getClass()" ng-click="toggleX()">{{bindName}}</span> ',
+            template: '<span ng-class="getClass()" ng-click="toggleX($event)">{{bindName}}</span> ',
             scope: {
                 bindVar: '=',
+                bindEvent: '=',
                 bindClass: '@',
                 bindName: '@',
                 onToggle: '&'
             },
             controller: ($scope, $timeout) => {
                 $scope.getClass = getClassFunc($scope);
-                $scope.toggleX = () => {
+                $scope.toggleX = (event) => {
+                    $scope.bindEvent = event || null;
                     $scope.bindVar = !$scope.bindVar;
                     $timeout($scope.onToggle);
                 };
@@ -2416,7 +2458,6 @@ function initModule(module) {
                     $timeout($scope.onToggle);
                 };
                 $scope.delX = () => {
-                    console.log(`delX -- ${$scope.bindName}`);
                     $timeout($scope.onDel);
                 };
             },

@@ -1,0 +1,81 @@
+/*
+ * Copyright (c) 2021-2022, Azul Systems
+ * 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of [project] nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
+import static org.junit.Assert.fail;
+
+import org.junit.Test;
+import org.tussleframework.ProcBenchmark;
+import org.tussleframework.ProcConfig;
+import org.tussleframework.runners.BasicRunner;
+import org.tussleframework.tools.LoggerTool;
+
+public class ProcBenchmarkSamplesTest {
+
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
+
+    @Test
+    public void testBasic() {
+        String[] runnerArgs = {
+                "targetRate=1k",
+                "runTime=1m", 
+                "warmupTime=0",
+                //"operationsExclude=[.*check-cluster-health]"
+        };
+        String[] runCmd = {
+                "bash",
+                "-c",
+                "echo STEP={runStep} TIME={runTime} WARMUP={warmupTime} TARGET={targetRate} TTT={TTT}; sleep 1; echo run; sleep 1; echo DONE",
+        };
+        ProcConfig procConfig = new ProcConfig();
+        procConfig.vars.put("TTT", "some_ttt...");
+        procConfig.name = "proc-samples-test";
+        procConfig.logPrefix = " *** ";
+        procConfig.run.dir = "test_data/proc_samples_test";
+        procConfig.run.dir = "step3_wtp0_tp60_tt1000/benchmarks_0";
+        //procConfig.run.dir = "{user.dir}/results_esrally_step{runStep}_wtp{warmupTime}_tp{runTime}_tt{targetRate}";
+        //procConfig.run.dir = "{user.dir}/results_esrally_step2_wtp0_tp60_tt1200";
+        procConfig.run.cmd = runCmd;
+        procConfig.run.delay = "5s";
+        procConfig.resultFiles = new String[] {
+                "samples.zip"
+                //"{runDir}/benchmarks_0/samples.zip"
+        };
+        try {
+            new BasicRunner(runnerArgs).run(new ProcBenchmark(procConfig));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+}

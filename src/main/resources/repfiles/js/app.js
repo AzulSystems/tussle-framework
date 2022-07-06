@@ -368,10 +368,10 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
                     }
                     if (!mv.isPercentiles) {
                         if (!dataDataLabels[mv.name]) {
-                            dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
+                            dataDataLabels[mv.name] = getMetricValuesLabels(metric, [mv], showOptions);
                         } else if (!checkUnits || equalXvalues(metric, metricData[0].metric)) {
                             if (mv.values.length > dataDataLabels[mv.name].labels.length) {
-                                dataDataLabels[mv.name] = getMetricValuesLabels(metric, mv.values, showOptions);
+                                dataDataLabels[mv.name] = getMetricValuesLabels(metric, [mv], showOptions);
                             }
                         } else {
                             console.log('Different x-scales!');
@@ -835,6 +835,11 @@ function initLazyToggle(lazyElem, t, selected) {
     }    
 }
 
+function lazyChart(metric) {
+    return metric.name == 'hiccup_times' || metric.name == 'top' || metric.name == 'cpu' || 
+        metric.name == 'network' || metric.name == 'disk' || metric.name.indexOf('-mw') >= 0;
+} 
+
 function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
     const cls = runProperties.vm_name.toLowerCase();
     if (metric.operation && metric.operation.startsWith('warmup_')) {
@@ -844,13 +849,11 @@ function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, s
         return;
     }
     if (metric.hasValues()) {
-        const lazyChart = metric.name == 'hiccup_times' || metric.name == 'top' || metric.name == 'cpu' || 
-                metric.name == 'network' || metric.name == 'disk' || metric.name.indexOf('-mw') >= 0; 
         const metricLabel = getMetricLabel(metric) + ' (chart)';
         pushVal(table, prefix + metricLabel, TYPE_CHART_TIME, metric, hidx, cls, () => toggles.selected(metricLabel), () => toggles.select(metricLabel, false));
         console.log('ADDED values chart ' + metricLabel);
         const t = toggles.addToggleOpt(metricLabel, TYPE_CHART_TIME, showDataElements);
-        if (lazyChart) {
+        if (lazyChart(metric)) {
             const mwName = metric.name.indexOf('-mw') >= 0 ? 'MW' : metric.name;
             const mname = metric.name == 'hiccup_times' ? 'hiccup' : mwName;
             const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
@@ -862,6 +865,13 @@ function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, s
         toggles.addToggleOpt(metricLabel, TYPE_CHART_COUNTS, showDataElements);
         pushVal(table, prefix + metricLabel, TYPE_CHART_COUNTS, metric, hidx, cls, () => toggles.selected(metricLabel), () => toggles.select(metricLabel, false));
         console.log('ADDED counts chart ' + metricLabel);
+        const t = toggles.addToggleOpt(metricLabel, TYPE_CHART_COUNTS, showDataElements);
+        if (lazyChart(metric)) {
+            const mwName = metric.name.indexOf('-mw') >= 0 ? 'MW' : metric.name;
+            const mname = metric.name == 'hiccup_times' ? 'hiccup' : mwName;
+            const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
+            initLazyToggle(lazyElem, t, false);
+        }
     }
     if (metric.hasThroughput()) {
         const metricLabel = getMetricLabel(metric) + ' throughput (chart)';

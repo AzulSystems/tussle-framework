@@ -37,7 +37,6 @@ INT0=${INT0:-${INT0_DEF}}
 MAKE_REPORT=${MAKE_REPORT:-false}
 MH=${MH:-3}
 STEPRATER=${STEPRATER:-false}
-OPNAME=${OPNAME:-op}
 
 while [[ "${1}" == *=* ]]
 do
@@ -64,10 +63,11 @@ INT0="- {${INT0}}"
 [[ -n "${SLE3}" ]] && SLE3="- {${SLE3}}"
 
 metricsConf="
-resultsDir: . 
+histogramsDir: .
 makeReport: ${MAKE_REPORT}
-mergeHistos: ${MH}
-opName: ${OPNAME}
+reportInterval: $((MH*1000))
+operationsExclude:
+ - check-cluster-health
 intervals:
 ${INT0}
 ${INT1}
@@ -85,23 +85,23 @@ analyzer=org.tussleframework.tools.Analyzer
 process_dir() {
     local res_dir=$1
     local run_props=$( find "${res_dir}" -type f -name "run.properties.json" )
-    local resultsDir
+    local histogramsDir
     if [[ -z "${run_props}" ]]
     then
-        resultsDir=${res_dir}
-        echo "No any run.properties found. Processing topmost results dir: ${resultsDir} ..."
+        histogramsDir=${res_dir}
+        echo "No any run.properties found. Processing topmost results dir: ${histogramsDir} ..."
         (
-        cd "${resultsDir}" && \
+        cd "${histogramsDir}" && \
         java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
         return
     fi
     echo "${run_props}" | while read r
     do
-        resultsDir=$(dirname "${r}")
-        echo "Processing results dir: ${resultsDir} ..."
+        histogramsDir=$(dirname "${r}")
+        echo "Processing results dir: ${histogramsDir} ..."
         (
-        cd "${resultsDir}" && \
+        cd "${histogramsDir}" && \
         java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
     done

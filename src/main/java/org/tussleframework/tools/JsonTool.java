@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,8 +32,13 @@
 
 package org.tussleframework.tools;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.OutputStream;
+
+import org.tussleframework.TussleException;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -44,35 +49,60 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 public class JsonTool {
+
     private JsonTool() {
+    }
+
+    public static void printJson(Object obj, String file) throws TussleException {
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            printJson(obj, out);
+        } catch (IOException e) {
+            throw new TussleException(e);
+        }
     }
 
     /**
      * Print in json format 
      * 
      */
-    public static void printJson(Object obj, PrintStream out) throws Exception {
+    public static void printJson(Object obj, OutputStream out) throws TussleException {
         ObjectWriter ow = new ObjectMapper()
                 .setSerializationInclusion(Include.NON_NULL)
                 .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
                 .writer().withDefaultPrettyPrinter();
-        ow.writeValue(out, obj);
+        try {
+            ow.writeValue(out, obj);
+        } catch (Exception e) {
+            throw new TussleException(e);
+        }
+    }
+    
+    public static <T> T readJson(String file, Class<T> klass) throws TussleException {
+        try (FileInputStream in = new FileInputStream(file)) {
+            return readJson(in, klass, false, true);
+        } catch (IOException e) {
+            throw new TussleException(e);
+        }
     }
 
     /**
      * Read object from json file (stream)
      */
-    public static <T> T readJson(InputStream in, Class<T> klass) throws Exception {
+    public static <T> T readJson(InputStream in, Class<T> klass) throws TussleException {
         return readJson(in, klass, false, true);
     }
 
-    public static <T> T readJson(InputStream in, Class<T> klass, boolean failOnUnknownProperties, boolean snakeCase) throws Exception {
+    public static <T> T readJson(InputStream in, Class<T> klass, boolean failOnUnknownProperties, boolean snakeCase) throws TussleException {
         ObjectMapper mapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, failOnUnknownProperties);
         if (snakeCase) {
             mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         }
         ObjectReader objectReader = mapper.reader();
-        return objectReader.readValue(in, klass);
+        try {
+            return objectReader.readValue(in, klass);
+        } catch (IOException e) {
+            throw new TussleException(e);
+        }
     }
 }

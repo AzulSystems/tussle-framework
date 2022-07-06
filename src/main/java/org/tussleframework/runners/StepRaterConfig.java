@@ -33,7 +33,6 @@
 package org.tussleframework.runners;
 
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.FormatTool;
@@ -57,11 +56,9 @@ public class StepRaterConfig extends BasicRunnerConfig {
     public String highBound = "0";
     public String highBoundTime = "0";
     public String highBoundWarmupTime = "0";
-    public String initialWarmupTime = "60";
+    public String initialRunTime = "1m";
     public String initialTargetRate = "1000";
     public int[] highBoundSteps = { 20000, 10000, 5000, 1000 };
-    public MovingWindowSLE[] sleConfig = {};
-    public Interval[] intervals = {};
 
     @Override
     public void validate(boolean runMode) {
@@ -92,7 +89,7 @@ public class StepRaterConfig extends BasicRunnerConfig {
             }
         }
         for (int i = 1; i < highBoundSteps.length; i++) {
-            if (highBoundSteps[i] <= highBoundSteps[i - 1]) {
+            if (highBoundSteps[i] >= highBoundSteps[i - 1]) {
                 throw new IllegalArgumentException(String.format("Invalid highBoundStep[%d](%d) - should be > highBoundStep[%d](%d)", i, highBoundSteps[i], i - 1, highBoundSteps[i - 1]));
             }
         }
@@ -103,12 +100,7 @@ public class StepRaterConfig extends BasicRunnerConfig {
         StepRaterConfig runnerConfig = ConfigLoader.loadObject(args, StepRaterConfig.class);
         if (runnerConfig.sleConfig.length == 0) {
             runnerConfig.sleConfig = new MovingWindowSLE[] {
-                    new MovingWindowSLE(90, 0, 10),
-            };
-        }
-        if (runnerConfig.intervals.length == 0) {
-            runnerConfig.intervals = new Interval[] {
-                    new Interval(0, Long.MAX_VALUE, ""),
+                    new MovingWindowSLE(90, 1, 10),
             };
         }
         return runnerConfig;

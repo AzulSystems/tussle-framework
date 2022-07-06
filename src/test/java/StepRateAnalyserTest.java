@@ -38,21 +38,27 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.junit.Test;
-import org.tussleframework.runners.StepRaterAnalyser;
+import org.tussleframework.tools.LoggerTool;
+import org.tussleframework.tools.StepRaterAnalyser;
 
 public class StepRateAnalyserTest {
 
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
+
     @Test
     public void testAnalyser() {
-        String reportDir = "reportDir" + System.currentTimeMillis();
+        String reportDir = "results/step_rate_analyser_test/report" + System.currentTimeMillis();
         try {
             Files.createDirectories(Paths.get(reportDir));
         } catch (IOException e) {
             e.printStackTrace();
             fail();
         }
-        String[] args = { 
-                "-p", "resultsDir = " + reportDir,
+        String[] args = {
+                "makeReport=true",
+                "-p", "histogramsDir = " + reportDir,
                 "-p", "reportDir = " + reportDir,
                 "-p", "highBound = 100000",
                 "-p", "sleConfig = [[50, 1, 10], [99, 10, 10], [99.9, 50, 60], [99.99, 200, 120], [100, 1000, 120]]"};

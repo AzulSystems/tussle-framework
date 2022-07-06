@@ -37,6 +37,7 @@ import java.util.Scanner;
 import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 
+import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MetricValue;
@@ -63,7 +64,7 @@ RX bytes, RX packets, TX bytes, TX packets
 ...
     */
     @Override
-    public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
         long start = 0;
         long finish = 0;
         int intervalLengthS = 5;

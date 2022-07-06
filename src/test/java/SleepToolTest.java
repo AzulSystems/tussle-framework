@@ -33,9 +33,14 @@
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.tussleframework.tools.LoggerTool;
 import org.tussleframework.tools.SleepTool;
 
 public class SleepToolTest {
+
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
 
     @Test
     public void testSleepPrecise1s() {
@@ -51,7 +56,7 @@ public class SleepToolTest {
         }
         assertTrue(true);
     }
-    
+
     @Test
     public void testSleep1s() {
         System.err.println("Sleep 1s = 100us x10000 times  start: " + System.nanoTime() + " - " + System.currentTimeMillis());

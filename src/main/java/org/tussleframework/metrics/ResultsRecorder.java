@@ -32,6 +32,11 @@
 
 package org.tussleframework.metrics;
 
+import static org.tussleframework.tools.FormatTool.NS_IN_MS;
+import static org.tussleframework.tools.FormatTool.NS_IN_US;
+import static org.tussleframework.tools.FormatTool.matchFilters;
+import static org.tussleframework.tools.FormatTool.roundFormat;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,127 +53,120 @@ import java.util.Timer;
 
 import org.tussleframework.RunArgs;
 import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleException;
 import org.tussleframework.TussleRuntimeException;
 import org.tussleframework.runners.RunnerConfig;
-import org.tussleframework.tools.FormatTool;
+import org.tussleframework.tools.Analyzer;
+import org.tussleframework.tools.AnalyzerConfig;
 import org.tussleframework.tools.LoggerTool;
-
-import static org.tussleframework.tools.FormatTool.NS_IN_US;
-import static org.tussleframework.tools.FormatTool.NS_IN_MS;
 
 public class ResultsRecorder implements TimeRecorder {
 
-class OperationsRecorder {
+    class OperationsRecorder {
 
-    private HdrLogWriterTask responseTimeWriter;
-    private HdrLogWriterTask serviceTimeWriter;
-    private HdrLogWriterTask errorsWriter;
-    private OutputStream rawDataOutputStream;
-    private boolean serviceTimeOnly;
-    private long startTime0;
-    private int intervalLength;
+        private OutputStream rawDataOutputStream;
+        private HdrWriter responseTimeWriter;
+        private HdrWriter serviceTimeWriter;
+        private HdrWriter errorsWriter;
+        private boolean serviceTimeOnly;
+        private long startTime0;
+        private int hdrInterval;
 
-    public OperationsRecorder(String operationName, String rateUnits, String timeUnits) throws IOException {
-        serviceTimeOnly = config.serviceTimeOnly;
-        String percentStr = FormatTool.roundFormatPercent(runArgs.ratePercent);
-        String parameters = String.format("%s_%s_%d", percentStr, FormatTool.format(runArgs.targetRate), runArgs.step);
-        intervalLength = config.getIntervalLength();
-        String respHdrFile = String.format("%s/%s_response_time_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult resp = new HdrResult(operationName, "response_time", rateUnits, timeUnits, respHdrFile, runArgs, 0, config);
-        responseTimeWriter = new HdrLogWriterTask(resp, runArgs.runTime, writeHdr, config.getProgressIntervals());
-        String servHdrFile = String.format("%s/%s_service_time_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult serv = new HdrResult(operationName, "service_time", rateUnits, timeUnits, servHdrFile, runArgs, 0, config);
-        serviceTimeWriter = new HdrLogWriterTask(serv, runArgs.runTime, writeHdr, config.getProgressIntervals());
-        String errorsHdrFile = String.format("%s/%s_errors_%s.hlog", config.getHistogramsDir(), operationName, parameters);
-        HdrResult erro = new HdrResult(operationName, "errors", rateUnits, timeUnits, errorsHdrFile, runArgs, 0, config);
-        errorsWriter = new HdrLogWriterTask(erro, runArgs.runTime, writeHdr, config.getProgressIntervals());
-        if (config.isRawData()) {
-            String rawName = String.format("%s_samples_data_%s.raw", operationName, parameters);
-            rawDataOutputStream = new BufferedOutputStream(new FileOutputStream(new File(config.getHistogramsDir(), rawName)), 128 * 1024 * 1024);
-            startTime0 = System.currentTimeMillis();
-            rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0).getBytes());
-            startTime0 *= NS_IN_MS;
-            rawDataOutputStream.write(String.format("startTime(us),intendedStartTime(us),finishTime(us),count,finishTime-startTime(us),finishTime-intendedStartTime(us),threadName%n").getBytes());
-        }
-    }
-
-    void recordTimes(long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
-        if (success) {
-            if (startTime > 0) {
-                serviceTimeWriter.recordTime(finishTime - startTime, count);
+        public OperationsRecorder(MetricInfo metricInfo) throws IOException {
+            serviceTimeOnly = runnerConfig.serviceTimeOnly;
+            hdrInterval = runnerConfig.hdrInterval;
+            responseTimeWriter = new HdrWriter(metricInfo.replaceMetricName("response_time"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
+            serviceTimeWriter = new HdrWriter(metricInfo.replaceMetricName("service_time"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
+            errorsWriter = new HdrWriter(metricInfo.replaceMetricName("errors"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
+            if (runnerConfig.rawData) {
+                String rawFile = String.format("%s/%s", runnerConfig.histogramsDir, metricInfo.replaceMetricName("samples-data").formatFileName(runArgs));
+                rawDataOutputStream = new BufferedOutputStream(new FileOutputStream(new File(rawFile)), 128 * 1024 * 1024);
+                startTime0 = System.currentTimeMillis();
+                rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0).getBytes());
+                startTime0 *= NS_IN_MS;
+                rawDataOutputStream.write(String.format("startTime(us),intendedStartTime(us),finishTime(us),count,finishTime-startTime(us),finishTime-intendedStartTime(us),threadName%n").getBytes());
             }
-            if (intendedStartTime > 0 && !serviceTimeOnly) {
-                responseTimeWriter.recordTime(finishTime - intendedStartTime, count);
-            }
-        } else {
-            errorsWriter.recordTime(finishTime - startTime, count);
         }
-        OutputStream rawStream = this.rawDataOutputStream;
-        if (rawStream != null) {
-            try {
-                rawStream.write(String.format("%d,%d,%d,%d,%d,%d,%s%n"
-                        , startTime > 0 ? (startTime - startTime0) / NS_IN_US : -1
-                        , intendedStartTime > 0 ? (intendedStartTime - startTime0) / NS_IN_US : -1
-                        , (finishTime - startTime0) / NS_IN_US
-                        , count
-                        , startTime > 0 && finishTime > startTime ? (finishTime - startTime) / NS_IN_US : -1
-                        , intendedStartTime > 0 && finishTime > intendedStartTime ? (finishTime - intendedStartTime) / NS_IN_US : -1
-                        , Thread.currentThread().getName()).getBytes());
-            } catch (IOException e) {
-                LoggerTool.logException(null, e);
+
+        void recordTimes(long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
+            if (success) {
+                if (startTime > 0) {
+                    serviceTimeWriter.recordTime(finishTime - startTime, count);
+                }
+                if (intendedStartTime > 0 && !serviceTimeOnly) {
+                    responseTimeWriter.recordTime(finishTime - intendedStartTime, count);
+                }
+            } else {
+                errorsWriter.recordTime(finishTime - startTime, count);
+            }
+            OutputStream rawStream = this.rawDataOutputStream;
+            if (rawStream != null) {
+                try {
+                    rawStream.write(String.format("%d,%d,%d,%d,%d,%d,%s%n"
+                            , startTime > 0 ? (startTime - startTime0) / NS_IN_US : -1
+                            , intendedStartTime > 0 ? (intendedStartTime - startTime0) / NS_IN_US : -1
+                            , (finishTime - startTime0) / NS_IN_US
+                            , count
+                            , startTime > 0 && finishTime > startTime ? (finishTime - startTime) / NS_IN_US : -1
+                            , intendedStartTime > 0 && finishTime > intendedStartTime ? (finishTime - intendedStartTime) / NS_IN_US : -1
+                            , Thread.currentThread().getName()).getBytes());
+                } catch (IOException e) {
+                    LoggerTool.logException(null, e);
+                    try {
+                        rawStream.close();
+                    } catch (IOException e2) {
+                        ///
+                    }
+                    this.rawDataOutputStream = null;
+                }
+            }
+        }
+
+        void startRecording(Timer timer, long startTime) {
+            responseTimeWriter.recordingStarted(startTime);
+            serviceTimeWriter.recordingStarted(startTime);
+            errorsWriter.recordingStarted(startTime);
+            timer.scheduleAtFixedRate(responseTimeWriter, hdrInterval, hdrInterval);
+            timer.scheduleAtFixedRate(serviceTimeWriter, hdrInterval, hdrInterval);
+            timer.scheduleAtFixedRate(errorsWriter, hdrInterval, hdrInterval);
+        }
+
+        void cancel() {
+            OutputStream rawStream = this.rawDataOutputStream;
+            this.rawDataOutputStream = null;
+            if (rawStream != null) {
                 try {
                     rawStream.close();
-                } catch (IOException e2) {
+                } catch (IOException e) {
                     ///
                 }
-                this.rawDataOutputStream = null;
+            }
+            responseTimeWriter.cancel();
+            serviceTimeWriter.cancel();
+            errorsWriter.cancel();
+        }
+
+        void getResults(Collection<HdrResult> hdrResults) {
+            if (hdrResults == null) {
+                return;
+            }
+            if (!responseTimeWriter.isEmpty()) {
+                hdrResults.add(responseTimeWriter.getHdrResult());
+            }
+            if (!serviceTimeWriter.isEmpty()) {
+                hdrResults.add(serviceTimeWriter.getHdrResult());
+            }
+            if (!errorsWriter.isEmpty()) {
+                hdrResults.add(errorsWriter.getHdrResult());
             }
         }
     }
 
-    void startRecording(Timer timer, long startTime) {
-        responseTimeWriter.recordingStarted(startTime);
-        serviceTimeWriter.recordingStarted(startTime);
-        errorsWriter.recordingStarted(startTime);
-        timer.scheduleAtFixedRate(responseTimeWriter, intervalLength, intervalLength);
-        timer.scheduleAtFixedRate(serviceTimeWriter, intervalLength, intervalLength);
-        timer.scheduleAtFixedRate(errorsWriter, intervalLength, intervalLength);
-    }
-
-    void cancel() {
-        OutputStream rawStream = this.rawDataOutputStream;
-        this.rawDataOutputStream = null;
-        if (rawStream != null) {
-            try {
-                rawStream.close();
-            } catch (IOException e) {
-                ///
-            }
-        }
-        responseTimeWriter.cancel();
-        serviceTimeWriter.cancel();
-        errorsWriter.cancel();
-    }
-
-    void getResults(Collection<HdrResult> results) {
-        if (results == null) {
-            return;
-        }
-        if (!responseTimeWriter.isEmpty()) {
-            results.add(responseTimeWriter.getHdrResult());
-        }
-        if (!serviceTimeWriter.isEmpty()) {
-            results.add(serviceTimeWriter.getHdrResult());
-        }
-        if (!errorsWriter.isEmpty()) {
-            results.add(errorsWriter.getHdrResult());
-        }
-    }
-}
+    private Collection<HdrResult> hdrResults = new ArrayList<>();
     private Map<String, OperationsRecorder> recordingsMap = new HashMap<>();
     private Set<String> recordingsFilter = new HashSet<>();
     private Timer timer = new Timer();
-    private RunnerConfig config;
+    private RunnerConfig runnerConfig;
     private RunArgs runArgs;
     private boolean writeHdr;
     private boolean cancelOnStop;
@@ -179,11 +177,10 @@ class OperationsRecorder {
             return;
         }
         if (recordingsMap.containsKey(operationName)) {
-            /// throw new TussleRuntimeException("Operation already being recorded: " + operationName) ///
             return;
         }
         try {
-            OperationsRecorder opRecorder = new OperationsRecorder(operationName, rateUnits, timeUnits);
+            OperationsRecorder opRecorder = new OperationsRecorder(new MetricInfo(operationName, null, rateUnits, timeUnits, null));
             recordingsMap.put(operationName, opRecorder);
             opRecorder.startRecording(timer, System.currentTimeMillis());
         } catch (IOException e) {
@@ -206,28 +203,98 @@ class OperationsRecorder {
         }
     }
 
-    public ResultsRecorder(RunnerConfig config, RunArgs runArgs, boolean writeHdr, boolean cancelOnStop) {
-        this.config = config;
+    public ResultsRecorder(RunnerConfig runnerConfig, RunArgs runArgs, boolean writeHdr, boolean cancelOnStop) {
+        this.runnerConfig = runnerConfig;
         this.runArgs = runArgs;
         this.writeHdr = writeHdr;
         this.cancelOnStop = cancelOnStop;
-        if (config.collectOps != null) {
-            Collections.addAll(recordingsFilter, config.collectOps);
+        if (runnerConfig.collectOps != null) {
+            Collections.addAll(recordingsFilter, runnerConfig.collectOps);
         }
-        HdrLogWriterTask.progressHeaderPrinted(false);
+        HdrWriter.progressHeaderPrinted(false);
     }
 
     public void cancel() {
         timer.cancel();
-        recordingsMap.forEach((s,r) -> r.cancel());
+        recordingsMap.forEach((s, r) -> r.cancel());
     }
 
-    public Collection<HdrResult> getResults(Collection<HdrResult> results) {
-        recordingsMap.forEach((s,r) -> r.getResults(results));
-        return results;
+    public Collection<HdrResult> getHdrResults() {
+        return getHdrResults(new ArrayList<>());
     }
 
-    public Collection<HdrResult> getResults() {
-        return getResults(new ArrayList<>());
+    public Collection<HdrResult> getHdrResults(Collection<HdrResult> hdrResults) {
+        if (hdrResults != null) {
+            recordingsMap.forEach((s, r) -> r.getResults(hdrResults));
+            hdrResults.addAll(this.hdrResults);
+        }
+        return hdrResults;
+    }
+
+    public void clearResults() {
+        recordingsMap.clear();
+        hdrResults.clear();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void addResults(Collection<?> results, String rateUnits, String timeUnits) throws TussleException {
+        if (results.isEmpty()) {
+            return;
+        }
+        Object r = results.iterator().next();
+        if (r instanceof File) {
+            loadCustomHdrResult((Collection<File>) results, runArgs, rateUnits, timeUnits);
+        } else if (r instanceof HdrResult) {
+            results.forEach(result -> hdrResults.add((HdrResult) result));
+        } else {
+            throw new TussleException("Unsupported result type: " + r.getClass().getName());
+        }
+    }
+
+    protected void loadCustomHdrResult(Collection<File> resultFiles, RunArgs runArgs, String rateUnits, String timeUnits) throws TussleException {
+        if (resultFiles == null || resultFiles.isEmpty()) {
+            return;
+        }
+        resultFiles.forEach(file -> LoggerTool.log(getClass().getSimpleName(), "Processing found result file '%s'", file));
+        for (File resultFile : resultFiles) {
+            Collection<HdrResult> hdrs = new ArrayList<>();
+            if (Analyzer.isSamplesFile(resultFile.getName()) || Analyzer.isArchFile(resultFile.getName())) {
+                loadHdrFromSamples(resultFile, hdrs);
+            } else {
+                HdrResult hdrResult = loadHdrFromFile(resultFile);
+                if (hdrResult != null) {
+                    hdrs.add(hdrResult);
+                }
+            }
+            hdrs.forEach(hdr -> {
+                hdr.setRunArgs(runArgs);
+                hdr.metricInfo.rateUnits = rateUnits;
+                hdr.metricInfo.timeUnits = timeUnits;
+                hdrResults.add(hdr);
+            });
+        }
+    }
+
+    protected void loadHdrFromSamples(File resultFile, Collection<HdrResult> hdrs) throws TussleException {
+        Analyzer analyzer = new Analyzer();
+        AnalyzerConfig analyzerConfig = new AnalyzerConfig(runnerConfig);
+        analyzerConfig.sleConfig = runnerConfig.sleConfig;
+        analyzer.init(analyzerConfig);
+        analyzer.currentRunArgs = runArgs;
+        analyzer.processFile(resultFile);
+        analyzer.saveHdrs();
+        analyzer.getHdrResults(hdrs);
+    }
+
+    protected HdrResult loadHdrFromFile(File resultFile) throws TussleException {
+        HdrResult hdrResult = new HdrResult(resultFile.getAbsolutePath(), runnerConfig);
+        if (!matchFilters(hdrResult.operationName(), runnerConfig.operationsInclude, runnerConfig.operationsExclude)) {
+            LoggerTool.log(getClass().getSimpleName(), " skipping operation %s", hdrResult.operationName());
+            return null;
+        }
+        hdrResult.loadHdrFile(null, null);
+        LoggerTool.log(getClass().getSimpleName(), "Loadied HDR from file: '%s', %s %s, rate %s %s", resultFile, hdrResult.operationName(), hdrResult.metricName(), roundFormat(hdrResult.getRate()), hdrResult.rateUnits());
+        return hdrResult;
     }
 }

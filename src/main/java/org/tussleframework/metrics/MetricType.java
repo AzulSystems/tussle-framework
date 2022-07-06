@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -36,34 +36,38 @@ import org.HdrHistogram.AbstractHistogram;
 
 public enum MetricType {
     COUNTS,
+    VALUES,
     P0_VALUES,
     P50_VALUES,
     P90_VALUES,
     P99_VALUES,
-    P999_VALUES,
-    P9999_VALUES,
+    P99_9_VALUES,
+    P99_99_VALUES,
     P100_VALUES,
     THROUGHPUT,
+    PERCENTILE_NAMES,
+    PERCENTILE_COUNTS,
+    PERCENTILE_VALUES,
     ;
 
-    public double getValue(AbstractHistogram histogram, double latencyFactor) {
+    public double getValue(AbstractHistogram histogram, double hdrFactor) {
         switch (this) {
         case COUNTS:
             return histogram.getTotalCount();
         case P0_VALUES:
-            return histogram.getMinValue() / latencyFactor;
+            return histogram.getMinValue() / hdrFactor;
         case P50_VALUES:
-            return histogram.getValueAtPercentile(50) / latencyFactor;
+            return histogram.getValueAtPercentile(50) / hdrFactor;
         case P90_VALUES:
-            return histogram.getValueAtPercentile(90) / latencyFactor;
+            return histogram.getValueAtPercentile(90) / hdrFactor;
         case P99_VALUES:
-            return histogram.getValueAtPercentile(99) / latencyFactor;
-        case P999_VALUES:
-            return histogram.getValueAtPercentile(99.9) / latencyFactor;
-        case P9999_VALUES:
-            return histogram.getValueAtPercentile(99.99) / latencyFactor;
+            return histogram.getValueAtPercentile(99) / hdrFactor;
+        case P99_9_VALUES:
+            return histogram.getValueAtPercentile(99.9) / hdrFactor;
+        case P99_99_VALUES:
+            return histogram.getValueAtPercentile(99.99) / hdrFactor;
         case P100_VALUES:
-            return histogram.getMaxValue() / latencyFactor;
+            return histogram.getMaxValue() / hdrFactor;
         case THROUGHPUT:
             long delay = histogram.getEndTimeStamp() - histogram.getStartTimeStamp();
             return delay > 0 ? histogram.getTotalCount() * 1000.0 / delay : -1;

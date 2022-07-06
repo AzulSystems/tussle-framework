@@ -65,11 +65,13 @@ public class TargetRunnerMT implements TargetRunner {
     
     class ThreadRunner {
         RunResult result;
+        Exception error;
         void run(String operationName, double targetPerThread, int runTime, Callable<Boolean> workload, TimeRecorder recorder) {
             try {
                 result = new TargetRunnerST().runWorkload(operationName, targetPerThread, runTime, workload, recorder);
             } catch (Exception e) {
-                result = RunResult.builder().runError(e).build();
+                error = e;
+                result = RunResult.builder().build();
             }
         }
     }
@@ -87,7 +89,7 @@ public class TargetRunnerMT implements TargetRunner {
                 ThreadRunner tr = new ThreadRunner();
                 tr.run(operationName, targetPerThread, runTime, workload, recorder);
                 runResults.put(idx, tr.result);
-                errors[idx] = tr.result.runError;
+                errors[idx] = tr.error;
             });
         }
         for (Thread thread : threads) {

@@ -40,17 +40,14 @@ import lombok.ToString;
 
 @Data
 @ToString
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class RunResult {
-    public Exception runError;
     public String rateUnits;
     public String timeUnits;
-    public String hdrFile;
     public double rate;
     public long errors;
     public long count;
     public long time;
-    // TODO: CustomCollectedResults
 }

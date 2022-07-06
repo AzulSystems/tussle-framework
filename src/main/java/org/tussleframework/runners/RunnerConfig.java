@@ -34,7 +34,8 @@ package org.tussleframework.runners;
 
 import java.io.File;
 
-import org.tussleframework.AbstractConfig;
+import org.tussleframework.HdrConfig;
+import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.FileTool;
 
 import lombok.Data;
@@ -44,43 +45,25 @@ import lombok.EqualsAndHashCode;
  * Basic benchmark configuration
  */
 @Data
-@EqualsAndHashCode(callSuper = false)
-public class RunnerConfig implements AbstractConfig {
-    public int intervalLength = 1000;  // ms, histogram write interval length
-    public int progressIntervals = 5;  // ms, output progress interval count
-    public double histogramFactor = 1000000; // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
-    public boolean reset = true;       // reset benchmark before run in the Runner scenario
-    public boolean rawData = false;    // collect each request raw data: start and finish times
-    public boolean makeReport = false; // generate detailed report in addition to the summary results printed to log
+@EqualsAndHashCode(callSuper = true)
+public class RunnerConfig extends HdrConfig {
+    public boolean reset = true;            // reset benchmark before run in the Runner scenario
+    public boolean rawData = false;         // collect each request raw data: start and finish times
+    public boolean makeReport = false;      // generate detailed report in addition to the summary results printed to log
     public boolean serviceTimeOnly = false; // collect service-time or service-time+response-time
-    public String reportDir = "./report"; // location for report files
-    public String histogramsDir = "./histograms"; // location for histogram (hdr) files
-    public String[] collectOps = {};   // if set collect metrics for only specified operations
+    public String reportDir = "./report";   // location for report files
+    public String[] collectOps = {};        // if set collect metrics for only specified operations
+    public double[] logPercentiles = { 0, 50, 90, 99, 99.9, 99.99, 100 };
+    public MovingWindowSLE[] sleConfig = {};
 
     @Override
     public void validate(boolean runMode) {
-        if (histogramsDir == null) {
-            throw new IllegalArgumentException("Invalid histogramsDir - null");
-        }
+        super.validate(runMode);
         if (runMode) {
-            createDirs();
-        }
-    }
-
-    public void createDirs() {
-        File histogramsDirFile = new File(histogramsDir);
-        File reportDirFile = new File(reportDir);
-        if (FileTool.isFileOrNonEmptyDir(histogramsDirFile) && !FileTool.backupDir(histogramsDirFile)) {
-            throw new IllegalArgumentException(String.format("Non-empty histograms dir '%s' already exists", histogramsDirFile));
-        }
-        if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile) && !FileTool.backupDir(reportDirFile)) {
-            throw new IllegalArgumentException(String.format("Non-empty report dir '%s' already exists", reportDirFile));
-        }
-        if (!histogramsDirFile.exists() && !histogramsDirFile.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create histograms dir '%s'", histogramsDirFile));
-        }
-        if (makeReport && !reportDirFile.exists() && !reportDirFile.mkdirs()) {
-            throw new IllegalArgumentException(String.format("Failed to create report dir '%s'", reportDirFile));
+            FileTool.backupAndCreateDir(new File(histogramsDir));
+            if (makeReport) {
+                FileTool.backupAndCreateDir(new File(reportDir));;
+            }
         }
     }
 }

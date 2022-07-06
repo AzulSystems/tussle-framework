@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.tussleframework.RunProperties;
+import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.tools.JsonTool;
 import org.tussleframework.tools.LoggerTool;
@@ -58,7 +59,7 @@ class RunPropertiesDoc {
 
 public class RunPropertiesProcessor implements DataLogProcessor {
     @Override
-    public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
         try {
             RunPropertiesDoc doc = JsonTool.readJson(inputStream, RunPropertiesDoc.class);
             if (logger.isLoggable(Level.INFO)) {

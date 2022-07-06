@@ -48,5 +48,43 @@ public class RunArgs {
     public double ratePercent;
     public int warmupTime;
     public int runTime;
-    public int step;
+    public int runStep;
+
+    public int fillValues(String[] parts) {
+        int filledParts = 0;
+        try {
+            // operation-name _ metric-name _ percent-of-high-bound _ target-rate _ step
+            // OR
+            // operation-name _ percent-of-high-bound _ target-rate _ step
+            runStep = Integer.valueOf(parts[parts.length - 1]);
+            targetRate = Double.valueOf(parts[parts.length - 2]);
+            ratePercent = Double.valueOf(parts[parts.length - 3]);
+            filledParts = 3;
+        } catch (NumberFormatException e) {
+            try {
+                // operation-name _ metric-name _ percent-of-high-bound _ step
+                // OR
+                // operation-name _ percent-of-high-bound _ step
+                runStep = Integer.valueOf(parts[parts.length - 1]);
+                targetRate = 0;
+                ratePercent = Double.valueOf(parts[parts.length - 2]);
+                filledParts = 2;
+            } catch (NumberFormatException e2) {
+                try {
+                    // operation-name _ metric-name _ step
+                    // OR
+                    // operation-name _ step
+                    runStep = Integer.valueOf(parts[parts.length - 1]);
+                    targetRate = 0;
+                    ratePercent = 0;
+                    filledParts = 2;
+                } catch (NumberFormatException e3) {
+                    runStep = 0;
+                    targetRate = 0;
+                    ratePercent = 0;
+                }
+            }
+        }
+        return filledParts;
+    }
 }

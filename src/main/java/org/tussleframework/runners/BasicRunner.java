@@ -38,18 +38,16 @@ import static org.tussleframework.tools.FormatTool.roundFormat;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.HdrHistogram.Histogram;
 import org.tussleframework.Benchmark;
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunResult;
 import org.tussleframework.Runner;
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.HdrLogWriterTask;
 import org.tussleframework.metrics.HdrResult;
+import org.tussleframework.metrics.HdrWriter;
 import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.Analyzer;
 import org.tussleframework.tools.AnalyzerConfig;
@@ -68,13 +66,17 @@ public class BasicRunner implements Runner {
     }
 
     protected RunnerConfig runnerConfig;
-    protected String rateUnits = "op/s";
 
     public BasicRunner() {
     }
 
     public BasicRunner(String[] args) throws TussleException {
         init(args);
+    }
+
+    public BasicRunner(BasicRunnerConfig runnerConfig) {
+        runnerConfig.validate(true);
+        this.runnerConfig = runnerConfig;
     }
 
     @Override
@@ -85,95 +87,104 @@ public class BasicRunner implements Runner {
     @Override
     public void run(Benchmark benchmark) throws TussleException {
         BasicRunnerConfig config = (BasicRunnerConfig) this.runnerConfig;
-        try {
-            log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
-            log("Runner config: %s", new Yaml().dump(config).trim());
-            double targetRate = parseValue(config.getTargetRate());
-            int warmupTime = parseTimeLength(config.getWarmupTime());
-            int runTime = parseTimeLength(config.getRunTime());
-            ArrayList<HdrResult> results = new ArrayList<>();
-            for (int step = 0; step < config.runSteps; step++) {
-                runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, true, config.reset);
-            }
-            makeReport(results);
-        } catch (Exception e) {
-            LoggerTool.logException(logger, e);
+        log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
+        log("Runner config: %s", new Yaml().dump(config).trim());
+        double targetRate = parseValue(config.targetRate);
+        int warmupTime = parseTimeLength(config.warmupTime);
+        int runTime = parseTimeLength(config.runTime);
+        ArrayList<HdrResult> results = new ArrayList<>();
+        for (int runStep = 0; runStep < config.runSteps; runStep++) {
+            runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, runStep), results, true, config.reset);
         }
+        makeReport(results);
     }
 
     /**
      * Reset and run benchmark using run once recorder
      */
-    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, List<HdrResult> results, boolean writeHdr, boolean reset) throws TussleException {
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> hdrResults, boolean writeHdr, boolean reset) throws TussleException {
+        HdrWriter.progressHeaderPrinted(false);
         ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, writeHdr, true);
-        RunResult result;
         try {
-            result = runOnce(benchmark, runArgs, results, recorder, reset);
+            return runOnce(benchmark, runArgs, hdrResults, recorder, reset);
         } finally {
             recorder.cancel();
         }
-        return result;
     }
 
     /**
      * Just run benchmark
      */
-    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> results, ResultsRecorder recorder, boolean reset) throws TussleException {
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> hdrResults, ResultsRecorder recorder, boolean reset) throws TussleException {
         log("===================================================================");
-        log("Run once: %s (step %d) started", benchmark.getName(), runArgs.step + 1);
-        HdrLogWriterTask.progressHeaderPrinted(false);
+        log("Run once: %s (step %d) started", benchmark.getName(), runArgs.runStep + 1);
         if (reset) {
             log("Benchmark reset...");
             benchmark.reset();
         }
+        String rateUnits = benchmark.getConfig().rateUnits;
+        String timeUnits = benchmark.getConfig().timeUnits;
         log("Benchmark run at target rate %s %s (%s%%), warmup %d s, run time %d s...", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), runArgs.warmupTime, runArgs.runTime);
-        RunResult result = benchmark.run(runArgs.targetRate, runArgs.warmupTime, runArgs.runTime, recorder);
-        rateUnits = result.rateUnits != null ? result.rateUnits : "op/s";
+        RunResult runResult = benchmark.run(runArgs.targetRate, runArgs.warmupTime, runArgs.runTime, recorder);
+        Collection<HdrResult> newHdrResults = recorder.getHdrResults();
+        if (!newHdrResults.isEmpty()) {
+            if (hdrResults != null) {
+                hdrResults.addAll(newHdrResults);
+            }
+            runResult = HdrResult.getSummaryResult(newHdrResults);
+        }
+        if (runResult.rateUnits == null) {
+            runResult.rateUnits = rateUnits;
+        }
+        if (runResult.timeUnits == null) {
+            runResult.timeUnits = timeUnits;
+        }
         if (runArgs.ratePercent > 0) {
-            log("Reguested rate %s %s (%s%%), actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), roundFormat(result.rate), rateUnits);
+            log("Reguested rate %s %s (%s%%), actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), roundFormat(runResult.rate), rateUnits);
         } else {
-            log("Reguested rate %s %s, actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(result.rate), rateUnits);
+            log("Reguested rate %s %s, actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runResult.rate), rateUnits);
         }
         log("-----------------------------------------------------");
-        if (result.rate < 0) {
-            log("Failed to find actual rate: %s", roundFormat(result.rate));
-            return null;
-        }
-        recorder.getResults(results);
-        log("Run once: %s (step %d) finished", benchmark.getName(), runArgs.step + 1);
-        logResult(result, results, runnerConfig.getHistogramFactor(), runArgs.step);
-        return result;
+        log("Run once: %s (step %d) finished", benchmark.getName(), runArgs.runStep + 1);
+        logResult(runResult, runArgs.runStep);
+        logResults(newHdrResults);
+        return runResult;
     }
 
-    public void makeReport(Collection<HdrResult> results) throws TussleException {
-        if (runnerConfig.isMakeReport()) {
+    public void makeReport(Collection<HdrResult> hdrResults) throws TussleException {
+        if (hdrResults !=  null && runnerConfig.isMakeReport()) {
             AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-            analyzerConfig.setMakeReport(runnerConfig.isMakeReport());
-            analyzerConfig.setResultsDir(runnerConfig.getHistogramsDir());
-            analyzerConfig.setReportDir(runnerConfig.getReportDir());
+            analyzerConfig.copy(runnerConfig);
+            analyzerConfig.reportDir = runnerConfig.reportDir;
+            analyzerConfig.makeReport = true;
             try {
-                new Analyzer().processResults(analyzerConfig, results);
+                new Analyzer().processResults(analyzerConfig, hdrResults);
             } catch (Exception e) {
-                log("Analyzer failed to process results: %s", e.toString());
+                LoggerTool.logException(logger, e);
             }
         }
     }
 
-    public void logResult(RunResult runResult, Collection<HdrResult> results, double histogramFactor, int step) {
-        double[] basicPercentiles = { 0, 50, 90, 99, 99.9, 99.99, 100 };
+    public void logResult(RunResult runResult, int step) {
         log("Results (step %d)", step + 1);
         log("Count: %d", runResult.count);
         log("Time: %s s", roundFormat(runResult.time / 1000d));
-        log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits != null ? runResult.rateUnits : "");
+        log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits);
         log("Errors: %d", runResult.errors);
-        results.forEach(result -> {
-            Histogram h = result.allHistogram;
-            if (h.getTotalCount() > 0) {
-                for (int i = 0; i < basicPercentiles.length; i++) {
-                    log("%s %s p%s: %s ms", result.operationName, result.metricName, roundFormat(basicPercentiles[i]), roundFormat(h.getValueAtPercentile(basicPercentiles[i]) / histogramFactor), result.timeUnits);
-                }
-                log("%s %s mean: %s ms", result.operationName, result.metricName, roundFormat(h.getMean() / histogramFactor), result.timeUnits);
+    }
+
+    public void logResults(Collection<HdrResult> hdrResults) {
+        if (hdrResults == null) {
+            return;
+        }
+        hdrResults.stream().filter(r -> r.getCount() > 0).forEach(result -> {
+            log("%s %s time: %d s", result.operationName(), result.metricName(), result.getTimeMs() / 1000L);
+            double[] percentiles = runnerConfig.logPercentiles;
+            for (int i = 0; i < percentiles.length; i++) {
+                log("%s %s p%s: %s %s", result.operationName(), result.metricName(), roundFormat(percentiles[i]), roundFormat(result.getValueAtPercentile(percentiles[i])), result.timeUnits());
             }
+            log("%s %s mean: %s %s", result.operationName(), result.metricName(), roundFormat(result.getMean()), result.timeUnits());
+            log("%s %s rate: %s %s", result.operationName(), result.metricName(), roundFormat(result.getRate()), result.rateUnits());
         });
     }
 }

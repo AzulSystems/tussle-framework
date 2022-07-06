@@ -36,8 +36,8 @@ License
 
 The Spring Framework is released under [BSD 3-Clause License](LICENSE)
 
-Building
-========
+Build
+=====
 
 Build:
 
@@ -49,7 +49,7 @@ $ mvn clean package -DskipTests
 Optionally install **tussle-framework jar** in the local Maven repository to be visible for other projects depending on tussle-framework:
 
 ```
-$ mvn install:install-file -Dfile=target/tussle-framework-VERSION-jar-with-dependencies.jar -DpomFile=pom.xml
+$ mvn install:install-file -Dfile=target/tussle-framework-$version-jar-with-dependencies.jar -DpomFile=pom.xml
 ```
 
 Alternatively it can be build and installed using provided script:
@@ -58,8 +58,19 @@ Alternatively it can be build and installed using provided script:
 $ ./build.sh
 ```
 
+Run
+===
+
+Run syntax is following:
+
+     $ java -jar tussle-framework-$version.jar benchmark-class-name [benchmark-args...] \
+     [--runner runner-class-name [runner-args...]]
+
+
 Basic Runner
 ============
+
+runner-class-name = **BasicRunner** or **org.tussleframework.runners.BasicRunner**
 
 Basic Runner is a "classical" and default benchmark runner which simply runs provided benchmark and collects results basically represented as histogram data and summary scores (throughput, latency percentiles, etc.). 
 
@@ -69,6 +80,8 @@ Basic Runner is a "classical" and default benchmark runner which simply runs pro
 
 Scenario Runner
 ===============
+
+runner-class-name = **ScenarioRunner** or **org.tussleframework.runners.ScenarioRunner**
 
 Scenario Runner performs run of a benchmark using sequence of provided target rates and run times.
 
@@ -81,6 +94,8 @@ Scenario Runner performs run of a benchmark using sequence of provided target ra
 
 StepRater
 =========
+
+runner-class-name = **StepRater** or **org.tussleframework.runners.StepRater**
 
 StepRater fully realizes Throughput under SLE concept. It is multi-step benchmark runner which iterates over several target rates and collect results at each target rate step. It uses **high-bound** which is automatically detected as max achievable rate or provided by setup. Its value used as upper target rate bound for target rates iteration. Target rate on each steps is calculated as percent of high-bound. There are starting and finishing percent rates, e.g. 20 and 110. The collected results used for finding the highest throughput under which the **Service Level Expectation (SLE)** is met.
 
@@ -100,13 +115,23 @@ StepRater fully realizes Throughput under SLE concept. It is multi-step benchmar
 
 ![tussle image 2](assets/tussle2.png)
 
-Run
-===
 
-Run syntax is following:
+Benchmark as External Process
+=============================
 
-     $ java -jar tussle-framework-$version.jar benchmark-class-name [benchmark-args...] [--runner runner-class-name [runner-args...]]
+benchmark-class-name = **ProcBenchmark** or **org.tussleframework.runners.ProcBenchmark**
 
+This is an adapter for running any third party benchmark as external process and which produce result files in the HDR format.
+It has following configuration properties:
+
+    runCmd - required run command which accepts 'warmupTime', 'runTime', 'targetRate' and step parameters which passed by Tussle Framework
+    runDir - optional working dir for the process started by the runCmd
+    runEnv - list of 'ENV_VAR=value' pairs passed as additional environment to the runCmd
+    initCmd - optional init command
+    resetCmd - optional reset command
+    cleanupCmd - optional cleanup command
+    hdrResults - list of resulting HDR files
+    delay - additional delay for wait process time, all wait time is a sum of = warmupTime + runTime + delay
 
 
 Examples
@@ -114,17 +139,34 @@ Examples
 
 Run PI benchmark using default Basic runner and default benchmark parameters:
 
-    $ java -jar tussle-framework-1.3.3.jar PiBenchmark
+    $ java -jar tussle-framework-$version.jar PiBenchmark
 
 using benchmark parameters:
 
-    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=4
+    $ java -jar tussle-framework-$version.jar PiBenchmark threads=4
  
 using benchmark parameters and runner parameters:
 
-    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=2 --runner BasicRunner warmupTime=20s runTime=2m targetRate=1.5k
+    $ java -jar tussle-framework-$version.jar PiBenchmark threads=2 \
+    --runner BasicRunner warmupTime=20s runTime=2m targetRate=1.5k
      
-    $ java -jar tussle-framework-1.3.3.jar PiBenchmark threads=2 --runner ScenarioRunner scenario=[[100,0,1m],[1k,0,10s],[100,0,1m]] makeReport=true
+    $ java -jar tussle-framework-$version.jar PiBenchmark threads=2 \
+    --runner ScenarioRunner scenario=[[100,0,1m],[1k,0,10s],[100,0,1m]] makeReport=true
+
+using ProcBenchmark for running custom benchmark:
+
+    $ cat proc.config
+    runCmd:
+      - run-benchmark.sh
+      - warmup={warmupTime}
+      - time={runTime},tt={targetRate}
+    runDir:
+       - results_step{runStep}_wrm{warmupTime}_time{runTime}_rate{targetRate}
+    hdrResults:
+       - .*.hdr  # java regexp supported - find all files under runDir with 'hdr' extension
+    
+    $ java -jar tussle-framework-$version.jar ProcBenchmark -f proc.config \
+    --runner BasicRunner warmupTime=1m runTime=10m targetRate=100k
 
 
 Tussle Metrics

@@ -32,13 +32,21 @@
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.junit.Test;
 import org.tussleframework.tools.FormatTool;
+import org.tussleframework.tools.LoggerTool;
 
 public class FormatToolTest {
+
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
 
     @Test
     public void testJoinArray() {
@@ -73,5 +81,28 @@ public class FormatToolTest {
         assertEquals(1024, FormatTool.parseInt("1kib"));
         assertEquals(1000000, FormatTool.parseInt("1M"));
         assertEquals(1024*1024, FormatTool.parseInt("1MiB"));
+    }
+    
+    @Test
+    public void testApply() {
+        Properties vars = new Properties();
+        vars.put("targetRate", "12345");
+        Map<String, String> pairs = FormatTool.getSysMap(vars);
+        pairs.put("warmupTime", "777");
+        assertEquals("TEST", FormatTool.applyArg("TEST", pairs));
+        assertEquals("TEST{", FormatTool.applyArg("TEST{", pairs));
+        assertEquals("}TEST", FormatTool.applyArg("}TEST", pairs));
+        assertEquals("TEST{args", FormatTool.applyArg("TEST{args", pairs));
+        assertEquals("TEST{args}", FormatTool.applyArg("TEST{args}", pairs));
+        assertEquals("TEST{args}END", FormatTool.applyArg("TEST{args}END", pairs));
+        assertEquals("{args}END", FormatTool.applyArg("{args}END", pairs));
+        assertEquals("TEST{targetRate", FormatTool.applyArg("TEST{targetRate", pairs));
+        assertEquals("TEST12345", FormatTool.applyArg("TEST{targetRate}", pairs));
+        assertEquals("TEST12345END", FormatTool.applyArg("TEST{targetRate}END", pairs));
+        assertEquals("12345END", FormatTool.applyArg("{targetRate}END", pairs));
+        assertEquals("12345", FormatTool.applyArg("{targetRate}", pairs));
+        assertEquals("TEST_targetRate12345_warmupTime777", FormatTool.applyArg("TEST_targetRate{targetRate}_warmupTime{warmupTime}", pairs));
+        assertEquals("TEST_targetRate12345_warmupTimewarmupTime}", FormatTool.applyArg("TEST_targetRate{targetRate}_warmupTimewarmupTime}", pairs));
+        assertEquals(new File("").getAbsolutePath(), FormatTool.applyArg("{user.dir}", pairs));
     }
 }

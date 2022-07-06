@@ -32,75 +32,104 @@
 
 package org.tussleframework.metrics;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Collection;
+import java.util.logging.Level;
 import java.util.stream.DoubleStream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
-import org.tussleframework.tools.LoggerTool;
+import org.tussleframework.HdrConfig;
 
 public class HdrIntervalResult {
 
-    private static final MetricType[] reportedTypes = {
+    public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrIntervalResult.class.getName());
+
+    private static final MetricType[] metricTypes = {
             MetricType.COUNTS,
             MetricType.P0_VALUES,
             MetricType.P50_VALUES,
             MetricType.P90_VALUES,
             MetricType.P99_VALUES,
-            MetricType.P999_VALUES,
-            MetricType.P9999_VALUES,
+            MetricType.P99_9_VALUES,
+            MetricType.P99_99_VALUES,
             MetricType.P100_VALUES,
     };
 
-    public static final int reportedTypeCount() {
-        return reportedTypes.length;
+    public static void log(String format, Object... args) {
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info(String.format("[%s] %s", HdrIntervalResult.class.getSimpleName(), String.format(format, args)));
+        }
     }
 
-    public static final MetricType reportedType(int index) {
-        return reportedTypes[index];
+    public static final int metricTypeCount() {
+        return metricTypes.length;
+    }
+
+    public static final MetricType metricType(int index) {
+        return metricTypes[index];
     }
 
     private Metric metric;
+    private HdrConfig config;
     private Interval interval;
     private Histogram histogram;
-    private double histogramFactor;
-    private double[] movingWindowMax;
-    private ServiceLevelExpectation[] sleConfig;
-    private DoubleStream.Builder[] valBuffers;
-    private DoubleStream.Builder[] mwBuffValues;
-    private DoubleStream.Builder[] mwBuffCounts;
-    private MovingWindowSumHistogram[] movingWindowSumHistograms;
+    private double[] movingWindowMaxValues;
+    private MovingWindowSLE[] sleConfig;
+    private DoubleStream.Builder[] metricValues;
+    private DoubleStream.Builder[] movingWindowValues;
+    private DoubleStream.Builder[] movingWindowCounts;
+    private MovingWindowHistogram[] movingWindowHistograms;
 
-    private static long mul(long v, long m) {
-        if (v == Long.MAX_VALUE || v == Long.MIN_VALUE)
-            return v;
-        else
-            return v * m;
+    public HdrIntervalResult(Interval interval, HdrConfig config, MovingWindowSLE[] sleConfig) {
+        this.config = config;
+        this.histogram = new Histogram(3);
+        this.interval = new Interval(interval);
+        metricValues = new DoubleStream.Builder[metricTypes.length];
+        for (int i = 0; i < metricValues.length; i++) {
+            metricValues[i] = DoubleStream.builder();
+        }
+        sleConfig = sleConfig != null ? sleConfig : new MovingWindowSLE[0];
+        movingWindowValues = new DoubleStream.Builder[sleConfig.length];
+        movingWindowCounts = new DoubleStream.Builder[sleConfig.length];
+        for (int i = 0; i < movingWindowValues.length; i++) {
+            movingWindowValues[i] = DoubleStream.builder();
+            movingWindowCounts[i] = DoubleStream.builder();
+        }
+        movingWindowHistograms = new MovingWindowHistogram[sleConfig.length];
+        movingWindowMaxValues = new double[sleConfig.length];
+        for (int i = 0; i < sleConfig.length; i++) {
+            movingWindowHistograms[i] = new MovingWindowHistogram(sleConfig[i], config.hdrFactor);
+        }
+        this.sleConfig = sleConfig;
     }
 
-    public HdrIntervalResult(MovingWindowSLE[] sleConfig, Interval interval, double histogramFactor) {
-        this.sleConfig = sleConfig;
-        this.histogram = new Histogram(3);
-        this.histogramFactor = histogramFactor;
-        this.interval = new Interval(mul(interval.start, 1000), mul(interval.finish , 1000), interval.name);
-        valBuffers = new DoubleStream.Builder[reportedTypes.length];
-        for (int i = 0; i < valBuffers.length; i++) {
-            valBuffers[i] = DoubleStream.builder();
-        }
-        mwBuffValues = new DoubleStream.Builder[sleConfig.length];
-        mwBuffCounts = new DoubleStream.Builder[sleConfig.length];
-        for (int i = 0; i < sleConfig.length; i++) {
-            mwBuffValues[i] = DoubleStream.builder();
-            mwBuffCounts[i] = DoubleStream.builder();
-        }
-        movingWindowSumHistograms = new MovingWindowSumHistogram[sleConfig.length];
-        movingWindowMax = new double[sleConfig.length];
-        for (int i = 0; i < sleConfig.length; i++) {
-            double percentile = sleConfig[i].percentile;
-            int movingWindow = sleConfig[i].movingWindow;
-            movingWindowSumHistograms[i] = new MovingWindowSumHistogram(new Histogram(3), new LinkedList<>(), percentile, movingWindow);
-        }
+    public Histogram getHistogram() {
+        return histogram;
+    }
+
+    public double getRate() {
+        long fullTime = getTimeMs();
+        return fullTime > 0 ? histogram.getTotalCount() / (fullTime / 1000.0) : 0;
+    }
+
+    public long getTimeMs() {
+        return histogram.getEndTimeStamp() - histogram.getStartTimeStamp();
+    }
+
+    public long getCount() {
+        return histogram.getTotalCount();
+    }
+
+    public double getMean() {
+        return histogram.getMean() / config.hdrFactor;
+    }
+
+    public double getMaxValue() {
+        return histogram.getMaxValue() / config.hdrFactor;
+    }
+
+    public double getValueAtPercentile(double percentile) {
+        return histogram.getValueAtPercentile(percentile) / config.hdrFactor;
     }
 
     public Metric getMetric() {
@@ -111,42 +140,44 @@ public class HdrIntervalResult {
         interval.adjust(stamp);
     }
 
-    public void add(List<AbstractHistogram> histos) {
-        Histogram histoSum = new Histogram(3);
+    public void addHistogram(AbstractHistogram inputHistogram) {
+        histogram.add(inputHistogram);
+    }
+
+    public void addHistograms(Collection<AbstractHistogram> inputHistograms) {
+        Histogram inputHistogramsSum = new Histogram(3);
         int added = 0;
-        for (AbstractHistogram h : histos) {
-            long stamp1 = h.getStartTimeStamp();
-            long stamp2 = h.getEndTimeStamp();
-            if (interval.contains(stamp1, stamp2)) {
-                histogram.add(h);
-                histoSum.add(h);
+        for (AbstractHistogram inputHistogram : inputHistograms) {
+            if (interval.contains(inputHistogram.getStartTimeStamp(), inputHistogram.getEndTimeStamp())) {
+                addHistogram(inputHistogram);
+                inputHistogramsSum.add(inputHistogram);
                 added++;
-                for (int i = 0; i < movingWindowSumHistograms.length; i++) {
-                    MovingWindowSumHistogram mwsh = movingWindowSumHistograms[i];
-                    mwsh.add(h);
-                    double mwValue = mwsh.sumHistogram.getValueAtPercentile(mwsh.percentile) / histogramFactor;
-                    long mwCount = mwsh.sumHistogram.getTotalCount();
-                    mwBuffValues[i].add(mwValue);
-                    mwBuffCounts[i].add(mwCount);
-                    if (movingWindowMax[i] < mwValue) {
-                        movingWindowMax[i] = mwValue;
+                for (int i = 0; i < movingWindowHistograms.length; i++) {
+                    MovingWindowHistogram mwh = movingWindowHistograms[i];
+                    mwh.add(inputHistogram);
+                    long mwCount = mwh.getCount();
+                    double mwValue = mwh.getValue();
+                    movingWindowCounts[i].add(mwCount);
+                    movingWindowValues[i].add(mwValue);
+                    if (movingWindowMaxValues[i] < mwValue) {
+                        movingWindowMaxValues[i] = mwValue;
                     }
                 }
             }
         }
         if (added > 0) {
-            for (int i = 0; i < reportedTypes.length; i++) {
-                valBuffers[i].add(reportedTypes[i].getValue(histoSum, histogramFactor));
+            for (int i = 0; i < metricTypes.length; i++) {
+                metricValues[i].add(metricTypes[i].getValue(inputHistogramsSum, config.hdrFactor));
             }
         }
     }
 
-    public void processHistogram(HdrResult hdrResult, MetricData metricData, double[] percentiles, int mergeHistos) {
-        String metricIntervalName = (hdrResult.metricName + " " + interval.name).trim();
-        long totalCount = histogram.getTotalCount();
+    public void getMetrics(HdrResult hdrResult, MetricData metricData, double[] percentiles) {
+        String metricIntervalName = (hdrResult.metricName() + " " + interval.name).trim();
         long start = histogram.getStartTimeStamp();
         long finish = histogram.getEndTimeStamp();
-        LoggerTool.log("HdrIntervalResult", "processHistogram interval [%s] totalCount %d, start %d, finish %d", interval, totalCount, start, finish);
+        long totalCount = histogram.getTotalCount();
+        log("getMetrics %s [%s] totalCount %d, start %d, finish %d", metricIntervalName, interval, totalCount, start, finish);
         if (totalCount == 0 || finish <= start) {
             return;
         }
@@ -154,19 +185,19 @@ public class HdrIntervalResult {
                 .start(start)
                 .finish(finish)
                 .name(metricIntervalName)
-                .units(hdrResult.timeUnits)
-                .operation(hdrResult.operationName)
-                .delay(hdrResult.intervalLength * mergeHistos)
+                .units(hdrResult.timeUnits())
+                .operation(hdrResult.operationName())
+                .delay(config.reportInterval)
                 .totalValues(totalCount)
-                .retry(hdrResult.runArgs.step)
+                .retry(hdrResult.runArgs.runStep)
                 .percentOfHighBound(hdrResult.runArgs.ratePercent)
                 .targetRate(hdrResult.runArgs.targetRate)
-                .actualRate(histogram.getTotalCount() / ((finish - start) / 1000.0))
-                .meanValue(histogram.getMean() / histogramFactor)
+                .actualRate(getRate())
+                .meanValue(histogram.getMean() / config.hdrFactor)
                 .build();
         metricData.add(metric);
-        for (int i = 0; i < reportedTypes.length; i++) {
-            metric.add(new MetricValue(reportedTypes[i].name(), valBuffers[i].build().toArray()));
+        for (int i = 0; i < metricTypes.length; i++) {
+            metric.add(new MetricValue(metricTypes[i].name(), metricValues[i].build().toArray()));
         }
         DoubleStream.Builder buffPercentileValues = DoubleStream.builder();
         DoubleStream.Builder buffPercentileCounts = DoubleStream.builder();
@@ -174,32 +205,40 @@ public class HdrIntervalResult {
         if (percentiles != null && percentiles.length > 0) {
             for (double p : percentiles) {
                 long pValue = histogram.getValueAtPercentile(p);
-                buffPercentileValues.add(pValue / histogramFactor);
+                buffPercentileValues.add(pValue / config.hdrFactor);
                 buffPercentileCounts.add(histogram.getCountBetweenValues(pValue, highValue));
             }
-            metric.add(new MetricValue("PERCENTILE_NAMES", percentiles));
-            metric.add(new MetricValue("PERCENTILE_VALUES", buffPercentileValues.build().toArray()));
-            metric.add(new MetricValue("PERCENTILE_COUNTS", buffPercentileCounts.build().toArray()));
+            metric.add(new MetricValue(MetricType.PERCENTILE_NAMES, percentiles));
+            metric.add(new MetricValue(MetricType.PERCENTILE_VALUES, buffPercentileValues.build().toArray()));
+            metric.add(new MetricValue(MetricType.PERCENTILE_COUNTS, buffPercentileCounts.build().toArray()));
         }
+        getMovingWindowSLEMetrics(hdrResult, metricData);
+    }
+
+    protected void getMovingWindowSLEMetrics(HdrResult hdrResult, MetricData metricData) {
+        long start = histogram.getStartTimeStamp();
+        long finish = histogram.getEndTimeStamp();
+        log("getMetrics sleConfig count %d", sleConfig.length);
         for (int i = 0; i < sleConfig.length; i++) {
-            LoggerTool.log("HdrIntervalResult", "sleConfig " + sleConfig[i].longName()  + " max " + movingWindowMax[i]);
-            String mwMetricName = (hdrResult.metricName + " " + sleConfig[i].longName() + " " + interval.name).trim();
+            double[] values = movingWindowValues[i].build().toArray();
+            double[] counts = movingWindowCounts[i].build().toArray();
+            log("  sleConfig %s, max %f, values %d, counts %d", sleConfig[i].longName(), movingWindowMaxValues[i], values.length, counts.length);
+            String mwMetricName = (hdrResult.metricName() + " " + sleConfig[i].longName() + " " + interval.name).trim();
             Metric mwMetric = Metric.builder()
                     .name(mwMetricName)
-                    .units(hdrResult.timeUnits)
-                    .operation(hdrResult.operationName)
+                    .units(hdrResult.timeUnits())
+                    .operation(hdrResult.operationName())
                     .start(start)
                     .finish(finish)
-                    .delay(hdrResult.intervalLength)
-                    .totalValues(totalCount)
-                    .retry(hdrResult.runArgs.step)
+                    .delay(config.reportInterval)
+                    .retry(hdrResult.runArgs.runStep)
                     .percentOfHighBound(hdrResult.runArgs.ratePercent)
                     .targetRate(hdrResult.runArgs.targetRate)
                     //.type("mw")
                     //.group(valName)
                     .build();
-            mwMetric.add(new MetricValue("VALUES", mwBuffValues[i].build().toArray()));
-            mwMetric.add(new MetricValue("COUNTS", mwBuffCounts[i].build().toArray()));
+            mwMetric.add(new MetricValue(MetricType.VALUES, values));
+            mwMetric.add(new MetricValue(MetricType.COUNTS, counts));
             if (sleConfig[i].markerValue() > 0) {
                 mwMetric.addMarker(new Marker(sleConfig[i].markerName(), null, sleConfig[i].markerValue()));
             }

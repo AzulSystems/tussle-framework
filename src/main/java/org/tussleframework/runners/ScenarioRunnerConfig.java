@@ -34,7 +34,7 @@ package org.tussleframework.runners;
 
 import static org.tussleframework.tools.FormatTool.parseValue;
 import static org.tussleframework.tools.FormatTool.parseInt;
-import static org.tussleframework.tools.FormatTool.getParam;
+import static org.tussleframework.tools.FormatTool.getStringValue;
 
 import java.util.Arrays;
 
@@ -49,6 +49,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ScenarioRunnerConfig extends RunnerConfig {
+
+    public boolean separateSteps;
 
     /**
      * sequence of runs, each steps consisting of its own target rate and run time used by ScenarioRunner
@@ -69,16 +71,16 @@ public class ScenarioRunnerConfig extends RunnerConfig {
         if (def != null) {
             if (def.startsWith("SPIKE")) {
                 scenario = RunParams.spike(
-                        getParam(def, 1, "1K"),
-                        getParam(def, 2, "1M"),
-                        getParam(def, 3, "5m"),
-                        getParam(def, 4, "10s"));
+                        getStringValue(def, 1, "1K"),
+                        getStringValue(def, 2, "1M"),
+                        getStringValue(def, 3, "5m"),
+                        getStringValue(def, 4, "10s"));
             } else if (def.startsWith("RAMP")) {
                 scenario = RunParams.ramp(
-                        parseInt(getParam(def, 1, "10")),
-                        parseValue(getParam(def, 2, "1k")),
-                        parseValue(getParam(def, 3, "10k")),
-                        getParam(def, 4, "1m"));
+                        parseInt(getStringValue(def, 1, "10")),
+                        parseValue(getStringValue(def, 2, "1k")),
+                        parseValue(getStringValue(def, 3, "10k")),
+                        getStringValue(def, 4, "1m"));
             }
         }
         if (scenario == null) {

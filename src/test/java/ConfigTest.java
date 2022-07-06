@@ -39,9 +39,14 @@ import org.junit.Test;
 import org.tussleframework.RunProperties;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.tools.JsonTool;
+import org.tussleframework.tools.LoggerTool;
 import org.tussleframework.tools.SleepTool;
 
 public class ConfigTest {
+    
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
 
     @Test
     public void testPrint() {

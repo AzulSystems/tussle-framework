@@ -96,8 +96,9 @@ public class ConfigLoader {
             while (i < args.length) {
                 if (args[i].equals("--")) {
                     break;
-                }
-                if (args[i].equals("--string") || args[i].equals("-s")) {
+                } else if (args[i].isEmpty()) {
+                    ///
+                } else if (args[i].equals("--string") || args[i].equals("-s")) {
                     i++;
                     sb.append(args[i]).append('\n');
                 } else if (args[i].equals("--file") || args[i].equals("-f")) {

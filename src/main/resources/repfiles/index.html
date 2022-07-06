@@ -32,7 +32,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>ISV Perf Viewer</title>
+<title>Tussle Viewer</title>
 <script src="js/angular.min.js"></script>
 <script src="js/Chart.min.js"></script>
 <script src="js/angular-chart.min.js"></script>
@@ -354,6 +354,11 @@
                     on-toggle="chart.labelsSet.toggleLoga(chart)"
                     ng-if="chart.labelsSet">_loga_</toggle>
                 <toggle bind-class="toggle_small noselect"
+                    bind-event="chart.options.csvEvent"
+                    bind-var="chart.options.csv" bind-name="csv"
+                    on-toggle="chart.labelsSet.toggleCsv(chart)"
+                    ng-if="chart.labelsSet">_csv_</toggle>
+                <toggle bind-class="toggle_small noselect"
                     ng-repeat="ibutton in chart.options.ibuttons"
                     bind-var="ibutton.pressed" bind-name="{{ibutton.name}}">_ttt_</toggle>
                 <div class="{{wide_charts ? 'chart-box-wide' : 'chart-box-normal'}} offset_chart">
@@ -446,6 +451,10 @@
                                 <toggle bind-class="toggle_small noselect"
                                     bind-var="chart.options.loga" bind-name="log"
                                     on-toggle="chart.labelsSet.toggleLoga(chart)">_loga_</toggle>
+                                <toggle bind-class="toggle_small noselect"
+                                    bind-event="chart.options.csvEvent" 
+                                    bind-var="chart.options.csv" bind-name="csv"
+                                    on-toggle="chart.labelsSet.toggleCsv(chart)">_csv_</toggle>
                                 <toggle bind-class="toggle_small noselect"
                                     ng-repeat="ibutton in chart.options.ibuttons"
                                     bind-var="ibutton.pressed" bind-name="{{ibutton.name}}"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -34,109 +34,137 @@ package org.tussleframework.tools.processors;
 
 import java.io.InputStream;
 import java.util.Scanner;
-import java.util.TreeMap;
 import java.util.logging.Logger;
-import java.util.stream.DoubleStream;
 
-import org.HdrHistogram.Histogram;
-import org.tussleframework.metrics.Metric;
+import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.MetricData;
-import org.tussleframework.metrics.MetricValue;
-import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
 public class SamplesProcessor implements DataLogProcessor {
 
     private SamplesProcessorConfig config;
+    private boolean samples2 = false; 
 
     public SamplesProcessor() {
-        this.config = new SamplesProcessorConfig();
+        this(new SamplesProcessorConfig());
     }
 
     public SamplesProcessor(SamplesProcessorConfig config) {
         this.config = config;
     }
 
+    protected void log(String format, Object... args) {
+        LoggerTool.log(getClass().getSimpleName(), format, args);
+    }
+
     /**
-Samples format: 
-timestamp(s),value,..
-1618204400.390739,48,..
-1618204401.727753,34,..
-1618204403.057668,40,..
-1618204404.391447,45,..
-...
+     Samples format 1: 
+     timestamp(s),value,..
+     1618204400.390739,48,..
+     1618204401.727753,34,..
+     1618204403.057668,40,..
+     1618204404.391447,45,..
+     ...
+     Samples format 2:
+     1655401396.792424,0.013333,[25 pages],437.485229,True,W,439.595204
+     1655401399.414480,0.016667,[25 pages],560.169258,True,W,561.651193
+     1655401401.736531,0.020000,[25 pages],383.068766,True,W,383.702291
+     1655401404.236440,0.023333,[25 pages],382.301198,True,W,383.610885
+     1655402071.764652,0.913333,[25 pages],410.433045,True,M,411.823607
+     1655402074.282562,0.916667,[25 pages],427.558961,True,M,429.733414
+     1655402076.824134,0.920000,[25 pages],469.141951,True,M,471.305798
+     ...
      */
     @Override
-    public boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+        /// log("Config: %s", new Yaml().dump(config).trim())
         int stampsIdx = 0;
         int valuesIdx = 1;
-        long start = 0;
-        long finish = Long.MAX_VALUE;
-        TreeMap<Long, Histogram> data = new TreeMap<>();
+        String firstLine = null;
         try (Scanner scanner = new Scanner(inputStream)) {
-            int lineNo = 0;
-            while (scanner.hasNext()) {
+            if (scanner.hasNext()) {
                 String line = scanner.nextLine();
-                lineNo++;
-                if (lineNo == 1 && config.hasHeader) {
-                    String[] header = line.split(",");
-                    for (int i = 0; i < header.length; i++) {
-                        String h = header[i].toLowerCase();
+                String[] parts = line.split(",");
+                if (parts.length > 5 &&
+                        (parts[4].equalsIgnoreCase("true") || parts[4].equalsIgnoreCase("false")) && 
+                        (parts[5].equalsIgnoreCase("W") || parts[5].equalsIgnoreCase("M"))) {
+                    samples2 = true;
+                    firstLine = line;
+                } else if (config.hasHeader) {
+                    for (int i = 0; i < parts.length; i++) {
+                        String h = parts[i].toLowerCase();
                         if (h.indexOf("stamp") > 0) {
                             stampsIdx = i;
                         } else if (h.indexOf("value") > 0) {
                             valuesIdx = i;
                         }
                     }
-                    continue;
+                } else {
+                    firstLine = line;
                 }
-                String[] parts = line.split(",");
-                long stamp = Math.round(Double.valueOf(parts[stampsIdx]) * config.timestampFactor);
-                long value = Long.parseLong(parts[valuesIdx]);
-                if (start > stamp) {
-                    start = stamp;
-                }
-                if (finish < stamp) {
-                    finish = stamp;
-                }
-                long intervalStamp = stamp / config.interval * config.interval;
-                if (!data.containsKey(intervalStamp)) {
-                    data.put(intervalStamp, new Histogram(3));
-                }
-                data.get(intervalStamp).recordValue(value);
             }
+            if (samples2) {
+                processSamples2(hdrData, scanner, firstLine);
+            } else {
+                processSamples(hdrData, scanner, firstLine, stampsIdx, valuesIdx);
+            }
+            return true;
         } catch (Exception e) {
             LoggerTool.logException(logger, e);
             return false;
         }
-        DoubleStream.Builder[] buffValues = new DoubleStream.Builder[config.percentiles.length + 1];
-        long intervalStampStart = start / config.interval * config.interval;
-        long intervalStampFinish = finish / config.interval * config.interval;
-        for (long intervalStamp = intervalStampStart; intervalStamp <= intervalStampFinish; intervalStamp += config.interval) {
-            if (data.containsKey(intervalStamp)) {
-                Histogram histogram = data.get(intervalStamp);
-                for (int i = 0; i < config.percentiles.length; i++) {
-                    buffValues[i].add(histogram.getValueAtPercentile(config.percentiles[i]) / config.histogramFactor);
-                }
-                buffValues[config.percentiles.length].add(histogram.getTotalCount());
-            } else {
-                for (int i = 0; i < config.percentiles.length; i++) {
-                    buffValues[i].add(0);
-                }
-                buffValues[config.percentiles.length].add(0);
-            }
+    }
+
+    /*
+     Samples format 1: 
+     timestamp(s),value,..
+     1618204400.390739,48,..
+     */
+    protected void processSample(HdrData hdrData, String line, int stampsIdx, int valuesIdx) {
+        if (line == null) {
+            return;
         }
-        Metric metric = Metric.builder()
-                .name(config.name)
-                .host(host)
-                .start(start)
-                .finish(finish)
-                .delay(config.interval)
-                .build();
-        for (int i = 0; i < config.percentiles.length; i++) {
-            metric.add(new MetricValue("P" + FormatTool.roundFormat(config.percentiles[i]).replace(".", "_") + "_VALUES", buffValues[i].build().toArray()));
+        String[] parts = line.split(",");
+        long stamp = Math.round(Double.valueOf(parts[stampsIdx]) * config.timestampFactor);
+        long value = Long.parseLong(parts[valuesIdx]);
+        hdrData.recordValues(stamp, value, -1);
+    }
+
+    /*
+     Samples format 2:
+     1655401396.792424,0.013333,[25 pages],437.485229,True,W,439.595204
+     1655402056.815843,0.893333,[25 pages],460.947098,True,M,463.013381
+     */
+    protected void processSample2(HdrData hdrData, String line) {
+        if (line == null) {
+            return;
         }
-        metric.add(new MetricValue("COUNT", buffValues[config.percentiles.length].build().toArray()));
-        return true;
+        String[] parts = line.split(",");
+        boolean isWarmup = parts.length > 5 && (parts[5].equalsIgnoreCase("w") || parts[5].equalsIgnoreCase("warmup"));
+        if (isWarmup) {
+            return;
+        }
+        long stamp = Math.round(Double.valueOf(parts[0]) * config.timestampFactor);
+        double serviceTime = Double.parseDouble(parts[3]); // from double in milliseconds
+        double latencyValue = parts.length > 6 ? Double.parseDouble(parts[6]) : 0; // from double in milliseconds
+        hdrData.recordValues(stamp, Math.round(serviceTime * 1000), Math.round(latencyValue * 1000)); // to long microseconds
+    }
+
+    protected void processSamples(HdrData hdrData, Scanner scanner, String firstLine, int stampsIdx, int valuesIdx) {
+        log("processSamples...");
+        processSample(hdrData, firstLine, stampsIdx, valuesIdx);
+        while (scanner.hasNext()) {
+            String line = scanner.nextLine();
+            processSample(hdrData, line, stampsIdx, valuesIdx);
+        }
+    }
+
+    protected void processSamples2(HdrData hdrData, Scanner scanner, String firstLine) {
+        log("processSamples2...");
+        processSample2(hdrData, firstLine);
+        while (scanner.hasNext()) {
+            String line = scanner.nextLine();
+            processSample2(hdrData, line);
+        }
     }
 }

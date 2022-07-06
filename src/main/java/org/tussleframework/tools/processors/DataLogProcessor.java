@@ -35,8 +35,9 @@ package org.tussleframework.tools.processors;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
+import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.MetricData;
 
 public interface DataLogProcessor {
-    boolean processData(MetricData metricData, InputStream inputStream, String host, Logger logger);
+    boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger);
 }

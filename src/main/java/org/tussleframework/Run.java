@@ -39,12 +39,12 @@ import org.tussleframework.tools.LoggerTool;
 
 public class Run {
 
-    static final IllegalArgumentException USAGE = new IllegalArgumentException("Expected parameters: benchmark-class-name [benchmark-args...] [--runner runner-class-name [runner-args...]]");
+    static final IllegalArgumentException USAGE = new IllegalArgumentException("Expected parameters:  benchmark-class-name [benchmark-args...]  [--runner runner-class-name [runner-args...]]");
 
-    Run() {
+    private Run() {
     }
 
-    public static void main(String[] args) throws ClassNotFoundException {
+    public static void main(String[] args) {
         run(args);
     }
 
@@ -59,18 +59,22 @@ public class Run {
             try {
                 return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework." + className);
             } catch (ClassNotFoundException e) {
+                /// ignore
             }
             try {
                 return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.runners." + className);
             } catch (ClassNotFoundException e) {
+                /// ignore
             }
             try {
                 return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.steprater." + className);
             } catch (ClassNotFoundException e) {
+                /// ignore
             }
             try {
                 return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.examples." + className);
             } catch (ClassNotFoundException e) {
+                /// ignore
             }
         }
         throw err;
@@ -95,36 +99,39 @@ public class Run {
     }
 
     /**
-     * @param args - benchmark-class-name [benchmark-args...] --runner
-     *             runner-class-name [runner-args...] [-- ignoreable-args]
+     * @param args - benchmark-class-name [benchmark-args...]  [--runner runner-class-name [runner-args...]]  [-- ignorable args]
      */
-    public static void run(String[] args) throws ClassNotFoundException {
+    public static void run(String[] args) {
         LoggerTool.init("benchmark");
         if (args.length == 0) {
             throw USAGE;
         }
         String[] benchmarkArgs = benchmarkArgs(args);
         benchmarkArgs = Arrays.copyOfRange(benchmarkArgs, 1, benchmarkArgs.length);
-        String[] defRunner = {
-                "BasicRunner"
-        };
-        String[] runnerArgs = runnerArgs(args, defRunner);
+        String[] defaultRunner = { "BasicRunner" };
+        String[] runnerArgs = runnerArgs(args, defaultRunner);
         String benchmarkClassName = args[0];
         String runnerClassName = runnerArgs[0];
         runnerArgs = Arrays.copyOfRange(runnerArgs, 1, runnerArgs.length);
-        @SuppressWarnings("unchecked")
-        Class<? extends Benchmark> benchmarkClass = (Class<? extends Benchmark>) findTussleClass(benchmarkClassName);
-        @SuppressWarnings("unchecked")
-        Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName);
-        run(benchmarkClass, benchmarkArgs, runnerClass, runnerArgs);
+        try {
+            @SuppressWarnings("unchecked")
+            Class<? extends Benchmark> benchmarkClass = (Class<? extends Benchmark>) findTussleClass(benchmarkClassName);
+            @SuppressWarnings("unchecked")
+            Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName);
+            run(benchmarkClass, benchmarkArgs, runnerClass, runnerArgs);
+        } catch (Exception e) {
+            LoggerTool.logException(e);
+        }
     }
 
+    /**
+     * @param benchmark - benchmark instance
+     * @param args - [benchmark-args...]  [--runner runner-class [runner-args...]]  [-- ignoreable-args]
+     */
     public static void run(Benchmark benchmark, String[] args) {
         try {
-            String[] defRunner = {
-                    "BasicRunner"
-            };
-            String[] runnerArgs = runnerArgs(args, defRunner);
+            String[] defaultRunner = { "BasicRunner" };
+            String[] runnerArgs = runnerArgs(args, defaultRunner);
             String runnerClassName = runnerArgs[0];
             runnerArgs = Arrays.copyOfRange(runnerArgs, 1, runnerArgs.length);
             @SuppressWarnings("unchecked")
@@ -135,6 +142,12 @@ public class Run {
         }
     }
 
+    /**
+     * @param benchmarkClass - benchmark class
+     * @param benchmarkArgs - benchmark args
+     * @param runnerClass - runner class
+     * @param runnerArgs - runner args
+     */
     public static void run(Class<? extends Benchmark> benchmarkClass, String[] benchmarkArgs, Class<? extends Runner> runnerClass, String[] runnerArgs) {
         try {
             run(benchmarkClass.getConstructor().newInstance(), benchmarkArgs, runnerClass.getConstructor().newInstance(), runnerArgs);
@@ -143,6 +156,14 @@ public class Run {
         }
     }
 
+    /**
+     * @param benchmark - benchmark instance
+     * @param benchmarkArgs - benchmark args
+     * @param runner - runner instance
+     * @param runnerArgs - runner args
+     * 
+     * @throws TussleException
+     */
     public static void run(Benchmark benchmark, String[] benchmarkArgs, Runner runner, String[] runnerArgs) throws TussleException {
         runner.init(runnerArgs);
         benchmark.init(benchmarkArgs);
@@ -150,10 +171,14 @@ public class Run {
         benchmark.cleanup();
     }
 
+    /**
+     * 
+     * @param benchmark - benchmark instance
+     * @param runner - runner instance
+     * @param args - [benchmark-args...]  [--runner [runner-args...]]  [-- ignoreable-args]
+     * @throws TussleException
+     */
     public static void run(Benchmark benchmark, Runner runner, String[] args) throws TussleException {
-        runner.init(runnerArgs(args));
-        benchmark.init(benchmarkArgs(args));
-        runner.run(benchmark);
-        benchmark.cleanup();
+        run(benchmark, benchmarkArgs(args), runner, runnerArgs(args));
     }
 }

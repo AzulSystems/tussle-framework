@@ -32,7 +32,7 @@
 
 package org.tussleframework.metrics;
 
-import static org.tussleframework.tools.FormatTool.*;
+import static org.tussleframework.tools.FormatTool.roundFormat;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,10 +45,12 @@ import java.util.logging.Level;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramLogWriter;
 import org.HdrHistogram.Recorder;
+import org.tussleframework.HdrConfig;
+import org.tussleframework.RunArgs;
 
-public class HdrLogWriterTask extends TimerTask {
+public class HdrWriter extends TimerTask {
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrLogWriterTask.class.getName());
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrWriter.class.getName());
     private static boolean progressHeaderPrinted;
 
     public static void progressHeaderPrinted(boolean b) {
@@ -57,7 +59,7 @@ public class HdrLogWriterTask extends TimerTask {
 
     public static void log(String format, Object... args) {
         if (logger.isLoggable(Level.INFO)) {
-            logger.info(String.format("[%s] %s", HdrLogWriterTask.class.getSimpleName(), String.format(format, args)));
+            logger.info(String.format("[%s] %s", HdrWriter.class.getSimpleName(), String.format(format, args)));
         }
     }
 
@@ -70,20 +72,21 @@ public class HdrLogWriterTask extends TimerTask {
     private AtomicInteger countWrites = new AtomicInteger();
     private String shortName;
     private int totalTime;
-    private int progressIntervals;
+    private int progressDelay;
     private int progressCount;
     private volatile long startTime;
 
-    public HdrLogWriterTask(HdrResult hdrResult, int totalTime, boolean writeHdr, int progressIntervals) throws IOException {
-        this.hdrResult = hdrResult;
+    public HdrWriter(MetricInfo metricInfo, boolean writeHdr, int progressInterval, RunArgs runArgs, HdrConfig config, String histogramsDir) throws IOException {
+        String respHdrFile = String.format("%s/%s", histogramsDir, metricInfo.formatFileName(runArgs));
+        this.hdrResult = new HdrResult(metricInfo, respHdrFile, runArgs, config);
         this.recorder = new Recorder(Long.MAX_VALUE, 3);
         this.progressHistogram = new Histogram(3);
         this.hdrFile = Paths.get(hdrResult.hdrFile);
-        this.totalTime = totalTime;
-        this.progressIntervals = progressIntervals;
-        this.shortName = " " + (hdrResult.metricName.length() > 4 ? hdrResult.metricName.substring(0, 4) : hdrResult.metricName);
-        int remaining = 14 - this.shortName.length();
-        this.shortName = (hdrResult.operationName.length() > remaining ? hdrResult.operationName.substring(0, remaining) : hdrResult.operationName) + this.shortName;
+        this.totalTime = runArgs.runTime;
+        this.progressDelay = progressInterval / 1000;
+        shortName = " " + (hdrResult.metricName().length() > 4 ? hdrResult.metricName().substring(0, 4) : hdrResult.metricName());
+        int remaining = 14 - shortName.length();
+        shortName = (hdrResult.operationName().length() > remaining ? hdrResult.operationName().substring(0, remaining) : hdrResult.operationName()) + shortName;
         if (writeHdr) {
             Files.createDirectories(this.hdrFile.getParent());
             this.writer = new HistogramLogWriter(this.hdrFile.toFile());
@@ -117,8 +120,8 @@ public class HdrLogWriterTask extends TimerTask {
     public synchronized void run() {
         intervalHistogram = recorder.getIntervalHistogram(intervalHistogram);
         if (intervalHistogram.getTotalCount() != 0) {
-            hdrResult.allHistogram.add(intervalHistogram);
-            if (progressIntervals > 0) {
+            hdrResult.add(intervalHistogram);
+            if (progressDelay > 0) {
                 progressHistogram.add(intervalHistogram);
             }
             HistogramLogWriter w = this.writer;
@@ -131,7 +134,7 @@ public class HdrLogWriterTask extends TimerTask {
             return;
         }
         progressCount++;
-        if (progressCount < progressIntervals) {
+        if (progressCount < progressDelay) {
             return;
         }
         if (progressHistogram.getTotalCount() == 0) {
@@ -150,13 +153,13 @@ public class HdrLogWriterTask extends TimerTask {
             progress = 100;
         }
         long time = spentTime / 1000;
-        long totalCount = hdrResult.allHistogram.getTotalCount();
+        long totalCount = hdrResult.getCount();
         long count = progressHistogram.getTotalCount();
-        double p50 = progressHistogram.getValueAtPercentile(50.0) / hdrResult.histogramFactor;
-        double p90 = progressHistogram.getValueAtPercentile(90.0) / hdrResult.histogramFactor;
-        double p99 = progressHistogram.getValueAtPercentile(99.0) / hdrResult.histogramFactor;
-        double p100 = progressHistogram.getValueAtPercentile(100.0) / hdrResult.histogramFactor;
-        double mean = progressHistogram.getMean() / hdrResult.histogramFactor;
+        double p50 = progressHistogram.getValueAtPercentile(50.0) / hdrResult.hdrFactor();
+        double p90 = progressHistogram.getValueAtPercentile(90.0) / hdrResult.hdrFactor();
+        double p99 = progressHistogram.getValueAtPercentile(99.0) / hdrResult.hdrFactor();
+        double p100 = progressHistogram.getValueAtPercentile(100.0) / hdrResult.hdrFactor();
+        double mean = progressHistogram.getMean() / hdrResult.hdrFactor();
         log("%14s | %6d | %5s%% | %8s | %8s | %8s | %8s | %8s | %8d | %8d", shortName, time, String.format("%2.1f", progress), roundFormat(p50), roundFormat(p90), roundFormat(p99), roundFormat(p100), roundFormat(mean), count, totalCount);
     }
 

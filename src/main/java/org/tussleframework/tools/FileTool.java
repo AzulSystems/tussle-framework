@@ -33,10 +33,25 @@
 package org.tussleframework.tools;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.regex.Pattern;
 
 public class FileTool {
+    
+    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("tussle.debug"));
 
     private FileTool() {
+    }
+
+    public static void backupAndCreateDir(File fileDir) {
+        if (isFileOrNonEmptyDir(fileDir) && !backupDir(fileDir)) {
+            throw new IllegalArgumentException(String.format("Non-empty '%s' already exists and failed to backup", fileDir));
+        }
+        if (!fileDir.exists() && !fileDir.mkdirs()) {
+            throw new IllegalArgumentException(String.format("Failed to create dir '%s'", fileDir));
+        }
     }
 
     public static boolean isFileOrNonEmptyDir(File fileDir) {
@@ -66,5 +81,53 @@ public class FileTool {
             dir = new File(fileDir.getParent(), String.format("%s.%d", fileDir.getName(), i));
         }
         return fileDir.renameTo(dir);
+    }
+
+    public static String clearPath(String fileName) {
+        int pos = fileName.lastIndexOf('/');
+        if (pos >= 0) {
+            fileName = fileName.substring(pos + 1);
+        }
+        return fileName;
+    }
+
+    public static String clearPathAndExtension(String fileName) {
+        fileName = clearPath(fileName);
+        int pos = fileName.lastIndexOf('.');
+        if (pos >= 0) {
+            fileName = fileName.substring(0, pos);
+        }
+        return fileName;
+    }
+    
+    public static File getBaseDir(String baseDir, String fileName) {
+        File file = new File(fileName);
+        File dir = baseDir != null && !file.isAbsolute() ? new File(baseDir, fileName).getParentFile() : file.getParentFile();
+        if (dir == null) {
+            dir = new File(".");
+        }
+        return dir;
+    }
+
+    public static void listFiles(String baseDir, String fileMatch, Collection<File> res) {
+        File dir = getBaseDir(baseDir, fileMatch);
+        if (DEBUG) {
+            LoggerTool.log(FileTool.class.getSimpleName(), "listFiles: baseDir(%s) + fileMatch(%s) => dir(%s)",  baseDir, fileMatch, dir);
+        }
+        Pattern regexp = Pattern.compile(new File(fileMatch).getName());
+        File[] list = dir.listFiles(f -> regexp.matcher(f.getName()).matches());
+        if (list != null) {
+            Collections.addAll(res, list);
+        }
+    }
+
+    public static Collection<File> listFiles(String baseDir, Collection<String> fileMatches) {
+        ArrayList<File> res = new ArrayList<>();
+        fileMatches.forEach(fileMatch -> listFiles(baseDir, fileMatch, res));
+        return res;
+    }
+
+    public static Collection<File> listFiles(Collection<String> fileMatches) {
+        return listFiles(null, fileMatches);
     }
 }

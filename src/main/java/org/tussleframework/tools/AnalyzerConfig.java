@@ -34,44 +34,36 @@ package org.tussleframework.tools;
 
 import java.io.File;
 
-import org.tussleframework.AbstractConfig;
+import org.tussleframework.HdrConfig;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MovingWindowSLE;
 
-import lombok.Data;
-
-@Data
-public class AnalyzerConfig implements AbstractConfig {
-    public int mergeHistos = 1;
+public class AnalyzerConfig extends HdrConfig {
     public boolean doc = true;
     public boolean makeReport = false;
     public boolean allPercentiles = true;
-    public String resultsDir = "./results";
     public String reportDir = "./report";
     public String highBound = "0";
-    public String opName = "op";
     public MovingWindowSLE[] sleConfig = {};
     public Interval[] intervals = {};
 
+    public AnalyzerConfig() {
+    }
+
+    public AnalyzerConfig(HdrConfig config) {
+        copy(config);
+    }
+
     @Override
     public void validate(boolean runMode) {
+        super.validate(runMode);
         if (FormatTool.parseValue(highBound) < 0) {
             throw new IllegalArgumentException(String.format("Invalid highBound(%s) - should be non-negative", highBound));
         }
         if (runMode) {
-            File resultsDirFile = new File(resultsDir);
-            File reportDirFile = new File(reportDir);
-            if (FileTool.isFileOrNonEmptyDir(resultsDirFile) && !FileTool.backupDir(resultsDirFile)) {
-                throw new IllegalArgumentException(String.format("Non-empty results dir '%s' already exists", resultsDirFile));
-            }
-            if (makeReport && FileTool.isFileOrNonEmptyDir(reportDirFile) && !FileTool.backupDir(reportDirFile)) {
-                throw new IllegalArgumentException(String.format("Non-empty report dir '%s' already exists", reportDirFile));
-            }
-            if (!resultsDirFile.exists() && !resultsDirFile.mkdirs()) {
-                throw new IllegalArgumentException(String.format("Failed to create results dir '%s'", resultsDirFile));
-            }
-            if (makeReport && !reportDirFile.exists() && !reportDirFile.mkdirs()) {
-                throw new IllegalArgumentException(String.format("Failed to create report dir '%s'", reportDirFile));
+            FileTool.backupAndCreateDir(new File(histogramsDir));
+            if (makeReport) {
+                FileTool.backupAndCreateDir(new File(reportDir));
             }
         }
     }

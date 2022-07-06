@@ -46,7 +46,7 @@ public class BasicRunnerConfig extends RunnerConfig {
     public String targetRate = "1k";   // op/s, expected target throughput
     public String warmupTime = "0";    // benchmark warmup time
     public String runTime = "1m";      // benchmark run time, examples, 1m - one minute, 40 = 40s - seconds, 1h - hour, etc.
-    public int runSteps = 1;           // number of run steps (iterations) used by BasicRunner 
+    public int runSteps = 1;           // number of run steps (iterations) used by BasicRunner
 
     @Override
     public void validate(boolean runMode) {

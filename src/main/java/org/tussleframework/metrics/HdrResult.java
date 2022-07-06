@@ -32,205 +32,307 @@
 
 package org.tussleframework.metrics;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Queue;
+import java.util.logging.Level;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.HistogramLogReader;
+import org.tussleframework.HdrConfig;
 import org.tussleframework.RunArgs;
-import org.tussleframework.runners.RunnerConfig;
+import org.tussleframework.RunResult;
+import org.tussleframework.TussleException;
+import org.tussleframework.tools.FileTool;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
 
+interface HdrIterator {
+    AbstractHistogram next();
+}
+
+interface HdrIteratorSource {
+    HdrIterator get();
+}
+
 public class HdrResult {
 
-    public String operationName;
-    public String metricName;
-    public String hdrFile;
-    public String rateUnits;
-    public String timeUnits;
-    public RunArgs runArgs;
-    public double actualRate;
-    public double histogramFactor;
-    public int intervalLength;
-    public int recordsCount;
-    public Histogram allHistogram = new Histogram(3);
-    public List<HdrIntervalResult> subIntervalHistograms = new ArrayList<>();
+    public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrResult.class.getName());
 
     private static String responseTime = "response_time";
     private static String serviceTime = "service_time";
     private static String responseTime2 = "response-time";
     private static String serviceTime2 = "service-time";
-    
+    private static String intendedPref = "intended-";
+
+    public static void log(String format, Object... args) {
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info(String.format("[%s] %s", HdrResult.class.getSimpleName(), String.format(format, args)));
+        }
+    }
+
+    public static RunResult getSummaryResult(Collection<HdrResult> hdrResults) {
+        RunResult runResult = new RunResult();
+        HashMap<String, HdrResult> hdrMap = new HashMap<>();
+        hdrResults.forEach(hdr -> hdrMap.put(hdr.operationName(), hdr));
+        for (HdrResult hdrResult : hdrMap.values()) {
+            runResult.rate += hdrResult.getRate();
+            runResult.count += hdrResult.getCount();
+            if (runResult.time < hdrResult.getTimeMs()) {
+                runResult.time = hdrResult.getTimeMs();
+            }
+        }
+        return runResult;
+    }
+
+    protected List<HdrIntervalResult> hdrIntervalResults = new ArrayList<>();
+    protected MetricInfo metricInfo;
+    protected HdrConfig config;
+    protected RunArgs runArgs;
+    protected String hdrFile;
+    protected int recordsCount;
+
     public HdrResult() {
         ///
     }
 
-    public HdrResult(String operationName, String metricName, String rateUnits, String timeUnits, String hdrFile, RunArgs runArgs, double actualRate, RunnerConfig config) {
-        this.operationName = operationName;
-        this.metricName = metricName;
-        this.rateUnits = rateUnits;
-        this.timeUnits = timeUnits;
+    public HdrResult(MetricInfo metricInfo, String hdrFile, RunArgs runArgs, HdrConfig config) {
+        this.metricInfo = metricInfo;
+        this.config = new HdrConfig().copy(config);
         this.hdrFile = hdrFile;
         this.runArgs = runArgs;
-        this.actualRate = actualRate;
-        this.histogramFactor  = config.histogramFactor;
-        this.intervalLength = config.intervalLength;
+        hdrIntervalResults.add(new HdrIntervalResult(new Interval(), this.config, null));
     }
 
-    public void detectValues(String fileName, String defOperationName) {
-        String[] parts = fileName.replace(serviceTime, serviceTime2).replace(responseTime, responseTime2).split("_");
-        int nums = 0;
-        runArgs = new RunArgs();
-        try {
-            runArgs.step = Integer.valueOf(parts[parts.length - 1]);
-            runArgs.targetRate = Double.valueOf(parts[parts.length - 2]);
-            runArgs.ratePercent = Double.valueOf(parts[parts.length - 3]);
-            nums = 3;
-        } catch (NumberFormatException e) {
-            try {
-                runArgs.step = Integer.valueOf(parts[parts.length - 1]);
-                runArgs.targetRate = 0;
-                runArgs.ratePercent = Double.valueOf(parts[parts.length - 2]);
-                nums = 2;
-            } catch (NumberFormatException e2) {
-                runArgs.step = 0;
-                runArgs.targetRate = 0;
-                runArgs.ratePercent = 0;
-            }
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length - nums; i++) {
-            if (sb.length() > 0) {
-                sb.append('_');
-            }
-            sb.append(parts[i]);
-        }
-        metricName = sb.toString();
-        int pos = metricName.indexOf('_');
-        if (pos > 0) {
-            operationName = metricName.substring(0, pos);
-            metricName = metricName.substring(pos + 1);
-        } else {
-            operationName = defOperationName;
-        }
-        metricName = metricName.replace(serviceTime2, serviceTime).replace(responseTime2, responseTime);
-    }
-
-    public String getOpName() {
-        return String.format("%s_%s_%s_%d", operationName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.step);
-    }
-
-    public static String clearPathAndExtension(String fileName) {
+    public HdrResult(String fileName, HdrConfig config) {
+        this.metricInfo = new MetricInfo();
+        this.hdrFile = fileName;
+        this.config = new HdrConfig().copy(config);
         int pos = fileName.lastIndexOf('/');
         if (pos >= 0) {
             fileName = fileName.substring(pos + 1);
         }
-        pos = fileName.lastIndexOf('.');
-        if (pos >= 0) {
-            fileName = fileName.substring(0, pos);
-        }
-        return fileName;
-    }
-
-    public static HdrResult getIterationResult(String fileName, String defOperationName) {
-        HdrResult result = new HdrResult();
-        result.hdrFile = fileName;
-        result.intervalLength = 1000;
         final String hs = ".hdr-";
         if (fileName.startsWith("tlp_stress_metrics") && fileName.indexOf(hs) >= 0) {
-        	result.runArgs = new RunArgs();
-            result.histogramFactor = 1000;
-            result.operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
-            if (result.operationName.startsWith("INTENDED-")) {
-                result.operationName = result.operationName.substring("INTENDED-".length());
-                result.metricName = responseTime;
+            this.runArgs = new RunArgs();
+            this.config.hdrFactor = 1000;
+            String operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
+            if (operationName.toLowerCase().startsWith(intendedPref)) {
+                operationName = operationName.substring(intendedPref.length());
+                metricInfo.metricName = responseTime;
             } else {
-                result.metricName = serviceTime;
+                metricInfo.metricName = serviceTime;
             }
+            metricInfo.operationName = operationName;
         } else {
-            result.histogramFactor = 1000_000;
-            result.detectValues(clearPathAndExtension(fileName), defOperationName);
+            /*
+             * @param fileName -> file name formats based on underscore ('_') separator:
+             *      {operation-name}_{metric-name}_{numeric-percent-of-high-bound}_{numeric-target-rate}_{numeric-step}
+             *      {operation-name}_{metric-name}_{numeric-percent-of-high-bound}_{numeric-step}
+             *      {operation-name}_{metric-name}_{numeric-step}
+             *      {operation-name}_{metric-name}
+             *      {operation-name}_{percent-of-high-bound}_{numeric-target-rate}_{numeric-step}
+             *      {operation-name}_{percent-of-high-bound}_{numeric-step}
+             *      {operation-name}_{numeric-step}
+             *      {operation-name}
+             *      
+             * Example names:
+             *      READS_response-time-100_20000_0.hlog
+             *      WRITES_response-time-100_80000_0.hlog
+             *      
+             *      writes_service-time_0.hlog
+             *      writes_service-time_1.hlog
+             *      writes_service-time_2.hlog
+             *      writes_service-time_3.hlog
+             *      
+             * @param defaultName
+             */
+            fileName = FileTool.clearPathAndExtension(fileName);
+            String[] parts = fileName.replace(serviceTime, serviceTime2).replace(responseTime, responseTime2).split("_");
+            runArgs = new RunArgs();
+            int filledParts = runArgs.fillValues(parts);
+            metricInfo.fillValues(parts, filledParts, config.metricName);
         }
-        return result;
+        hdrIntervalResults.add(new HdrIntervalResult(new Interval(), this.config, null));
     }
 
-    public void processHistograms(MetricData metricData, InputStream inputStream, MovingWindowSLE[] sleConfig, Interval[] intervals, double[] percentiles, int mergeHistos) {
-        LoggerTool.log("HdrResult", "processHistogram '%s', operation %s, metricName %s, merge %d adjucent histograms", hdrFile, operationName, metricName, mergeHistos);
-        recordsCount = 0;
-        try (HistogramLogReader hdrReader = new HistogramLogReader(inputStream)) {
-            int nulls = 0;
-            double rangeStartTimeSec = 0.0;
-            double rangeEndTimeSec = Double.MAX_VALUE;
-            subIntervalHistograms = new ArrayList<>();
-            for (Interval interval : intervals) {
-                subIntervalHistograms.add(new HdrIntervalResult(sleConfig, interval, histogramFactor));
-            }
-            Histogram firstHistogram = (Histogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);
-            if (firstHistogram == null) {
-                return;
-            }
-            final long stampStart = firstHistogram.getStartTimeStamp();
-            subIntervalHistograms.forEach(sh -> sh.adjustInterval(stampStart));
-            while (true) {
-                ArrayList<AbstractHistogram> histos = new ArrayList<>();
-                int hi = 0;
-                if (firstHistogram != null) {
-                    hi = 1;
-                    histos.add(firstHistogram);
-                    firstHistogram = null;
-                }
-                while (hi < mergeHistos) {
-                    AbstractHistogram intervalHistogram = (AbstractHistogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);
-                    if (intervalHistogram != null) {
-                        histos.add(intervalHistogram);
-                    }
-                    hi++;
-                }
-                if (!histos.isEmpty()) {
-                    recordsCount++;
-                    subIntervalHistograms.forEach(sh -> sh.add(histos));
-                } else if (nulls++ > 10) {
-                    break;
-                }
-            }
-            subIntervalHistograms.forEach(sh -> sh.processHistogram(this, metricData, percentiles, mergeHistos));
+    public void setRunArgs(RunArgs runArgs) {
+        this.runArgs = runArgs;
+    }
+
+    public String operationName() {
+        return metricInfo.operationName;
+    }
+
+    public String metricName() {
+        return metricInfo.metricName;
+    }
+
+    public String rateUnits() {
+        return metricInfo.rateUnits;
+    }
+
+    public String timeUnits() {
+        return metricInfo.timeUnits;
+    }
+
+    public String hdrFile() {
+        return hdrFile;
+    }
+
+    public boolean hasData() {
+        return hdrIntervalResults != null && !hdrIntervalResults.isEmpty() && hdrIntervalResults.get(0).getCount() > 0;
+    }
+
+    public double targetRate() {
+        return runArgs.targetRate;
+    }
+
+    public int runTime() {
+        return runArgs.runTime;
+    }
+
+    public int warmupTime() {
+        return runArgs.warmupTime;
+    }
+
+    public int step() {
+        return runArgs.runStep;
+    }
+
+    public int recordsCount() {
+        return recordsCount;
+    }
+
+    /**
+     * Return full interval histogram
+     */
+    public HdrIntervalResult getPrimeResult() {
+        return hdrIntervalResults.get(0);
+    }
+
+    public Histogram getPrimeHistogram() {
+        return getPrimeResult().getHistogram();
+    }
+
+    public double getRate() {
+        return getPrimeResult().getRate();
+    }
+
+    public double getMean() {
+        return getPrimeResult().getMean();
+    }
+
+    public double getMaxValue() {
+        return getPrimeResult().getMaxValue();
+    }
+
+    public long getTimeMs() {
+        return getPrimeResult().getTimeMs();
+    }
+
+    public double getValueAtPercentile(double percentile) {
+        return getPrimeResult().getValueAtPercentile(percentile);
+    }
+
+    public long getCount() {
+        return getPrimeResult().getCount();
+    }
+
+    public double hdrFactor() {
+        return config.hdrFactor;
+    }
+
+    public void getMetrics(MetricData metricData, double[] percentiles) {
+        hdrIntervalResults.forEach(sh -> sh.getMetrics(this, metricData, percentiles));
+    }
+
+    public void add(AbstractHistogram inputHistogram) {
+        getPrimeResult().addHistogram(inputHistogram);
+    }
+
+    public String getOpName() {
+        return String.format("%s_%s_%s_%d", metricInfo.operationName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.runStep);
+    }
+
+    public void loadHdrFile(MovingWindowSLE[] sleConfig, Interval[] intervals) throws TussleException {
+        log("Loading from HDR file '%s'", hdrFile);
+        try (InputStream inputStream = new FileInputStream(hdrFile)) {
+            loadHdrData(inputStream, sleConfig, intervals);
+        } catch (Exception e) {
+            throw new TussleException(e);
         }
+    }
+
+    public void loadHdrData(InputStream inputStream, MovingWindowSLE[] sleConfig, Interval[] intervals) {
+        try (HistogramLogReader hdrReader = new HistogramLogReader(inputStream)) {
+            loadHdrData(() -> (AbstractHistogram) hdrReader.nextIntervalHistogram(0.0, Double.MAX_VALUE), sleConfig, intervals);
+        }
+    }
+
+    public void loadHdrData(HdrIterator hdrIter, MovingWindowSLE[] sleConfig, Interval[] intervals) {
+        int mergeHistos = config.reportInterval / config.hdrInterval;
+        log("Loading HDR: operation %s, metricName %s, hdrFactor %s, (reportInterval %d ms) / (hdrInterval %d ms) = (histograms per reportInterval %d)", 
+                metricInfo.operationName, metricInfo.metricName, FormatTool.format(config.hdrFactor), config.reportInterval, config.hdrInterval, mergeHistos);
+        if (intervals == null || intervals.length == 0) {
+            intervals = new Interval[] { new Interval() };
+        }
+        hdrIntervalResults = new ArrayList<>();
+        for (Interval interval : intervals) {
+            hdrIntervalResults.add(new HdrIntervalResult(interval, config, sleConfig));
+        }
+        int nulls = 0;
+        int histoCount = 0;
+        recordsCount = 0;
+        while (true) {
+            ArrayList<AbstractHistogram> histos = new ArrayList<>();
+            int histoIdx = 0;
+            while (histoIdx < mergeHistos) {
+                AbstractHistogram intervalHistogram = hdrIter.next();
+                if (intervalHistogram != null) {
+                    if (histoCount == 0) {
+                        hdrIntervalResults.forEach(sh -> sh.adjustInterval(intervalHistogram.getStartTimeStamp()));
+                    }
+                    histos.add(intervalHistogram);
+                    histoCount++;
+                }
+                histoIdx++;
+            }
+            if (!histos.isEmpty()) {
+                recordsCount++;
+                hdrIntervalResults.forEach(sh -> sh.addHistograms(histos));
+            } else if (nulls++ > 10) {
+                break;
+            }
+        }
+        LoggerTool.log(getClass().getSimpleName(), "Loaded HDR records %d, hdrFactor %f", recordsCount, config.hdrFactor);
     }
 
     public boolean checkSLE(ServiceLevelExpectation aSLE) {
         if (!(aSLE instanceof MovingWindowSLE)) {
             return false;
         }
-        MovingWindowSLE mwSLE = (MovingWindowSLE) aSLE;
         try (HistogramLogReader hdrReader = new HistogramLogReader(hdrFile)) {
-            double rangeStartTimeSec = 0.0;
-            double rangeEndTimeSec = Double.MAX_VALUE;
-            Queue<Histogram> movingWindowQueue = new LinkedList<>();
-            Histogram intervalHistogram = (Histogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);
-            Histogram movingWindowSumHistogram = new Histogram(3);
-            while (intervalHistogram != null) {
-                long windowCutOffTimeStamp = intervalHistogram.getEndTimeStamp() - mwSLE.movingWindow * 1000;
-                movingWindowSumHistogram.add(intervalHistogram);
-                Histogram head = movingWindowQueue.peek();
-                while (head != null && head.getEndTimeStamp() <= windowCutOffTimeStamp) {
-                    Histogram prevHist = movingWindowQueue.remove();
-                    movingWindowSumHistogram.subtract(prevHist);
-                    head = movingWindowQueue.peek();
-                }
-                movingWindowQueue.add(intervalHistogram);
-                if (movingWindowSumHistogram.getValueAtPercentile(mwSLE.percentile) / histogramFactor > mwSLE.maxValue) {
-                    return false;
-                }
-                intervalHistogram = (Histogram) hdrReader.nextIntervalHistogram(rangeStartTimeSec, rangeEndTimeSec);
-            }
+            return checkSLE(() -> (AbstractHistogram) hdrReader.nextIntervalHistogram(0.0, Double.MAX_VALUE), (MovingWindowSLE) aSLE);
         } catch (Exception e) {
             LoggerTool.logException(null, e);
             return true;
+        }
+    }
+
+    public boolean checkSLE(HdrIterator hdrIter, MovingWindowSLE mwSLE) {
+        MovingWindowHistogram mwHistogram = new MovingWindowHistogram(mwSLE, config.hdrFactor);
+        AbstractHistogram intervalHistogram = hdrIter.next();
+        while (intervalHistogram != null) {
+            mwHistogram.add(intervalHistogram);
+            if (!mwHistogram.checkSLE()) {
+                return false;
+            }
+            intervalHistogram = hdrIter.next();
         }
         return true;
     }

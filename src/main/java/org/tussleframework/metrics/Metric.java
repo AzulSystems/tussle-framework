@@ -89,4 +89,8 @@ public class Metric {
     public MetricValue byType(MetricType type) {
         return byType(type.name());
     }
+
+    public String toString() {
+        return String.format("operation %s (%s), metricValues %d, actualRate: %f", operation, name != null ? name : "n/a", metricValues != null ? metricValues.size() : 0, actualRate);
+    }
 }

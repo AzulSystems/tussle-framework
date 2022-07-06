@@ -34,6 +34,7 @@ package org.tussleframework.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.SequenceInputStream;
 import java.io.Writer;
@@ -48,13 +49,22 @@ public class LoggerTool {
     private LoggerTool() {
     }
 
-    public static void init(String name) {
+    public static void init(String name, String handlers) {
         try {
-            LogManager.getLogManager().readConfiguration(new SequenceInputStream(Analyzer.class.getResourceAsStream("/logging.properties"),
-                    new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log", name).getBytes())));
+            if (handlers != null) {
+                LogManager.getLogManager().readConfiguration(new SequenceInputStream(Analyzer.class.getResourceAsStream("/logging.properties"),
+                        new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log %nhandlers = %s", name, handlers).getBytes())));
+            } else {
+                LogManager.getLogManager().readConfiguration(new SequenceInputStream(Analyzer.class.getResourceAsStream("/logging.properties"),
+                        new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log", name).getBytes())));
+            }
         } catch (Exception e) {
             Logger.getGlobal().log(Level.SEVERE, "[LoggerTool] LogManager readConfiguration failed", e);
         }
+    }
+
+    public static void init(String name) {
+        init(name, null);
     }
 
     public static void logException(Exception e) {
@@ -65,6 +75,17 @@ public class LoggerTool {
         Logger logger = loggerIn == null ? Logger.getGlobal() : loggerIn;
         if (logger.isLoggable(Level.INFO)) {
             logger.info(String.format("[%s] %s", BasicRunner.class.getSimpleName(), String.format(format, args)));
+        }
+    }
+
+    public static void log(String name, String format, Object... args) {
+        Logger logger = Logger.getGlobal();
+        if (logger.isLoggable(Level.INFO)) {
+            if (name != null) {
+                logger.info(String.format("[%s] %s", name, String.format(format, args)));
+            } else {
+                logger.info(String.format(format, args));
+            }
         }
     }
 
@@ -94,14 +115,52 @@ public class LoggerTool {
         }));
         logger.log(Level.SEVERE, e, sb::toString);
     }
+    
+    public static class LogOutputStream extends OutputStream {
 
-    public static void log(String name, String format, Object... args) {
-        Logger logger = Logger.getGlobal();
-        if (logger.isLoggable(Level.INFO)) {
-            if (name != null) {
-                logger.info(String.format("[%s] %s", name, String.format(format, args)));
+        private Logger logger;
+        private String prefix;
+        private String suffix;
+        private StringBuilder sb = new StringBuilder();   
+
+        public LogOutputStream(String prefix, String suffix) {
+            this(Logger.getGlobal(), prefix, suffix);
+        }
+
+        public LogOutputStream() {
+            this(Logger.getGlobal(), null, null);
+        }
+
+        public LogOutputStream(Logger logger, String prefix, String suffix) {
+            this.logger = logger;
+            this.prefix = prefix;
+            this.suffix = suffix;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            for (int i = 0; i < len; i++) {
+                write(b[off + i]);
+            }
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (b == '\n') {
+                if (logger.isLoggable(Level.INFO)) {
+                    if (prefix != null && suffix != null) {
+                        logger.info(String.format("%s%s%s", prefix, sb, suffix));
+                    } else if (prefix != null) {
+                        logger.info(String.format("%s%s", prefix, sb));
+                    } else if (suffix != null) {
+                        logger.info(String.format("%s%s", sb, suffix));
+                    } else {
+                        logger.info(String.format("%s", sb));
+                    }
+                }
+                sb.setLength(0);
             } else {
-                logger.info(String.format(format, args));
+                sb.append((char)b);
             }
         }
     }

@@ -30,34 +30,23 @@
  * 
  */
 
-package org.tussleframework.metrics;
+package org.tussleframework;
 
-import java.util.Queue;
+public class BenchmarkConfig implements AbstractConfig {
+    public String name = "";
+    public String rateUnits = "op/s";
+    public String timeUnits = "ms";
 
-import org.HdrHistogram.AbstractHistogram;
-
-public class MovingWindowSumHistogram {
-    public AbstractHistogram sumHistogram;
-    public Queue<AbstractHistogram> movingWindowQueue;
-    public double percentile;
-    public long movingWindowMs;
-
-    public MovingWindowSumHistogram(AbstractHistogram sumHistogram, Queue<AbstractHistogram> movingWindowQueue, double percentile, int movingWindow) {
-        this.sumHistogram = sumHistogram;
-        this.movingWindowQueue = movingWindowQueue;
-        this.percentile = percentile;
-        this.movingWindowMs = movingWindow * 1000L;
-    }
-
-    public void add(AbstractHistogram intervalHistogram) {
-        long windowCutOffTimeStamp = intervalHistogram.getEndTimeStamp() - movingWindowMs;
-        sumHistogram.add(intervalHistogram);
-        AbstractHistogram head = movingWindowQueue.peek();
-        while (head != null && head.getEndTimeStamp() <= windowCutOffTimeStamp) {
-            AbstractHistogram prevHist = movingWindowQueue.remove();
-            sumHistogram.subtract(prevHist);
-            head = movingWindowQueue.peek();
+    @Override
+    public void validate(boolean runMode) {
+        if (name == null) {
+            name = "";
         }
-        movingWindowQueue.add(intervalHistogram);
+        if (rateUnits == null) {
+            rateUnits = "";
+        }
+        if (timeUnits == null) {
+            timeUnits = "";
+        }
     }
 }

@@ -49,9 +49,17 @@ public class MetricValue {
         this.values = values;
     }
 
+    public MetricValue(MetricType type, double[] values) {
+        this(type.name(), values);
+    }
+
     public MetricValue(String type, double value) {
         this.type = type;
         this.value = value;
+    }
+
+    public MetricValue(MetricType type, double value) {
+        this(type.name(), value);
     }
 
     public double maxValue() {

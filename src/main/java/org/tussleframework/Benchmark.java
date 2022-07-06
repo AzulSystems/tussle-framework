@@ -70,7 +70,7 @@ public interface Benchmark {
      * 
      * @return Benchmark configuration
      */
-    AbstractConfig getConfig();
+    BenchmarkConfig getConfig();
 
     /**
      * Runs Benchmark at the specified target rate for specified run time  

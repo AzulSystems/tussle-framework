@@ -66,7 +66,7 @@ public abstract class WlBenchmark implements Benchmark {
     public abstract String getOperationName();
 
     @Override
-    public AbstractConfig getConfig() {
+    public BenchmarkConfig getConfig() {
         return config;
     }
 

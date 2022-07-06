@@ -39,12 +39,13 @@ import lombok.ToString;
 @Data
 @ToString(callSuper = false)
 @EqualsAndHashCode(callSuper = false)
-public class WlConfig implements AbstractConfig {
+public class WlConfig extends BenchmarkConfig {
     public int threads = 1;
     public boolean asyncMode = false;
 
     @Override
     public void validate(boolean runMode) {
+        super.validate(runMode);
         if (threads < 1) {
             throw new IllegalArgumentException(String.format("Invalid threads(%d) - should be non-negative", threads));
         }

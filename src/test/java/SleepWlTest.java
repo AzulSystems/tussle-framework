@@ -39,6 +39,7 @@ import org.HdrHistogram.Histogram;
 import org.junit.Test;
 import org.tussleframework.RunnableWithError;
 import org.tussleframework.metrics.HdrTimeRecorder;
+import org.tussleframework.tools.LoggerTool;
 import org.tussleframework.tools.TargetRunnerAsync;
 import org.tussleframework.tools.TargetRunnerMT;
 import org.tussleframework.tools.TargetRunnerST;
@@ -51,6 +52,10 @@ import org.tussleframework.tools.TargetRunnerST;
  *
  */
 public class SleepWlTest {
+    
+    {
+        LoggerTool.init("", "java.util.logging.ConsoleHandler");
+    }
 
     static void log(String s) {
         System.err.println(System.nanoTime() + ": " + s);

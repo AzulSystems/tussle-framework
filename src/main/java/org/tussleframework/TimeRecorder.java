@@ -32,8 +32,11 @@
 
 package org.tussleframework;
 
+import java.util.Collection;
+
 public interface TimeRecorder {
     void startRecording(String operationName, String rateUnits, String timeUnits);
     void stopRecording();
     void recordTimes(String operationName, long startTime, long intendedStartTime, long finishTime, long count, boolean success);
+    void addResults(Collection<?> results, String rateUnits, String timeUnits) throws TussleException;
 }

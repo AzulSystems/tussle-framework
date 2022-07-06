@@ -30,12 +30,12 @@
  * 
  */
 
-package org.tussleframework.runners;
+package org.tussleframework.tools;
 
 import static org.tussleframework.WithException.withException;
 import static org.tussleframework.WithException.wrapException;
-import static org.tussleframework.metrics.HdrIntervalResult.reportedType;
-import static org.tussleframework.metrics.HdrIntervalResult.reportedTypeCount;
+import static org.tussleframework.metrics.HdrIntervalResult.metricType;
+import static org.tussleframework.metrics.HdrIntervalResult.metricTypeCount;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.stream.DoubleStream;
 
 import org.tussleframework.TussleException;
+import org.tussleframework.metrics.HdrIntervalResult;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Marker;
 import org.tussleframework.metrics.Metric;
@@ -54,10 +55,6 @@ import org.tussleframework.metrics.MetricType;
 import org.tussleframework.metrics.MetricValue;
 import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.metrics.ServiceLevelExpectation;
-import org.tussleframework.tools.Analyzer;
-import org.tussleframework.tools.AnalyzerConfig;
-import org.tussleframework.tools.FormatTool;
-import org.tussleframework.tools.LoggerTool;
 
 public class StepRaterAnalyser extends Analyzer {
 
@@ -81,7 +78,7 @@ public class StepRaterAnalyser extends Analyzer {
     @Override
     public void processResults(AnalyzerConfig config, Collection<HdrResult> results) throws TussleException {
         init(config);
-        withException(() -> results.forEach(result -> wrapException(() -> processResultHistograms(result))));
+        withException(() -> results.forEach(result -> wrapException(() -> loadHdrData(result))));
         processSummary();
         printResults();
     }
@@ -89,136 +86,133 @@ public class StepRaterAnalyser extends Analyzer {
     private HashMap<String, ArrayList<HdrResult>> getResultsMap() {
         HashMap<String, ArrayList<HdrResult>> resultsMap = new HashMap<>();
         for (HdrResult result : hdrResults) {
-            String name = result.operationName + " " + result.metricName;
-            ArrayList<HdrResult> specificResuls;
-            if (resultsMap.containsKey(name)) {
-                specificResuls = resultsMap.get(name);
-            } else {
-                specificResuls = new ArrayList<>();
-                resultsMap.put(name, specificResuls);
-            }
-            specificResuls.add(result);
+            String name = result.operationName() + " " + result.metricName();
+            resultsMap.computeIfAbsent(name, key -> new ArrayList<>()).add(result);
         }
-        resultsMap.forEach((metricName, specificResuls) -> specificResuls
-                .sort((a, b) -> (int) (a.runArgs.targetRate == b.runArgs.targetRate ? a.runArgs.step - b.runArgs.step : a.runArgs.targetRate - b.runArgs.targetRate)));
+        resultsMap.forEach((metricName, hdrResuls) -> hdrResuls
+                .sort((a, b) -> (int) (a.targetRate() == b.targetRate() ? a.step() - b.step() : a.targetRate() - b.targetRate())));
         return resultsMap;
     }
 
-    public void processOperationResults(String opAndMetricName, List<HdrResult> operationResults) {
+    public void processOperationResults(String opAndMetricName, List<HdrResult> hdrResults) {
         MovingWindowSLE[] sleConfig = analyzerConfig.sleConfig;
         ArrayList<MovingWindowSLE> unbrokenSleConfig = new ArrayList<>();
         Collections.addAll(unbrokenSleConfig, sleConfig);
         ArrayList<Marker> sleMarkers = new ArrayList<>();
         HashMap<String, Double> sleBroken = new HashMap<>();
-        for (HdrResult result : operationResults) {
+        for (HdrResult hdrResult : hdrResults) {
             Iterator<MovingWindowSLE> iterator = unbrokenSleConfig.iterator();
             while (iterator.hasNext()) {
                 ServiceLevelExpectation sle = iterator.next();
-                if (!result.checkSLE(sle)) {
-                    log("%s SLE for %s broken on %s %s", opAndMetricName, sle, FormatTool.format(result.runArgs.targetRate), result.rateUnits);
+                if (!hdrResult.checkSLE(sle)) {
+                    log("%s SLE for %s broken on %s %s", opAndMetricName, sle, FormatTool.format(hdrResult.targetRate()), hdrResult.rateUnits());
                     iterator.remove();
-                    sleBroken.put(sle.longName(), result.runArgs.targetRate);
-                    sleMarkers.add(new Marker(sle.markerName(), result.runArgs.targetRate, sle.markerValue()));
+                    sleBroken.put(sle.longName(), hdrResult.targetRate());
+                    sleMarkers.add(new Marker(sle.markerName(), hdrResult.targetRate(), sle.markerValue()));
                 }
             }
         }
         unbrokenSleConfig.forEach(sle -> log("%s SLE for %s was not broken", opAndMetricName, sle));
-        DoubleStream.Builder[] valBuffersMax = new DoubleStream.Builder[reportedTypeCount()];
-        DoubleStream.Builder[] valBuffersAvg = new DoubleStream.Builder[reportedTypeCount()];
-        for (int i = 0; i < reportedTypeCount(); i++) {
+        DoubleStream.Builder[] valBuffersMax = new DoubleStream.Builder[metricTypeCount()];
+        DoubleStream.Builder[] valBuffersAvg = new DoubleStream.Builder[metricTypeCount()];
+        for (int i = 0; i < metricTypeCount(); i++) {
             valBuffersMax[i] = DoubleStream.builder();
             valBuffersAvg[i] = DoubleStream.builder();
         }
-        DoubleStream.Builder[] valBuffersMW = new DoubleStream.Builder[sleConfig.length];
-        for (int j = 0; j < sleConfig.length; j++) {
-            valBuffersMW[j] = DoubleStream.builder();
-        }
+//        DoubleStream.Builder[] valBuffersMW = new DoubleStream.Builder[sleConfig.length];
+//        for (int j = 0; j < sleConfig.length; j++) {
+//            valBuffersMW[j] = DoubleStream.builder();
+//        }
         ArrayList<String> xValuesBuff = new ArrayList<>();
-        for (HdrResult result : operationResults) {
-            xValuesBuff.add(FormatTool.format(result.runArgs.targetRate));
-            if (result.recordsCount == 0) {
+        for (HdrResult hdrResult : hdrResults) {
+            if (!hdrResult.hasData()) {
                 continue;
             }
-            for (int j = 0; j < reportedTypeCount(); j++) {
-                Metric metric = result.subIntervalHistograms.get(0).getMetric();
+            xValuesBuff.add(FormatTool.format(hdrResult.targetRate()));
+            HdrIntervalResult hdrPrimeResult = hdrResult.getPrimeResult();
+            for (int metricIdx = 0; metricIdx < metricTypeCount(); metricIdx++) {
+                Metric metric = hdrPrimeResult.getMetric();
                 if (metric == null) {
+                    valBuffersMax[metricIdx].add(-1.0);
+                    valBuffersAvg[metricIdx].add(-1.0);
                     continue;
                 }
-                MetricValue mv = metric.byType(reportedType(j));
-                if (mv == null) {
-                    valBuffersMax[j].add(-1.0);
-                    valBuffersAvg[j].add(-1.0);
-                } else if (reportedType(j) == MetricType.COUNTS) {
+                MetricValue metricValue = metric.byType(metricType(metricIdx));
+                if (metricValue == null) {
+                    valBuffersMax[metricIdx].add(-1.0);
+                    valBuffersAvg[metricIdx].add(-1.0);
+                } else if (metricType(metricIdx) == MetricType.COUNTS) {
                     if (metric.getFinish() > metric.getStart()) {
-                        double throughput = mv.sumValue() * 1000.0 / (metric.getFinish() - metric.getStart());
-                        valBuffersMax[j].add(throughput);
-                        valBuffersAvg[j].add(throughput);
+                        double throughput = metricValue.sumValue() * 1000.0 / (metric.getFinish() - metric.getStart());
+                        valBuffersMax[metricIdx].add(throughput);
+                        valBuffersAvg[metricIdx].add(throughput);
                     } else {
-                        valBuffersMax[j].add(-1.0);
-                        valBuffersAvg[j].add(-1.0);
+                        valBuffersMax[metricIdx].add(-1.0);
+                        valBuffersAvg[metricIdx].add(-1.0);
                     }
                 } else {
-                    valBuffersMax[j].add(mv.maxValue());
-                    valBuffersAvg[j].add(mv.avgValue());
+                    valBuffersMax[metricIdx].add(metricValue.maxValue());
+                    valBuffersAvg[metricIdx].add(metricValue.avgValue());
                 }
             }
         }
-        Optional<HdrResult> optionalResult = operationResults.stream().filter(result -> result.recordsCount > 0).findFirst();
-        if (!optionalResult.isPresent()) {
+        Optional<HdrResult> optionalHdrResult = hdrResults.stream().filter(result -> result.recordsCount() > 0).findFirst();
+        if (!optionalHdrResult.isPresent()) {
             return;
         }
-        HdrResult specificResult = optionalResult.get();
-        String[] xValues = xValuesBuff.toArray(EMPT);
-        Metric mMax = Metric.builder()
-                .name(specificResult.metricName + " summary_max")
-                .operation(specificResult.operationName)
+        HdrResult firstHdrResult = optionalHdrResult.get();
+        String[] xValues = xValuesBuff.toArray(EMPTY);
+        Metric mAvg = Metric.builder()
+                .name(firstHdrResult.metricName() + " summary_avg" )
+                .operation(firstHdrResult.operationName())
                 .units("ms")
-                .xunits(specificResult.rateUnits)
+                .xunits(firstHdrResult.rateUnits())
+                .xValues(xValues).build();
+        Metric mMax = Metric.builder()
+                .name(firstHdrResult.metricName() + " summary_max")
+                .operation(firstHdrResult.operationName())
+                .units("ms")
+                .xunits(firstHdrResult.rateUnits())
                 .xValues(xValues)
                 .build();
-        Metric mAvg = Metric.builder()
-                .name(specificResult.metricName + " summary_avg" )
-                .operation(specificResult.operationName)
-                .units("ms")
-                .xunits(specificResult.rateUnits)
-                .xValues(xValues).build();
-        for (int i = 0; i < reportedTypeCount(); i++) {
-            mMax.add(new MetricValue(reportedType(i).name(), valBuffersMax[i].build().toArray()));
-            mAvg.add(new MetricValue(reportedType(i).name(), valBuffersAvg[i].build().toArray()));
+        for (int i = 0; i < metricTypeCount(); i++) {
+            mAvg.add(new MetricValue(metricType(i).name(), valBuffersAvg[i].build().toArray()));
+            mMax.add(new MetricValue(metricType(i).name(), valBuffersMax[i].build().toArray()));
         }
-        metricData.add(mMax);
         metricData.add(mAvg);
-        double maxRate = operationResults.get(operationResults.size() - 1).runArgs.targetRate;
-        String[] sleTypes = getTypes(sleConfig);
+        metricData.add(mMax);
+        double maxRate = hdrResults.get(hdrResults.size() - 1).targetRate();
+        ///String[] sleTypes = getTypes(sleConfig);
         for (int i = 0; i < sleConfig.length; i++) {
             MovingWindowSLE sle = sleConfig[i];
             String sleName = sle.longName();
-            String oName = specificResult.operationName + " " + sleName;
-            String mName = specificResult.metricName;
+            String oName = firstHdrResult.operationName() + " " + sleName;
+            String mName = firstHdrResult.metricName();
             if (sleBroken.containsKey(sleName)) {
                 metricData.add(Metric.builder()
                         .name(mName + " conforming_rate")
                         .operation(oName)
-                        .units(specificResult.rateUnits)
+                        .units(firstHdrResult.rateUnits())
                         .value(sleBroken.get(sleName))
                         .build());
             } else {
                 metricData.add(Metric.builder()
                         .name(mName + " conforming_rate (unbroken)")
                         .operation(oName)
-                        .units(specificResult.rateUnits)
+                        .units(firstHdrResult.rateUnits())
                         .value(maxRate)
                         .build());
             }
-            metricData.add(Metric.builder()
-                    .name(mName + " summary_max")
-                    .operation(oName)
-                    .units("ms")
-                    .xunits(specificResult.rateUnits)
-                    .xValues(xValues)
-                    .group(opAndMetricName + " mw_summary_max")
-                    .build()
-                    .add(new MetricValue(sleTypes[i], valBuffersMW[i].build().toArray())));
+            //TODO: targetMetric.add(new MetricValue(valName + "_max", movingWindowMax[i]))
+//            metricData.add(Metric.builder()
+//                    .name(mName + " summary_max")
+//                    .operation(oName)
+//                    .units("ms")
+//                    .xunits(firstHdrResult.rateUnits())
+//                    .xValues(xValues)
+//                    .group(opAndMetricName + " mw_summary_max")
+//                    .build()
+//                    .add(new MetricValue(sleTypes[i], valBuffersMW[i].build().toArray())));
         }
         mMax.setMarkers(sleMarkers);
         mAvg.setMarkers(sleMarkers);

@@ -32,8 +32,11 @@
 
 package org.tussleframework.metrics;
 
+import java.util.Collection;
+
 import org.HdrHistogram.Recorder;
 import org.tussleframework.TimeRecorder;
+import org.tussleframework.TussleRuntimeException;
 
 public class HdrTimeRecorder implements TimeRecorder {
     public final Recorder serviceTimeRecorder = new Recorder(Long.MAX_VALUE, 3);
@@ -70,5 +73,10 @@ public class HdrTimeRecorder implements TimeRecorder {
     @Override
     public void stopRecording() {
         ///
+    }
+
+    @Override
+    public void addResults(Collection<?> results, String rateUnits, String timeUnits) {
+        throw new TussleRuntimeException(getClass().getSimpleName() + " - method 'addResults' not supported");
     }
 }

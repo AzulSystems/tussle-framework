@@ -43,7 +43,7 @@ import org.tussleframework.Benchmark;
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunParams;
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.HdrLogWriterTask;
+import org.tussleframework.metrics.HdrWriter;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.ConfigLoader;
@@ -77,10 +77,10 @@ public class ScenarioRunner extends BasicRunner {
         ScenarioRunnerConfig config = (ScenarioRunnerConfig) this.runnerConfig;
         RunParams[] scenario = config.getScenario();
         int runTimeSum = 0;
-        for (int step = 0; step < scenario.length; step++) {
-            runTimeSum += parseTimeLength(scenario[step].getRunTime());
+        for (int runStep = 0; runStep < scenario.length; runStep++) {
+            runTimeSum += parseTimeLength(scenario[runStep].getRunTime());
         }
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0), true, false); 
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0), true, false);
         log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
         log("Runner config: %s", new Yaml().dump(config).trim());
         try {
@@ -89,15 +89,19 @@ public class ScenarioRunner extends BasicRunner {
                 log("Benchmark initial reset...");
                 benchmark.reset();
             }
-            for (int step = 0; step < scenario.length; step++) {
-                
+            for (int runStep = 0; runStep < scenario.length; runStep++) {
                 log("===================================================================");
-                log("Benchmark: %s (step %d)", benchmark.getName(), step + 1);
-                HdrLogWriterTask.progressHeaderPrinted(false);
-                double targetRate = parseValue(scenario[step].getTargetRate());
-                int warmupTime = parseTimeLength(scenario[step].getWarmupTime());
-                int runTime = parseTimeLength(scenario[step].getRunTime());
-                runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, step), results, recorder, false);
+                log("Benchmark: %s (step %d)", benchmark.getName(), runStep + 1);
+                HdrWriter.progressHeaderPrinted(false);
+                double targetRate = parseValue(scenario[runStep].getTargetRate());
+                int warmupTime = parseTimeLength(scenario[runStep].getWarmupTime());
+                int runTime = parseTimeLength(scenario[runStep].getRunTime());
+                RunArgs runArgs = new RunArgs(targetRate, 100, warmupTime, runTime, runStep);
+                if (config.separateSteps) {
+                    recorder = new ResultsRecorder(runnerConfig, runArgs, true, false);
+                }
+                runOnce(benchmark, runArgs, results, recorder, false);
+                recorder.clearResults();
             }
             makeReport(results);
         } catch (Exception e) {
