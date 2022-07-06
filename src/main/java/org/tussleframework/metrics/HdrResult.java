@@ -184,10 +184,6 @@ public class HdrResult {
         return hdrFile;
     }
 
-    public boolean hasData() {
-        return hdrIntervalResults != null && !hdrIntervalResults.isEmpty() && hdrIntervalResults.get(0).getCount() > 0;
-    }
-
     public double targetRate() {
         return runArgs.targetRate;
     }

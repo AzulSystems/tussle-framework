@@ -75,8 +75,8 @@ public class HdrConfig implements AbstractConfig {
         if (reportInterval < hdrInterval) {
             throw new IllegalArgumentException(String.format("Invalid reportInterval(%d) < hdrInterval", reportInterval));
         }
-        if (progressInterval < 1000) {
-            throw new IllegalArgumentException(String.format("Invalid progressInterval(%d) < 1000", progressInterval));
+        if (progressInterval < 0) {
+            throw new IllegalArgumentException(String.format("Invalid progressInterval(%d) < 0", progressInterval));
         }
         if (operationsInclude != null) {
             for (String pattern : operationsInclude) {

@@ -80,7 +80,7 @@ ${SLE3}
 "
 
 analyzer=org.tussleframework.tools.Analyzer
-[[ "${STEPRATER}" == true ]] && analyzer=org.tussleframework.steprater.StepRaterAnalyser
+[[ "${STEPRATER}" == true ]] && analyzer=org.tussleframework.tools.StepRaterAnalyser
 
 process_dir() {
     local res_dir=$1

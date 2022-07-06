@@ -461,7 +461,9 @@ public class Analyzer {
     }
 
     public Interval[] getIntervals() {
-        return (Interval[]) Arrays.asList(analyzerConfig.intervals).stream().map(i -> i.scale(1000)).toArray();
+        ArrayList<Interval> a = new ArrayList<>();
+        a.addAll(Arrays.asList(analyzerConfig.intervals));
+        return a.toArray(new Interval[0]);
     }
 
     public void processResultHistograms(String fileName, InputStream inputStream) {
@@ -473,8 +475,8 @@ public class Analyzer {
     }
 
     public void loadHdrData(HdrResult result) throws TussleException {
-        log("Processing histogram file '%s'...", result.hdrFile());
-        if (!result.hasData() && result.hdrFile() != null) {
+        if (result.hdrFile() != null) {
+            log("Loading HDR data from file '%s'...", result.hdrFile());
             try (InputStream inputStream = new FileInputStream(result.hdrFile())) {
                 result.loadHdrData(inputStream, analyzerConfig.sleConfig, getIntervals());
             } catch (Exception e) {

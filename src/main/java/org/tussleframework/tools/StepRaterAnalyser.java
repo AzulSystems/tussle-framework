@@ -125,7 +125,7 @@ public class StepRaterAnalyser extends Analyzer {
 //        }
         ArrayList<String> xValuesBuff = new ArrayList<>();
         for (HdrResult hdrResult : hdrResults) {
-            if (!hdrResult.hasData()) {
+            if (hdrResult.recordsCount() == 0) {
                 continue;
             }
             xValuesBuff.add(FormatTool.format(hdrResult.targetRate()));
