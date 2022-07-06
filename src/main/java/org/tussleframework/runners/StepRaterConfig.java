@@ -56,6 +56,7 @@ public class StepRaterConfig extends BasicRunnerConfig {
     public String highBound = "0";
     public String highBoundTime = "0";
     public String highBoundWarmupTime = "0";
+    public String initialWarmupTime = "0";
     public String initialRunTime = "1m";
     public String initialTargetRate = "1000";
     public int[] highBoundSteps = { 20000, 10000, 5000, 1000 };
@@ -70,6 +71,12 @@ public class StepRaterConfig extends BasicRunnerConfig {
         }
         if (FormatTool.parseTimeLength(highBoundWarmupTime) < 0) {
             throw new IllegalArgumentException(String.format("Invalid highBoundWarmupTime(%s) - should be non-negative", highBoundWarmupTime));
+        }
+        if (FormatTool.parseTimeLength(initialWarmupTime) < 0) {
+            throw new IllegalArgumentException(String.format("Invalid initialWarmupTime(%s) - should be non-negative", initialWarmupTime));
+        }
+        if (FormatTool.parseTimeLength(initialRunTime) < 0) {
+            throw new IllegalArgumentException(String.format("Invalid initialRunTime(%s) - should be non-negative", initialRunTime));
         }
         if (ratePercentStep <= 0) {
             throw new IllegalArgumentException(String.format("Invalid ratePercentStep(%d) - should be positive", ratePercentStep));

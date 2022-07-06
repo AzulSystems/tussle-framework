@@ -182,11 +182,12 @@ public class StepRater extends BasicRunner {
         log("Runner config: %s", new Yaml().dump(runnerConfig).trim());
         log("First benchmark reset...");
         benchmark.reset();
+        int initialWarmupTime = parseTimeLength(runnerConfig.initialWarmupTime);
         int initialRunTime = parseTimeLength(runnerConfig.initialRunTime);
-        if (initialRunTime > 0) {
+        if (initialWarmupTime + initialRunTime > 0) {
             double initialTargetRate = parseValue(runnerConfig.initialTargetRate);
             log("Initial run %s %s (%ds)...", roundFormat(initialTargetRate), benchmark.getConfig().rateUnits, initialRunTime);
-            runOnce(benchmark, new RunArgs(initialTargetRate, 0.0, 0, initialRunTime, 0), null, false, false);
+            runOnce(benchmark, new RunArgs(initialTargetRate, 0.0, initialWarmupTime, initialRunTime, 0), null, false, false);
         }
         double highBound = parseValue(runnerConfig.highBound);
         if (highBound == 0 || runnerConfig.highboundOnly) {
