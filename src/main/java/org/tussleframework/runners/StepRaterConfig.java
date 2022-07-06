@@ -58,7 +58,7 @@ public class StepRaterConfig extends BasicRunnerConfig {
     public String highBoundWarmupTime = "0";
     public String initialWarmupTime = "0";
     public String initialRunTime = "1m";
-    public String initialTargetRate = "1000";
+    public String initialTargetRate = "1k";
     public int[] highBoundSteps = { 20000, 10000, 5000, 1000 };
 
     @Override

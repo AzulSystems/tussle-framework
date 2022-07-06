@@ -50,7 +50,7 @@ public class ProcBenchmarkSamplesTest {
                 "targetRate=1k",
                 "runTime=1m", 
                 "warmupTime=0",
-                //"operationsExclude=[.*check-cluster-health]"
+                "histogramsDir=results/proc_benchmark_samples_test/histograms",
         };
         String[] runCmd = {
                 "bash",
@@ -60,16 +60,12 @@ public class ProcBenchmarkSamplesTest {
         ProcConfig procConfig = new ProcConfig();
         procConfig.vars.put("TTT", "some_ttt...");
         procConfig.name = "proc-samples-test";
-        procConfig.logPrefix = " *** ";
+        procConfig.logPrefix = " *** "; 
         procConfig.run.dir = "test_data/proc_samples_test";
-        procConfig.run.dir = "step3_wtp0_tp60_tt1000/benchmarks_0";
-        //procConfig.run.dir = "{user.dir}/results_esrally_step{runStep}_wtp{warmupTime}_tp{runTime}_tt{targetRate}";
-        //procConfig.run.dir = "{user.dir}/results_esrally_step2_wtp0_tp60_tt1200";
         procConfig.run.cmd = runCmd;
         procConfig.run.delay = "5s";
         procConfig.resultFiles = new String[] {
                 "samples.zip"
-                //"{runDir}/benchmarks_0/samples.zip"
         };
         try {
             new BasicRunner(runnerArgs).run(new ProcBenchmark(procConfig));

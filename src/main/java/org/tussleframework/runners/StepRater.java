@@ -186,7 +186,7 @@ public class StepRater extends BasicRunner {
         int initialRunTime = parseTimeLength(runnerConfig.initialRunTime);
         if (initialWarmupTime + initialRunTime > 0) {
             double initialTargetRate = parseValue(runnerConfig.initialTargetRate);
-            log("Initial run %s %s (%ds)...", roundFormat(initialTargetRate), benchmark.getConfig().rateUnits, initialRunTime);
+            log("Initial warmuo run %s %s (%ds+%ds)...", roundFormat(initialTargetRate), benchmark.getConfig().rateUnits, initialWarmupTime, initialRunTime);
             runOnce(benchmark, new RunArgs(initialTargetRate, 0.0, initialWarmupTime, initialRunTime, 0), null, false, false);
         }
         double highBound = parseValue(runnerConfig.highBound);
