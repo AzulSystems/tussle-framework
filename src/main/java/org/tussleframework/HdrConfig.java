@@ -34,6 +34,7 @@ package org.tussleframework;
 
 import java.util.regex.Pattern;
 
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.tools.JsonTool;
 
 /**
@@ -45,7 +46,9 @@ public class HdrConfig implements AbstractConfig {
     public int progressInterval = 5000;           // time interval in milliseconds used for writing progress in the log output
     public double hdrFactor = 1000d;           // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
     public String histogramsDir = "./histograms"; // location for histogram (hdr) files
-    public String metricName = "service_time";
+    public String metricName = HdrResult.SERVICE_TIME;
+    public String rateUnits = "op/s";
+    public String timeUnits = "ms";
     public String[] operationsInclude;
     public String[] operationsExclude;
 
@@ -56,6 +59,8 @@ public class HdrConfig implements AbstractConfig {
         hdrFactor = c.hdrFactor;
         histogramsDir = c.histogramsDir;
         metricName = c.metricName;
+        rateUnits = c.rateUnits;
+        timeUnits = c.timeUnits;
         operationsInclude = c.operationsInclude;
         operationsExclude = c.operationsExclude;
         return this;

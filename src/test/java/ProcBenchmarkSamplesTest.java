@@ -51,6 +51,7 @@ public class ProcBenchmarkSamplesTest {
                 "runTime=1m", 
                 "warmupTime=0",
                 "histogramsDir=results/proc_benchmark_samples_test/histograms",
+                "operationsExclude=[check-cluster-health]"
         };
         String[] runCmd = {
                 "bash",

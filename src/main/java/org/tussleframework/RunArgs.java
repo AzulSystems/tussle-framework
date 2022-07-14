@@ -49,6 +49,7 @@ public class RunArgs {
     public int warmupTime;
     public int runTime;
     public int runStep;
+    public String name;
 
     public int fillValues(String[] parts) {
         int filledParts = 0;

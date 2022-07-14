@@ -34,6 +34,7 @@ package org.tussleframework;
 
 public class BenchmarkConfig implements AbstractConfig {
     public String name = "";
+    public String runName = "";
     public String rateUnits = "op/s";
     public String timeUnits = "ms";
 

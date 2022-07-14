@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.util.logging.Logger;
 
 import org.tussleframework.metrics.HdrData;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MetricValue;
@@ -80,7 +81,7 @@ public class OMBProcessor implements DataLogProcessor {
             return false;
         }
         Metric publishMetric = Metric.builder()
-            .name("service_time")
+            .name(HdrResult.SERVICE_TIME)
             .operation("publish")
             .units("ms")
             .host(host)
@@ -98,7 +99,7 @@ public class OMBProcessor implements DataLogProcessor {
         publishMetric.add(new MetricValue("THROUGHPUT", omb.publishRate));
         metricData.add(publishMetric);
         Metric endToEndMetric = Metric.builder()
-                .name("service_time")
+                .name(HdrResult.SERVICE_TIME)
                 .operation("endToEnd")
                 .units("ms")
                 .host(host)

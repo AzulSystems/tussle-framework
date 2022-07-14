@@ -174,6 +174,9 @@ public class HdrIntervalResult {
 
     public void getMetrics(HdrResult hdrResult, MetricData metricData, double[] percentiles) {
         String metricIntervalName = (hdrResult.metricName() + " " + interval.name).trim();
+        if (hdrResult.runArgs.name != null && !hdrResult.runArgs.name.isEmpty() && !hdrResult.runArgs.name.equals("run")) {
+            metricIntervalName += " " + hdrResult.runArgs.name;
+        }
         long start = histogram.getStartTimeStamp();
         long finish = histogram.getEndTimeStamp();
         long totalCount = histogram.getTotalCount();
@@ -192,6 +195,7 @@ public class HdrIntervalResult {
                 .retry(hdrResult.runArgs.runStep)
                 .percentOfHighBound(hdrResult.runArgs.ratePercent)
                 .targetRate(hdrResult.runArgs.targetRate)
+                .rateUnits(hdrResult.rateUnits())
                 .actualRate(getRate())
                 .meanValue(histogram.getMean() / config.hdrFactor)
                 .build();

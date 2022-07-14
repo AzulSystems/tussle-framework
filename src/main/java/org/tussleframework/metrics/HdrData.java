@@ -70,7 +70,7 @@ public class HdrData {
     public String getNameTimes() {
         String name = metricInfo.metricName;
         if (name == null || name.isEmpty()) {
-            name = "service_time";
+            name = HdrResult.SERVICE_TIME;
         }
         return name;
     }
@@ -78,9 +78,9 @@ public class HdrData {
     public String getNameLatency() {
         String name = metricInfo.metricName;
         if (name == null || name.isEmpty()) {
-            name = "response_time";
+            name = HdrResult.RESPONSE_TIME;
         } else if (times.size() > 0 && latency.size() > 0) {
-            name = name + "_response_time";
+            name = name + "_" +HdrResult.RESPONSE_TIME;
         }
         return name;
     }

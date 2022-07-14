@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 
 import org.tussleframework.metrics.HdrData;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MetricValue;
@@ -65,7 +66,7 @@ Timestamp, Elapsed Time,Count,Latency (min),Latency (p50),Latency (p90),Latency 
     @Override
     public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
         final String S1 = ",,Mutations,,,Reads,,,Deletes,,,Errors,";
-        final String metricName = "service_time";
+        final String metricName = HdrResult.SERVICE_TIME;
         long start = 0;
         long finish = 0;
         int[] idxW = {

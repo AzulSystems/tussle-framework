@@ -116,7 +116,7 @@ public class ProcBenchmark implements Benchmark {
     @Override
     public RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) throws TussleException {
         log(" --- BENCHMARK PROCESS RUN --- ");
-        RunArgs runArgs = new RunArgs(targetRate, 0, warmupTime, runTime, runStep);
+        RunArgs runArgs = new RunArgs(targetRate, 0, warmupTime, runTime, runStep, config.runName);
         try {
             int delay = FormatTool.parseTimeLength(config.run.delay);
             log("Starting process run command targetRate %s, warmup %ds, duration %ds, delay %ds, step %d", roundFormat(targetRate), warmupTime, runTime, delay, runStep);

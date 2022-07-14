@@ -75,8 +75,8 @@ public class ResultsRecorder implements TimeRecorder {
         public OperationsRecorder(MetricInfo metricInfo) throws IOException {
             serviceTimeOnly = runnerConfig.serviceTimeOnly;
             hdrInterval = runnerConfig.hdrInterval;
-            responseTimeWriter = new HdrWriter(metricInfo.replaceMetricName("response_time"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
-            serviceTimeWriter = new HdrWriter(metricInfo.replaceMetricName("service_time"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
+            responseTimeWriter = new HdrWriter(metricInfo.replaceMetricName(HdrResult.RESPONSE_TIME), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
+            serviceTimeWriter = new HdrWriter(metricInfo.replaceMetricName(HdrResult.SERVICE_TIME), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
             errorsWriter = new HdrWriter(metricInfo.replaceMetricName("errors"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
             if (runnerConfig.rawData) {
                 String rawFile = String.format("%s/%s", runnerConfig.histogramsDir, metricInfo.replaceMetricName("samples-data").formatFileName(runArgs));
@@ -259,7 +259,7 @@ public class ResultsRecorder implements TimeRecorder {
         resultFiles.forEach(file -> LoggerTool.log(getClass().getSimpleName(), "Processing found result file '%s'", file));
         for (File resultFile : resultFiles) {
             Collection<HdrResult> hdrs = new ArrayList<>();
-            if (Analyzer.isSamplesFile(resultFile.getName()) || Analyzer.isArchFile(resultFile.getName())) {
+            if (Analyzer.isSamplesFile(resultFile.getName()) || Analyzer.isArchiveFile(resultFile.getName())) {
                 loadHdrFromSamples(resultFile, hdrs);
             } else {
                 HdrResult hdrResult = loadHdrFromFile(resultFile);

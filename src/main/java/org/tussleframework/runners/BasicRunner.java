@@ -94,7 +94,7 @@ public class BasicRunner implements Runner {
         int runTime = parseTimeLength(config.runTime);
         ArrayList<HdrResult> results = new ArrayList<>();
         for (int runStep = 0; runStep < config.runSteps; runStep++) {
-            runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, runStep), results, true, config.reset);
+            runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, runStep, ""), results, true, config.reset);
         }
         makeReport(results);
     }
@@ -122,6 +122,7 @@ public class BasicRunner implements Runner {
             log("Benchmark reset...");
             benchmark.reset();
         }
+        benchmark.getConfig().runName = runArgs.name; 
         String rateUnits = benchmark.getConfig().rateUnits;
         String timeUnits = benchmark.getConfig().timeUnits;
         log("Benchmark run at target rate %s %s (%s%%), warmup %d s, run time %d s...", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), runArgs.warmupTime, runArgs.runTime);

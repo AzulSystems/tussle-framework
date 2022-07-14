@@ -49,6 +49,7 @@ public class StepRateAnalyserTest {
 
     @Test
     public void testAnalyser() {
+        String resultsDir = "test_data/step_rate_analyser_test";
         String reportDir = "results/step_rate_analyser_test/report" + System.currentTimeMillis();
         try {
             Files.createDirectories(Paths.get(reportDir));
@@ -58,13 +59,16 @@ public class StepRateAnalyserTest {
         }
         String[] args = {
                 "makeReport=true",
-                "-p", "histogramsDir = " + reportDir,
+                "-p", "histogramsDir = " + resultsDir,
                 "-p", "reportDir = " + reportDir,
                 "-p", "highBound = 100000",
-                "-p", "sleConfig = [[50, 1, 10], [99, 10, 10], [99.9, 50, 60], [99.99, 200, 120], [100, 1000, 120]]"};
+                "-p", "sleConfig = [[50, 1, 10], [99, 10, 10], [99.9, 50, 60], [99.99, 200, 120], [100, 1000, 120]]",
+                "rateUnits=operations/sec",
+                "sleFor=[.*]"
+        };
         try {
             StepRaterAnalyser.main(args);
-            assertTrue("metrics.json should be created", Files.exists(Paths.get(reportDir, "metrics.json")));
+            assertTrue("metrics.json should be created", Files.exists(Paths.get(resultsDir, "metrics.json")));
             assertTrue("index.html should be created", Files.exists(Paths.get(reportDir, "index.html")));
         } catch (Throwable e) {
             e.printStackTrace();

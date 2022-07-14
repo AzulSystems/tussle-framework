@@ -35,17 +35,20 @@ package org.tussleframework.tools;
 import java.io.File;
 
 import org.tussleframework.HdrConfig;
+import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MovingWindowSLE;
 
 public class AnalyzerConfig extends HdrConfig {
     public boolean doc = true;
     public boolean makeReport = false;
+    public boolean saveMetrics = true;
     public boolean allPercentiles = true;
     public String reportDir = "./report";
     public String highBound = "0";
-    public MovingWindowSLE[] sleConfig = {};
     public Interval[] intervals = {};
+    public MovingWindowSLE[] sleConfig = {};
+    public String[] sleFor = { HdrResult.RESPONSE_TIME };
 
     public AnalyzerConfig() {
     }

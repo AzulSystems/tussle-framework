@@ -86,19 +86,19 @@ public class StepRaterAnalyser extends Analyzer {
     private HashMap<String, ArrayList<HdrResult>> getResultsMap() {
         HashMap<String, ArrayList<HdrResult>> resultsMap = new HashMap<>();
         for (HdrResult result : hdrResults) {
-            String name = result.operationName() + " " + result.metricName();
-            resultsMap.computeIfAbsent(name, key -> new ArrayList<>()).add(result);
+            if (FormatTool.matchFilters(result.metricName(), analyzerConfig.sleFor, null)) {
+                String name = result.operationName() + " " + result.metricName();
+                resultsMap.computeIfAbsent(name, key -> new ArrayList<>()).add(result);
+            }
         }
         resultsMap.forEach((metricName, hdrResuls) -> hdrResuls
                 .sort((a, b) -> (int) (a.targetRate() == b.targetRate() ? a.step() - b.step() : a.targetRate() - b.targetRate())));
         return resultsMap;
     }
-
-    public void processOperationResults(String opAndMetricName, List<HdrResult> hdrResults) {
-        MovingWindowSLE[] sleConfig = analyzerConfig.sleConfig;
+    
+    protected HashMap<String, Double> brokenSLEs(String opAndMetricName, List<HdrResult> hdrResults, Collection<Marker> sleMarkers) {
         ArrayList<MovingWindowSLE> unbrokenSleConfig = new ArrayList<>();
-        Collections.addAll(unbrokenSleConfig, sleConfig);
-        ArrayList<Marker> sleMarkers = new ArrayList<>();
+        Collections.addAll(unbrokenSleConfig, analyzerConfig.sleConfig);
         HashMap<String, Double> sleBroken = new HashMap<>();
         for (HdrResult hdrResult : hdrResults) {
             Iterator<MovingWindowSLE> iterator = unbrokenSleConfig.iterator();
@@ -113,6 +113,12 @@ public class StepRaterAnalyser extends Analyzer {
             }
         }
         unbrokenSleConfig.forEach(sle -> log("%s SLE for %s was not broken", opAndMetricName, sle));
+        return sleBroken;
+    }
+
+    public void processOperationResults(String opAndMetricName, List<HdrResult> hdrResults) {
+        ArrayList<Marker> sleMarkers = new ArrayList<>();
+        HashMap<String, Double> sleBroken = brokenSLEs(opAndMetricName, hdrResults, sleMarkers);
         DoubleStream.Builder[] valBuffersMax = new DoubleStream.Builder[metricTypeCount()];
         DoubleStream.Builder[] valBuffersAvg = new DoubleStream.Builder[metricTypeCount()];
         for (int i = 0; i < metricTypeCount(); i++) {
@@ -165,13 +171,13 @@ public class StepRaterAnalyser extends Analyzer {
         Metric mAvg = Metric.builder()
                 .name(firstHdrResult.metricName() + " summary_avg" )
                 .operation(firstHdrResult.operationName())
-                .units("ms")
+                .units(firstHdrResult.timeUnits())
                 .xunits(firstHdrResult.rateUnits())
                 .xValues(xValues).build();
         Metric mMax = Metric.builder()
                 .name(firstHdrResult.metricName() + " summary_max")
                 .operation(firstHdrResult.operationName())
-                .units("ms")
+                .units(firstHdrResult.timeUnits())
                 .xunits(firstHdrResult.rateUnits())
                 .xValues(xValues)
                 .build();
@@ -182,12 +188,24 @@ public class StepRaterAnalyser extends Analyzer {
         metricData.add(mAvg);
         metricData.add(mMax);
         double maxRate = hdrResults.get(hdrResults.size() - 1).targetRate();
+        String oName = firstHdrResult.operationName();
+        metricData.add(Metric.builder()
+                .name(firstHdrResult.metricName() + " max_rate")
+                .operation(oName)
+                .units(firstHdrResult.rateUnits())
+                .value(maxRate)
+                .build());
+//        metricData.add(Metric.builder()
+//                .name(firstHdrResult.metricName() + " high-bound")
+//                .operation(oName)
+//                .units(firstHdrResult.rateUnits())
+//                .value(highBound)
+//                .build());
         ///String[] sleTypes = getTypes(sleConfig);
-        for (int i = 0; i < sleConfig.length; i++) {
-            MovingWindowSLE sle = sleConfig[i];
+        for (int i = 0; i < analyzerConfig.sleConfig.length; i++) {
+            MovingWindowSLE sle = analyzerConfig.sleConfig[i];
             String sleName = sle.longName();
-            String oName = firstHdrResult.operationName() + " " + sleName;
-            String mName = firstHdrResult.metricName();
+            String mName = firstHdrResult.metricName() + " " + sleName;
             if (sleBroken.containsKey(sleName)) {
                 metricData.add(Metric.builder()
                         .name(mName + " conforming_rate")
@@ -219,7 +237,7 @@ public class StepRaterAnalyser extends Analyzer {
     }
 
     public void processSummary() {
-        // split results by operation and metric names: reads response_time, reads service_time, writes response_time, etc.
+        // split results by operation and metric names: reads response-time, reads service-time, writes response-time, etc.
         HashMap<String, ArrayList<HdrResult>> resultsMap = getResultsMap();
         // process each metric group separately
         resultsMap.forEach(this::processOperationResults);

@@ -41,15 +41,11 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunProperties;
@@ -72,7 +68,7 @@ import org.tussleframework.tools.processors.TLPStressProcessor;
 import org.tussleframework.tools.processors.TopProcessor;
 import org.yaml.snakeyaml.Yaml;
 
-public class Analyzer {
+public class Analyzer implements Tool {
 
     class MetricDataDoc {
         public MetricData doc;
@@ -97,11 +93,11 @@ public class Analyzer {
     private static double[] percentilesLong = {
             0, 10, 20, 30, 40, 50, 55, 60, 65, 70, 75, 77.5, 80, 82.5, 85, 87.5, 88.75, 90, 91.25, 92.5, 
             93.75, 94.375, 95, 95.625, 96.25, 96.875, 97.1875, 97.5, 97.8125, 98.125, 98.4375, 98.5938,
-            98.75, 98.9062, 99.0625, 99.2188, 99.2969, 99.375, 99.4531, 99.5313, 99.6094, 99.6484, 99.6875,
-            99.7266, 99.7656, 99.8047, 99.8242, 99.8437, 99.8633, 99.8828, 99.9023, 99.9121, 99.9219, 99.9316,
+            98.75, 98.9062, 99, 99.2188, 99.2969, 99.375, 99.4531, 99.5313, 99.6094, 99.6484, 99.6875,
+            99.7266, 99.7656, 99.8047, 99.8242, 99.8437, 99.8633, 99.8828, 99.9, 99.9121, 99.9219, 99.9316,
             99.9414, 99.9512, 99.9561, 99.9609, 99.9658, 99.9707, 99.9756, 99.978, 99.9805, 99.9829, 99.9854,
-            99.9878, 99.989, 99.9902, 99.9915, 99.9927, 99.9939, 99.9945, 99.9951, 99.9957, 99.9963, 99.9969,
-            99.9973, 99.9976, 99.9979, 99.9982, 99.9985, 99.9986, 99.9988, 99.9989, 99.9991, 99.9992, 99.9993,
+            99.9878, 99.989, 99.99, 99.9915, 99.9927, 99.9939, 99.9945, 99.9951, 99.9957, 99.9963, 99.9969,
+            99.9973, 99.9976, 99.9979, 99.9982, 99.9985, 99.9986, 99.9988, 99.999, 99.9991, 99.9992, 99.9993,
             99.9994, 99.9995, 99.9996, 99.9997, 99.9998, 99.9999, 100
     };
 
@@ -170,13 +166,11 @@ public class Analyzer {
         analyzerConfig = config;
         if (analyzerConfig.sleConfig == null || analyzerConfig.sleConfig.length == 0) {
             analyzerConfig.sleConfig = new MovingWindowSLE[] {
-                    // new SLA(90, 0, 10),
             };
         }
         if (analyzerConfig.intervals == null || analyzerConfig.intervals.length == 0) {
             analyzerConfig.intervals = new Interval[] {
                     new Interval(0, 1000000, "", false),
-                    // new Interval(2700, 4500, "POST_WARMUP45"),
             };
         }
         log("Config: %s", new Yaml().dump(analyzerConfig).trim());
@@ -199,17 +193,19 @@ public class Analyzer {
         if (metricData.getRunProperties() == null) {
             metricData.setRunProperties(new RunProperties());
         }
+        metricData.getMetrics().forEach(m -> m.scoreOn().forEach(s -> log("Score on %s", s)));
         File metricsJson = new File(analyzerConfig.histogramsDir, "metrics.json");
-        try (PrintStream out = new PrintStream(metricsJson)) {
-            if (analyzerConfig.doc) {
-                JsonTool.printJson(new MetricDataDoc(metricData), out);
-            } else {
-                JsonTool.printJson(metricData, out);
+        if (analyzerConfig.makeReport || analyzerConfig.saveMetrics) {
+            try (PrintStream out = new PrintStream(metricsJson)) {
+                if (analyzerConfig.doc) {
+                    JsonTool.printJson(new MetricDataDoc(metricData), out);
+                } else {
+                    JsonTool.printJson(metricData, out);
+                }
+            } catch (Exception e) {
+                throw new TussleException(e);
             }
-        } catch (Exception e) {
-            throw new TussleException(e);
         }
-        metricData.getMetrics().forEach(m -> log("Collected metric: %s", m));
         if (analyzerConfig.makeReport) {
             if (analyzerConfig.doc) {
                 Reporter.make(metricData, analyzerConfig.reportDir);
@@ -228,60 +224,60 @@ public class Analyzer {
     }
 
     public static boolean isRunPropertiesFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.equals("run.properties.json") || name.equals("run-properties.json");
     }
 
     public static boolean isTopFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.endsWith("top.log");
     }
 
     public static boolean isMpstatFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.endsWith("mpstats.log") || name.endsWith("mpstat.log");
     }
 
     public static boolean isDiskstatFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.endsWith("diskstats.log") || name.endsWith("diskstat.log");
     }
 
     public static boolean isIpstatFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.endsWith("ipstats.log") || name.endsWith("ipstat.log");
     }
 
     public static boolean isHiccupFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.startsWith("hiccup") && name.endsWith(".hlog");
     }
 
     public static boolean isHistogramFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return  name.endsWith(".hgrm") && !name.contains("processed") ||
                 name.endsWith(".hlog") && !name.contains("processed") && !name.startsWith("hiccup") ||
                 name.startsWith("tlp_stress_metrics") && name.indexOf(".hdr-") > 0;
     }
 
     public static boolean isTLPStressResults(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.startsWith("tlp_stress_metrics") && name.endsWith(".csv");
     }
 
     public static boolean isSamplesFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.startsWith("samples") && name.endsWith(".csv") ||
                 name.startsWith(SAMPLES2) && name.endsWith(".txt");
     }
 
-    public static boolean isArchFile(String name) {
+    public static boolean isArchiveFile(String name) {
         name = FileTool.clearPath(name);
         return name.endsWith(".zip");
     }
 
     public static boolean isOMBFile(String name) {
-        name = FileTool.clearPath(name);
+        name = FileTool.clearPathExt(name);
         return name.startsWith("workload") && name.indexOf("OMB") >= 0 && name.endsWith(".json");
     }
 
@@ -299,7 +295,7 @@ public class Analyzer {
     }
 
     public String getOperationName(String fileName) {
-        String name = new File(fileName).getName();
+        String name = FileTool.clearPathExt(fileName);
         int pos = name.indexOf(SAMPLES2);
         if (pos >= 0) {
             pos = name.indexOf("_", SAMPLES2.length());
@@ -325,7 +321,7 @@ public class Analyzer {
         } else if (isHiccupFile(fileName)) {
             new HiccupProcessor().processData(metricData, null, inputStream, host, logger);
         } else if (isHistogramFile(fileName)) {
-            processResultHistograms(fileName, inputStream);
+            processResultHistograms(inputStream, fileName);
         } else if (isTLPStressResults(fileName)) {
             new TLPStressProcessor().processData(metricData, null, inputStream, host, logger);
         } else if (isSamplesFile(fileName)) {
@@ -369,35 +365,12 @@ public class Analyzer {
 
     public void processFile(File file) throws TussleException {
         if (file.getName().endsWith(".zip")) {
-            processZipFile(file);
-        } else {
-            processResultFile(file, null, null);
-        }
-    }
-
-    public void processZipFile(File file) throws TussleException {
-        log("Processing ZIP file: " + file);
-        try (ZipFile zipFile = new ZipFile(file)) {
-            Enumeration<? extends ZipEntry> entries = zipFile.entries();
-            while (entries.hasMoreElements()) {
-                final ZipEntry zipEntry = entries.nextElement();
-                if (zipEntry.isDirectory()) {
-                    continue;
-                }
-                processResultFile(file, zipFile, zipEntry);
+            try (StreamSources.ZipStreamSource zipSource = new StreamSources.ZipStreamSource(file)) {
+                withException(() -> zipSource.list().forEach(source -> wrapException(() -> processResultFile(file.getParentFile(), source))));
             }
-        } catch (Exception e) {
-            throw new TussleException(e);
+        } else {
+            processResultFile(file.getParentFile(), new StreamSources.FileStreamSource(file));
         }
-    }
-
-    public boolean isProcessed(String fileName) {
-        if (processedFiles.contains(fileName)) {
-            log("File already processed: " + fileName);
-            return true;
-        }
-        processedFiles.add(fileName);
-        return false;
     }
 
     /**
@@ -426,50 +399,31 @@ public class Analyzer {
         return host;
     }
 
-    public boolean processResultFile(File file, ZipFile zipFile, ZipEntry zipEntry) throws TussleException {
-        File dir = file.getParentFile();
-        if (zipEntry != null) {
-            File fileZip = new File(zipEntry.getName());
-            String subDir = fileZip.getParent();
-            if (subDir == null) {
-                subDir = ".";
-            }
-            file = new File(new File(file + ":", subDir), fileZip.getName());
+    private boolean isProcessed(String fileName) {
+        if (processedFiles.contains(fileName)) {
+            log("File already processed: " + fileName);
+            return true;
         }
-        if (isResultsFile(file.getName())) {
-            if (isProcessed(file.getAbsolutePath()))
-                return true;
-            String host = getHostnameFromPath(dir);
-            if (zipEntry != null) {
-                log("Processing file from archive '%s/%s'...", dir, file.getName());
-                try (InputStream inputStream = zipFile.getInputStream(zipEntry)) {
-                    return processResultStream(inputStream, host, file.getName());
-                } catch (Exception e) {
-                    throw new TussleException(e);
-                }
-            } else {
-                log("Processing file '%s'...", file);
-                try (InputStream inputStream = new FileInputStream(file)) {
-                    return processResultStream(inputStream, host, file.getName());
-                } catch (Exception e) {
-                    throw new TussleException(e);
-                }
+        processedFiles.add(fileName);
+        return false;
+    }
+
+    public void processResultFile(File parentDir, StreamSources.StreamSource streamSource) throws TussleException {
+        if (isResultsFile(streamSource.getName()) && !isProcessed(streamSource.getAbsName())) {
+            String host = getHostnameFromPath(parentDir);
+            log("Processing '%s'...", streamSource.getAbsName());
+            try (InputStream inputStream = streamSource.getStream()) {
+                processResultStream(inputStream, host, streamSource.getAbsName());
+            } catch (Exception e) {
+                throw new TussleException(e);
             }
-        } else {
-            return false;
         }
     }
 
-    public Interval[] getIntervals() {
-        ArrayList<Interval> a = new ArrayList<>();
-        a.addAll(Arrays.asList(analyzerConfig.intervals));
-        return a.toArray(new Interval[0]);
-    }
-
-    public void processResultHistograms(String fileName, InputStream inputStream) {
+    public void processResultHistograms(InputStream inputStream, String fileName) {
         log("Processing histogram file '%s'...", fileName);
         HdrResult result = new HdrResult(fileName, analyzerConfig);
-        result.loadHdrData(inputStream, analyzerConfig.sleConfig, getIntervals());
+        result.loadHdrData(inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals);
         result.getMetrics(metricData, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort);
         hdrResults.add(result);
     }
@@ -478,7 +432,7 @@ public class Analyzer {
         if (result.hdrFile() != null) {
             log("Loading HDR data from file '%s'...", result.hdrFile());
             try (InputStream inputStream = new FileInputStream(result.hdrFile())) {
-                result.loadHdrData(inputStream, analyzerConfig.sleConfig, getIntervals());
+                result.loadHdrData(inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals);
             } catch (Exception e) {
                 throw new TussleException(e);
             }

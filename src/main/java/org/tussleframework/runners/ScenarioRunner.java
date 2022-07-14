@@ -80,7 +80,7 @@ public class ScenarioRunner extends BasicRunner {
         for (int runStep = 0; runStep < scenario.length; runStep++) {
             runTimeSum += parseTimeLength(scenario[runStep].getRunTime());
         }
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0), true, false);
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0, "run"), true, false);
         log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
         log("Runner config: %s", new Yaml().dump(config).trim());
         try {
@@ -96,7 +96,7 @@ public class ScenarioRunner extends BasicRunner {
                 double targetRate = parseValue(scenario[runStep].getTargetRate());
                 int warmupTime = parseTimeLength(scenario[runStep].getWarmupTime());
                 int runTime = parseTimeLength(scenario[runStep].getRunTime());
-                RunArgs runArgs = new RunArgs(targetRate, 100, warmupTime, runTime, runStep);
+                RunArgs runArgs = new RunArgs(targetRate, 100, warmupTime, runTime, runStep, "run");
                 if (config.separateSteps) {
                     recorder = new ResultsRecorder(runnerConfig, runArgs, true, false);
                 }

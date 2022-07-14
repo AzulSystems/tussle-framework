@@ -113,6 +113,8 @@ public abstract class WlBenchmark implements Benchmark {
         if (recorder != null) {
             recorder.stopRecording();
         }
+        result.rateUnits = config.rateUnits;
+        result.timeUnits = config.timeUnits;
         return result;
     }
 }

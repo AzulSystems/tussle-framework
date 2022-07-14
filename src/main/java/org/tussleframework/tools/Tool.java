@@ -30,49 +30,7 @@
  * 
  */
 
-package org.tussleframework.metrics;
+package org.tussleframework.tools;
 
-import static org.tussleframework.tools.FormatTool.format;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class MovingWindowSLE implements ServiceLevelExpectation {
-    public double percentile;
-    public double maxValue;
-    public int movingWindow;
-
-    @Override
-    public double markerValue() {
-        return maxValue;
-    }
-
-    @Override
-    public String toString() {
-        return "percentile p" + format(percentile) + " value " + format(maxValue) + "ms in moving window " + movingWindow + "s";
-    }
-
-    // Format:
-    // p50-sle1ms-mw10s
-    @Override
-    public String longName() {
-        return "p" + format(percentile) + "-sle" + format(maxValue) + "ms-mw" + movingWindow + "s";
-    }
-
-    // Format:
-    // p50-sle1ms
-    @Override
-    public String markerName() {
-        return "p" + format(percentile) + "-sle" + format(maxValue) + "ms";
-    }
-
-    // Format:
-    // p50-mw10s
-    public String nameWithMovingWindow() {
-        return "p" + format(percentile) + "-mw" + movingWindow + "s";
-    }
+public interface Tool {
 }

@@ -51,9 +51,10 @@ public class ProcBenchmarkStepRaterTest {
                 "initialRunTime=5s",
                 "runTime=2s",
                 "ratePercentStep=10",
-                "makeReport=true",
+                "makeReport=false",
                 "histogramsDir=results/proc_benchmark_steprater_test/histograms",
-                "reportDir=results/proc_benchmark_steprater_test/report"
+                "reportDir=results/proc_benchmark_steprater_test/report",
+                "sleConfig=[[50,2,3]]"
         };
         String[] runCmd = {
                 "bash",

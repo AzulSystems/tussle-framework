@@ -33,7 +33,10 @@
 package org.tussleframework.metrics;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
+
+import org.tussleframework.tools.FormatTool;
 
 import lombok.Builder;
 import lombok.Data;
@@ -52,6 +55,7 @@ public class Metric {
     protected String group;
     protected String units;
     protected String xunits;
+    protected String rateUnits;
     protected String operation;
     protected Double highBound;
     protected Double targetRate;
@@ -91,6 +95,37 @@ public class Metric {
     }
 
     public String toString() {
-        return String.format("operation %s (%s), metricValues %d, actualRate: %f", operation, name != null ? name : "n/a", metricValues != null ? metricValues.size() : 0, actualRate);
+        StringBuilder sb = new StringBuilder();
+        scoreOn().forEach(s -> sb.append(String.format("%s%n", s)));
+        return sb.toString();
+    }
+
+    public Collection<String> scoreOn() {
+        ArrayList<String> res = new ArrayList<>();
+        String opName = String.format("%s%s", operation != null ? operation : "op", name != null ? " " + name : "");
+        if (targetRate != null && targetRate > 0) {
+            opName += " " + FormatTool.roundFormat(targetRate);
+        }
+        if (retry != null && retry > 0) {
+            opName += " " + retry;
+        }
+        opName = opName.replace(" ", "_");
+        if (value != null) {
+            res.add(String.format("%s: %s %s", opName, FormatTool.format(value), units != null ? units : ""));
+        }
+        if (actualRate != null) {
+            res.add(String.format("%s_actual_rate: %s %s", opName, FormatTool.roundFormat(actualRate), rateUnits != null ? rateUnits : ""));
+        }
+        MetricValue pnames = byType(MetricType.PERCENTILE_NAMES.name());
+        MetricValue pvalues = byType(MetricType.PERCENTILE_VALUES.name());
+        if (pnames != null && pvalues != null) {
+            for (int i = 0; i < pnames.values.length; i++) {
+                double p = pnames.values[i];
+                if (p == 50 || p == 99 || p == 99.9) {
+                    res.add(String.format("%s_p%s: %s %s", opName, FormatTool.format(p), FormatTool.roundFormat(pvalues.values[i]), units != null ? units : ""));
+                }
+            }
+        }
+        return res;
     }
 }

@@ -99,7 +99,7 @@ public class InteractiveRunner extends BasicRunner {
         log("Performing Benchmark run with args: %s...", line);
         try {
             RunParams params = ConfigLoader.loadConfig(new String[] { "-s", line }, true, RunParams.class);
-            RunArgs runArgs = new RunArgs(parseValue(params.targetRate), 100, parseTimeLength(params.warmupTime), parseTimeLength(params.runTime), step);
+            RunArgs runArgs = new RunArgs(parseValue(params.targetRate), 100, parseTimeLength(params.warmupTime), parseTimeLength(params.runTime), step, "run");
             runOnce(benchmark, runArgs, results, recorder, false);
             return 1;
         } catch (Exception e) {
@@ -111,7 +111,7 @@ public class InteractiveRunner extends BasicRunner {
     @Override
     public void run(Benchmark benchmark) throws TussleException {
         InteractiveRunnerConfig config = (InteractiveRunnerConfig) this.runnerConfig;
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 0, 0, 0, 0), true, false);
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 0, 0, 0, 0, ""), true, false);
         log("Running benchmark interactively: %s", benchmark.getName());
         log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
         log("Runner config: %s", new Yaml().dump(config).trim());

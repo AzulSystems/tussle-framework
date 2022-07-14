@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.tussleframework.tools.LoggerTool;
+import org.tussleframework.tools.Tool;
 
 public class Run {
 
@@ -76,6 +77,11 @@ public class Run {
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
+            try {
+                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.tools." + className);
+            } catch (ClassNotFoundException e) {
+                /// ignore
+            }
         }
         throw err;
     }
@@ -99,12 +105,23 @@ public class Run {
     }
 
     /**
-     * @param args - benchmark-class-name [benchmark-args...]  [--runner runner-class-name [runner-args...]]  [-- ignorable args]
+     * @param args - benchmark-class-name [benchmark-args...]  [--runner runner-class-name [runner-args...]]  [-- ignorable args] OR
+     *               tool-class-name [tool-args]
      */
     public static void run(String[] args) {
         LoggerTool.init("benchmark");
         if (args.length == 0) {
             throw USAGE;
+        }
+        try {
+            String toolClassName = args[0];
+            Class<?> tool = findTussleClass(toolClassName);
+            if (Tool.class.isAssignableFrom(tool)) {
+                runTool(tool, Arrays.copyOfRange(args, 1, args.length));
+                return;
+            }
+        } catch (Exception e1) {
+            /// ignore
         }
         String[] benchmarkArgs = benchmarkArgs(args);
         benchmarkArgs = Arrays.copyOfRange(benchmarkArgs, 1, benchmarkArgs.length);
@@ -119,6 +136,14 @@ public class Run {
             @SuppressWarnings("unchecked")
             Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName);
             run(benchmarkClass, benchmarkArgs, runnerClass, runnerArgs);
+        } catch (Exception e) {
+            LoggerTool.logException(e);
+        }
+    }
+
+    public static void runTool(Class<?> tool, String[] args) {
+        try {
+            tool.getMethod("main", String[].class).invoke(null, (Object) args);        
         } catch (Exception e) {
             LoggerTool.logException(e);
         }

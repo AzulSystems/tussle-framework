@@ -1652,17 +1652,14 @@ function getMetricPercentilesChart(metric, showOptions) {
     const percentileNames = metric.getValues('percentile_names');
     const percentileValues = metric.getValues('percentile_values');
     const latencyPercentileValues = metric.getValues('latency_percentile_values');
-    if (!percentileNames || !percentileValues)
+    if (!percentileNames || !percentileValues) {
         return null;
-    /// const commonLabel = (metric.latencies && metric.name.startsWith('response_time') ? 'Service time' : getMetricsShortName(metric).capitalize()) + ' HDR';
+    }
     const commonLabel = getMetricsShortName(metric) + ' HDR';
     const wide = showOptions.includes('wide');
     const labels = percentileNames;
     const data = [percentileValues];
     const vlines = getVLines(metric);
-    ///for (const p of ['p50', 'p90', 'p99', 'p99.9', 'p99.99']) {
-    ///    vlines.push({ label: p, x: parseFloat(p.substring(1)), color: '#800000', labelPos: 0 })
-    ///}
     const datasets = [getLineChartDatasetOptions(commonLabel)];
     if (latencyPercentileValues) {
         data.push(latencyPercentileValues);
@@ -1975,7 +1972,6 @@ function addNormalizedMetrics(hits) {
 
 function fixMetricFields(metric) {
     metric.name = metric.name || '';
-    ///metric.operation = metric.operation || '';
     metric.targetRate = metric.targetRate || metric.target_rate;
     metric.actualRate = metric.actualRate || metric.actual_rate;
     metric.totalValues = metric.totalValues || metric.total_values;

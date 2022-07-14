@@ -63,10 +63,12 @@ public class HdrResult {
 
     public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrResult.class.getName());
 
-    private static String responseTime = "response_time";
-    private static String serviceTime = "service_time";
-    private static String responseTime2 = "response-time";
-    private static String serviceTime2 = "service-time";
+    public static final String RESPONSE_TIME = "response_time";
+    public static final String SERVICE_TIME = "service_time";
+
+    public static final String RESPONSE_TIME2 = "response-time";
+    public static final String SERVICE_TIME2 = "service-time";
+
     private static String intendedPref = "intended-";
 
     public static void log(String format, Object... args) {
@@ -123,9 +125,9 @@ public class HdrResult {
             String operationName = fileName.substring(fileName.indexOf(hs) + hs.length());
             if (operationName.toLowerCase().startsWith(intendedPref)) {
                 operationName = operationName.substring(intendedPref.length());
-                metricInfo.metricName = responseTime;
+                metricInfo.metricName = RESPONSE_TIME;
             } else {
-                metricInfo.metricName = serviceTime;
+                metricInfo.metricName = SERVICE_TIME;
             }
             metricInfo.operationName = operationName;
         } else {
@@ -152,10 +154,10 @@ public class HdrResult {
              * @param defaultName
              */
             fileName = FileTool.clearPathAndExtension(fileName);
-            String[] parts = fileName.replace(serviceTime, serviceTime2).replace(responseTime, responseTime2).split("_");
+            String[] parts = fileName.replace(SERVICE_TIME2, SERVICE_TIME).replace(RESPONSE_TIME2, RESPONSE_TIME).split("_");
             runArgs = new RunArgs();
             int filledParts = runArgs.fillValues(parts);
-            metricInfo.fillValues(parts, filledParts, config.metricName);
+            metricInfo.fillValues(parts, filledParts, config);
         }
         hdrIntervalResults.add(new HdrIntervalResult(new Interval(), this.config, null));
     }
@@ -272,8 +274,6 @@ public class HdrResult {
 
     public void loadHdrData(HdrIterator hdrIter, MovingWindowSLE[] sleConfig, Interval[] intervals) {
         int mergeHistos = config.reportInterval / config.hdrInterval;
-        log("Loading HDR: operation %s, metricName %s, hdrFactor %s, (reportInterval %d ms) / (hdrInterval %d ms) = (histograms per reportInterval %d)", 
-                metricInfo.operationName, metricInfo.metricName, FormatTool.format(config.hdrFactor), config.reportInterval, config.hdrInterval, mergeHistos);
         if (intervals == null || intervals.length == 0) {
             intervals = new Interval[] { new Interval() };
         }
@@ -305,7 +305,8 @@ public class HdrResult {
                 break;
             }
         }
-        LoggerTool.log(getClass().getSimpleName(), "Loaded HDR records %d, hdrFactor %f", recordsCount, config.hdrFactor);
+        log("Loaded %d HDR records, operation %s, metricName %s, hdrFactor %s, (reportInterval %d ms) / (hdrInterval %d ms) = (histograms per reportInterval %d)"
+                , recordsCount, metricInfo.operationName, metricInfo.metricName, FormatTool.format(config.hdrFactor), config.reportInterval, config.hdrInterval, mergeHistos);
     }
 
     public boolean checkSLE(ServiceLevelExpectation aSLE) {

@@ -83,6 +83,12 @@ public class FileTool {
         return fileDir.renameTo(dir);
     }
 
+    /**
+     * /a/b/c/name.ext -> name.ext
+     * 
+     * @param fileName
+     * @return
+     */
     public static String clearPath(String fileName) {
         int pos = fileName.lastIndexOf('/');
         if (pos >= 0) {
@@ -91,6 +97,29 @@ public class FileTool {
         return fileName;
     }
 
+    /**
+     * /a/b/c/name.ext -> name.ext
+     * /a/b/c/arch.zip:name.ext -> name.ext
+     * /a/b/c/any:name.ext -> name.ext
+     * 
+     * @param fileName
+     * @return
+     */
+    public static String clearPathExt(String fileName) {
+        fileName = clearPath(fileName);
+        int pos = fileName.indexOf(":");
+        if (pos >= 0) {
+            fileName = fileName.substring(pos + 1);
+        }
+        return fileName;
+    }
+
+    /**
+     * /a/b/c/name.ext -> name
+     *  
+     * @param fileName
+     * @return
+     */
     public static String clearPathAndExtension(String fileName) {
         fileName = clearPath(fileName);
         int pos = fileName.lastIndexOf('.');
@@ -99,7 +128,14 @@ public class FileTool {
         }
         return fileName;
     }
-    
+
+    /**
+     * /a/b/c/name.ext -> /a/b/c
+     * 
+     * @param baseDir
+     * @param fileName
+     * @return
+     */
     public static File getBaseDir(String baseDir, String fileName) {
         File file = new File(fileName);
         File dir = baseDir != null && !file.isAbsolute() ? new File(baseDir, fileName).getParentFile() : file.getParentFile();
