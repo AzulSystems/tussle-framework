@@ -132,7 +132,12 @@ public class BasicRunner implements Runner {
             if (hdrResults != null) {
                 hdrResults.addAll(newHdrResults);
             }
-            runResult = HdrResult.getSummaryResult(newHdrResults);
+//            runResult = HdrResult.getSummaryResult(newHdrResults);
+            if (runResult.rate <= 0) {
+                RunResult runResultSummary = HdrResult.getSummaryResult(newHdrResults);
+                runResult.rate = runResultSummary.rate;
+                runResult.time = runResultSummary.time;
+            }
         }
         if (runResult.rateUnits == null) {
             runResult.rateUnits = rateUnits;

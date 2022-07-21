@@ -46,16 +46,13 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import static org.tussleframework.Globals.*;
+
 public class FormatTool {
-    private FormatTool() {
-    }
+
+    private FormatTool() {}
 
     private static final SimpleDateFormat BASIC_UTC_DATE_FORMAT;
-
-    public static final long NS_IN_S = 1_000_000_000L;
-    public static final long NS_IN_MS = 1_000_000L;
-    public static final long NS_IN_US = 1_000L;
-    public static final long MS_IN_S = 1_000L;
 
     static {
         BASIC_UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");

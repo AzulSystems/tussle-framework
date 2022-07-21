@@ -77,7 +77,7 @@ public class HdrWriter extends TimerTask {
     private volatile long startTime;
 
     public HdrWriter(MetricInfo metricInfo, boolean writeHdr, int progressInterval, RunArgs runArgs, HdrConfig config, String histogramsDir) throws IOException {
-        String respHdrFile = String.format("%s/%s", histogramsDir, metricInfo.formatFileName(runArgs));
+        String respHdrFile = String.format("%s/%s", histogramsDir, metricInfo.formatFileName(runArgs, "hlog"));
         this.hdrResult = new HdrResult(metricInfo, respHdrFile, runArgs, config);
         this.recorder = new Recorder(Long.MAX_VALUE, 3);
         this.progressHistogram = new Histogram(3);

@@ -56,8 +56,8 @@ public class MetricInfo {
         return new MetricInfo(operationName, metricName, rateUnits, timeUnits, hostName);
     }
 
-    public String formatFileName(RunArgs runArgs) {
-        return String.format("%s_%s_%s_%s_%d.hlog", operationName, metricName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.runStep);
+    public String formatFileName(RunArgs runArgs, String ext) {
+        return String.format("%s_%s_%s_%s_%d.%s", operationName, metricName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.runStep, ext);
     }
 
     public void fillValues(String[] parts, int filledParts, HdrConfig c) {

@@ -37,6 +37,7 @@ INT0=${INT0:-${INT0_DEF}}
 MAKE_REPORT=${MAKE_REPORT:-false}
 MH=${MH:-3}
 STEPRATER=${STEPRATER:-false}
+HDR_FACTOR=${HDR_FACTOR:-1000}
 
 while [[ "${1}" == *=* ]]
 do
@@ -66,6 +67,7 @@ metricsConf="
 histogramsDir: .
 makeReport: ${MAKE_REPORT}
 reportInterval: $((MH*1000))
+hdrFactor: ${HDR_FACTOR}
 operationsExclude:
  - check-cluster-health
 intervals:

@@ -105,7 +105,7 @@ public class StepRaterConfig extends BasicRunnerConfig {
 
     public static StepRaterConfig load(String[] args) throws TussleException  {
         StepRaterConfig runnerConfig = ConfigLoader.loadObject(args, StepRaterConfig.class);
-        if (runnerConfig.sleConfig.length == 0) {
+        if (runnerConfig.sleConfig == null || runnerConfig.sleConfig.length == 0) {
             runnerConfig.sleConfig = new MovingWindowSLE[] {
                     new MovingWindowSLE(90, 1, 10),
             };

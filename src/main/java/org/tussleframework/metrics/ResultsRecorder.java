@@ -32,8 +32,8 @@
 
 package org.tussleframework.metrics;
 
-import static org.tussleframework.tools.FormatTool.NS_IN_MS;
-import static org.tussleframework.tools.FormatTool.NS_IN_US;
+import static org.tussleframework.Globals.*;
+
 import static org.tussleframework.tools.FormatTool.matchFilters;
 import static org.tussleframework.tools.FormatTool.roundFormat;
 
@@ -62,6 +62,18 @@ import org.tussleframework.tools.LoggerTool;
 
 public class ResultsRecorder implements TimeRecorder {
 
+    public static long timeLen0(long startTime, long finishTime) {
+        if (startTime >= 0) {
+            return finishTime > startTime ? (finishTime - startTime) / NS_IN_US : 0;
+        } else {
+            return -1;
+        }
+    }
+
+    public static long timeLen1(long startTime, long finishTime) {
+        return startTime > 0 && finishTime > startTime ? (finishTime - startTime) / NS_IN_US : -1;
+    }
+
     class OperationsRecorder {
 
         private OutputStream rawDataOutputStream;
@@ -79,36 +91,35 @@ public class ResultsRecorder implements TimeRecorder {
             serviceTimeWriter = new HdrWriter(metricInfo.replaceMetricName(HdrResult.SERVICE_TIME), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
             errorsWriter = new HdrWriter(metricInfo.replaceMetricName("errors"), writeHdr, runnerConfig.progressInterval, runArgs, runnerConfig, runnerConfig.histogramsDir);
             if (runnerConfig.rawData) {
-                String rawFile = String.format("%s/%s", runnerConfig.histogramsDir, metricInfo.replaceMetricName("samples-data").formatFileName(runArgs));
+                String rawFile = String.format("%s/%s", runnerConfig.histogramsDir, metricInfo.replaceMetricName("samples-data").formatFileName(runArgs, "raw"));
                 rawDataOutputStream = new BufferedOutputStream(new FileOutputStream(new File(rawFile)), 128 * 1024 * 1024);
-                startTime0 = System.currentTimeMillis();
-                rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0).getBytes());
-                startTime0 *= NS_IN_MS;
-                rawDataOutputStream.write(String.format("startTime(us),intendedStartTime(us),finishTime(us),count,finishTime-startTime(us),finishTime-intendedStartTime(us),threadName%n").getBytes());
+                startTime0 = System.nanoTime() + NANO_TIME_OFFSET;
+                rawDataOutputStream.write(String.format("# abs start time: %d ms since ZERO%n", startTime0 / NS_IN_MS).getBytes());
+                rawDataOutputStream.write(String.format("start_time(us),intended_start_time(us),finish_time(us),count,finish_time-start_time(us),finish_time-intended_start_time(us),thread_name%n").getBytes());
             }
         }
 
         void recordTimes(long startTime, long intendedStartTime, long finishTime, long count, boolean success) {
             if (success) {
                 if (startTime > 0) {
-                    serviceTimeWriter.recordTime(finishTime - startTime, count);
+                    serviceTimeWriter.recordTime(timeLen1(startTime, finishTime), count);
                 }
                 if (intendedStartTime > 0 && !serviceTimeOnly) {
-                    responseTimeWriter.recordTime(finishTime - intendedStartTime, count);
+                    responseTimeWriter.recordTime(timeLen1(intendedStartTime, finishTime), count);
                 }
             } else {
-                errorsWriter.recordTime(finishTime - startTime, count);
+                errorsWriter.recordTime(timeLen1(startTime, finishTime), count);
             }
             OutputStream rawStream = this.rawDataOutputStream;
             if (rawStream != null) {
                 try {
-                    rawStream.write(String.format("%d,%d,%d,%d,%d,%d,%s%n"
-                            , startTime > 0 ? (startTime - startTime0) / NS_IN_US : -1
-                            , intendedStartTime > 0 ? (intendedStartTime - startTime0) / NS_IN_US : -1
-                            , (finishTime - startTime0) / NS_IN_US
+                    rawStream.write(String.format(intendedStartTime > 0 ? "%06d,%06d,%d,%d,%d,%d,%s%n" : "%06d,%d,%d,%d,%d,%d,%s%n"
+                            , timeLen0(startTime0, startTime)
+                            , timeLen0(startTime0, intendedStartTime)
+                            , timeLen0(startTime0, finishTime)
                             , count
-                            , startTime > 0 && finishTime > startTime ? (finishTime - startTime) / NS_IN_US : -1
-                            , intendedStartTime > 0 && finishTime > intendedStartTime ? (finishTime - intendedStartTime) / NS_IN_US : -1
+                            , timeLen1(startTime, finishTime)
+                            , timeLen1(intendedStartTime, finishTime)
                             , Thread.currentThread().getName()).getBytes());
                 } catch (IOException e) {
                     LoggerTool.logException(null, e);

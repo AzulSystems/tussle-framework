@@ -279,7 +279,7 @@ public class HdrResult {
         }
         hdrIntervalResults = new ArrayList<>();
         for (Interval interval : intervals) {
-            hdrIntervalResults.add(new HdrIntervalResult(interval, config, sleConfig));
+            hdrIntervalResults.add(new HdrIntervalResult(interval.scale(1000L), config, sleConfig));
         }
         int nulls = 0;
         int histoCount = 0;
@@ -305,7 +305,7 @@ public class HdrResult {
                 break;
             }
         }
-        log("Loaded %d HDR records, operation %s, metricName %s, hdrFactor %s, (reportInterval %d ms) / (hdrInterval %d ms) = (histograms per reportInterval %d)"
+        log("Loaded %d HDR records, operation %s, metricName %s, hdrFactor %s, (reportInterval %d ms) / (hdrInterval %d ms) = (%d histograms per reportInterval)"
                 , recordsCount, metricInfo.operationName, metricInfo.metricName, FormatTool.format(config.hdrFactor), config.reportInterval, config.hdrInterval, mergeHistos);
     }
 

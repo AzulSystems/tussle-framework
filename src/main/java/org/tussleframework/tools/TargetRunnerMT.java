@@ -33,6 +33,7 @@
 package org.tussleframework.tools;
 
 import static org.tussleframework.tools.FormatTool.*;
+import static org.tussleframework.Globals.*;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;

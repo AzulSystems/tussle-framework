@@ -129,7 +129,7 @@ public class HdrData {
 
     public void getHdrResults(Collection<HdrResult> results, String name, SortedMap<Long, Histogram> ts) {
         if (ts.size() > 0) {
-            String hdrFile = new File(config.histogramsDir, metricInfo.replaceMetricName(name).formatFileName(runArgs)).getAbsolutePath();
+            String hdrFile = new File(config.histogramsDir, metricInfo.replaceMetricName(name).formatFileName(runArgs, "hlog")).getAbsolutePath();
             HdrResult hdrResult = new HdrResult(metricInfo.replaceMetricName(name), hdrFile, runArgs, config);
             hdrResult.loadHdrData(new TimesIter(ts)::nextIntervalHistogram, sleConfig, new Interval[] {
                     new Interval(interval.start, interval.finish, interval.name, true)
@@ -140,7 +140,7 @@ public class HdrData {
     }
 
     protected void saveHdr(String name, SortedMap<Long, Histogram> ts) throws TussleException {
-        String hdrFile = new File(config.histogramsDir, metricInfo.replaceMetricName(name).formatFileName(runArgs)).getAbsolutePath();
+        String hdrFile = new File(config.histogramsDir, metricInfo.replaceMetricName(name).formatFileName(runArgs, "hlog")).getAbsolutePath();
         long intervalStampStart = interval.start / config.hdrInterval * config.hdrInterval;
         long intervalStampFinish = interval.finish / config.hdrInterval * config.hdrInterval;
         try (PrintStream os = new PrintStream(hdrFile)) {
