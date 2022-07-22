@@ -94,7 +94,7 @@ process_dir() {
         echo "No any run.properties found. Processing topmost results dir: ${histogramsDir} ..."
         (
         cd "${histogramsDir}" && \
-        java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
+        java -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
         return
     fi
@@ -104,7 +104,7 @@ process_dir() {
         echo "Processing results dir: ${histogramsDir} ..."
         (
         cd "${histogramsDir}" && \
-        java -cp ${BASE_DIR}/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
+        java -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
     done
 }
