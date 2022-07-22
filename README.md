@@ -63,7 +63,7 @@ Run
 
 Run syntax is following:
 
-     $ java -jar tussle-framework-$version.jar benchmark-class-name [benchmark-args...] \
+     $ java -jar target/tussle-framework-*.jar benchmark-class-name [benchmark-args...] \
      [--runner runner-class-name [runner-args...]]
 
 
@@ -139,18 +139,18 @@ Examples
 
 Run PI benchmark using default Basic runner and default benchmark parameters:
 
-    $ java -jar tussle-framework-$version.jar PiBenchmark
+    $ java -jar target/tussle-framework-*.jar PiBenchmark
 
 using benchmark parameters:
 
-    $ java -jar tussle-framework-$version.jar PiBenchmark threads=4
+    $ java -jar target/tussle-framework-*.jar PiBenchmark threads=4
  
 using benchmark parameters and runner parameters:
 
-    $ java -jar tussle-framework-$version.jar PiBenchmark threads=2 \
+    $ java -jar target/tussle-framework-*.jar PiBenchmark threads=2 \
     --runner BasicRunner warmupTime=20s runTime=2m targetRate=1.5k
      
-    $ java -jar tussle-framework-$version.jar PiBenchmark threads=2 \
+    $ java -jar target/tussle-framework-*.jar PiBenchmark threads=2 \
     --runner ScenarioRunner scenario=[[100,0,1m],[1k,0,10s],[100,0,1m]] makeReport=true
 
 using ProcBenchmark for running custom benchmark:
@@ -165,7 +165,7 @@ using ProcBenchmark for running custom benchmark:
     hdrResults:
        - .*.hdr  # java regexp supported - find all files under runDir with 'hdr' extension
     
-    $ java -jar tussle-framework-$version.jar ProcBenchmark -f proc.config \
+    $ java -jar target/tussle-framework-*.jar ProcBenchmark -f proc.config \
     --runner BasicRunner warmupTime=1m runTime=10m targetRate=100k
 
 

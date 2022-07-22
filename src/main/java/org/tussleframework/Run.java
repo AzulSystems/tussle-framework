@@ -109,7 +109,7 @@ public class Run {
      *               tool-class-name [tool-args]
      */
     public static void run(String[] args) {
-        LoggerTool.init("benchmark");
+        LoggerTool.init("tussle");
         if (args.length == 0) {
             throw USAGE;
         }
