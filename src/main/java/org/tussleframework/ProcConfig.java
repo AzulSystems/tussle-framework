@@ -47,6 +47,7 @@ import org.tussleframework.tools.ProcTool.CmdVars;
  * Basic benchmark configuration
  */
 public class ProcConfig extends BenchmarkConfig {
+    public boolean printLog;
     public String logPrefix;
     public String logSuffix;
     public String runResult;

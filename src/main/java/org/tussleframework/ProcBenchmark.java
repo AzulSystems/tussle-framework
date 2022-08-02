@@ -90,7 +90,10 @@ public class ProcBenchmark implements Benchmark {
     }
 
     protected void initCmd() throws TussleException {
-        procLog = new LoggerTool.LogOutputStream(config.logPrefix != null ? config.logPrefix : String.format("[%s] ", config.name), config.logSuffix != null ? config.logSuffix : "");
+        if (config.printLog)
+            procLog = new LoggerTool.LogOutputStream(config.logPrefix != null ? config.logPrefix : String.format("[%s] ", config.name), config.logSuffix != null ? config.logSuffix : "");
+        else
+            procLog = LoggerTool.nullOutputStream();
         if (config.init != null && !config.init.isEmpty()) {
             log(" --- BENCHMARK PROCESS INIT --- ");
             ProcTool.runProcess("init", config.makeCmd(config.init, config.getArgs(new RunArgs())), procLog);
