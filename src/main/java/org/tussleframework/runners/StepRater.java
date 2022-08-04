@@ -127,7 +127,9 @@ public class StepRater extends BasicRunner {
         while (!reachedFinishingRate) {
             double targetRate = (highBound * ratePercent) / 100.0;
             RunArgs runArgs = new RunArgs(targetRate, ratePercent, warmupTime, runTime, retry, "");
+            log("Iteration run: %s", runArgs);
             RunResult result = runOnce(benchmark, runArgs, results, true, runnerConfig.resetEachStep);
+            log("Iteration result: %s", result);
             if (result == null) {
                 finerRateSteps = 0;
                 break;

@@ -41,10 +41,11 @@ import org.tussleframework.tools.JsonTool;
  * Basic benchmark configuration
  */
 public class HdrConfig implements AbstractConfig {
+    public int hdrCutTime = 0;                    // initial hdr records to be excluded during this time in seconds
     public int hdrInterval = 1000;                // time interval in milliseconds used for writing histogram bunch of compressed data to hdr files 
     public int reportInterval = 3000;             // time interval in milliseconds used for reporting histogram results
     public int progressInterval = 5000;           // time interval in milliseconds used for writing progress in the log output
-    public double hdrFactor = 1000d;           // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
+    public double hdrFactor = 1000d;              // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
     public String histogramsDir = "./histograms"; // location for histogram (hdr) files
     public String metricName = HdrResult.SERVICE_TIME;
     public String rateUnits = "op/s";
@@ -53,6 +54,7 @@ public class HdrConfig implements AbstractConfig {
     public String[] operationsExclude;
 
     public HdrConfig copy(HdrConfig c) {
+        hdrCutTime = c.hdrCutTime;
         hdrInterval = c.hdrInterval; 
         reportInterval = c.reportInterval;
         progressInterval = c.progressInterval;

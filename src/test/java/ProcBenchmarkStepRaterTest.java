@@ -50,11 +50,12 @@ public class ProcBenchmarkStepRaterTest {
         String[] runnerArgs = {
                 "initialRunTime=5s",
                 "runTime=2s",
+                "hdrCutTime=10",
                 "ratePercentStep=10",
                 "makeReport=false",
                 "histogramsDir=results/proc_benchmark_steprater_test/histograms",
                 "reportDir=results/proc_benchmark_steprater_test/report",
-                "sleConfig=[[50,2,3]]"
+                "sleConfig=[[50,2,3]]",
         };
         String[] runCmd = {
                 "bash",

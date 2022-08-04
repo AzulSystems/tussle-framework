@@ -20,6 +20,7 @@ import org.tussleframework.tools.LoggerTool;
 public class HdrData {
     protected SortedMap<Long, Histogram> times = new TreeMap<>();
     protected SortedMap<Long, Histogram> latency = new TreeMap<>();
+    protected Interval matchInterval;
     protected Interval interval = new Interval();
     protected MovingWindowSLE[] sleConfig;
     protected MetricInfo metricInfo;
@@ -31,9 +32,14 @@ public class HdrData {
         this.runArgs = runArgs;
         this.config = config;
         this.sleConfig = sleConfig;
+        this.matchInterval = new Interval(config.hdrCutTime, Long.MAX_VALUE, "", false).scale(1000L);
     }
 
     public void recordValues(long stamp, long serviceTime, long latencyValue) {
+        matchInterval.adjust(stamp);
+        if (!matchInterval.contains(stamp, stamp)) {
+            return;
+        }
         interval.update(stamp);
         long intervalStamp = stamp / config.hdrInterval * config.hdrInterval;
         if (serviceTime >= 0) {
@@ -132,7 +138,7 @@ public class HdrData {
             String hdrFile = new File(config.histogramsDir, metricInfo.replaceMetricName(name).formatFileName(runArgs, "hlog")).getAbsolutePath();
             HdrResult hdrResult = new HdrResult(metricInfo.replaceMetricName(name), hdrFile, runArgs, config);
             hdrResult.loadHdrData(new TimesIter(ts)::nextIntervalHistogram, sleConfig, new Interval[] {
-                    new Interval(interval.start, interval.finish, interval.name, true)
+                    new Interval(interval.start / 1000, interval.finish / 1000 + 1, interval.name, true)
             });
             LoggerTool.log(getClass().getSimpleName(), "HdrResults: %s - %f %f %f", hdrResult.getOpName(), hdrResult.getRate(), hdrResult.getMean(), hdrResult.getMaxValue());
             results.add(hdrResult);

@@ -50,9 +50,10 @@ public class ProcBenchmarkTest {
             String[] runnerArgs = {
                     "targetRate=123",
                     "runTime=2s",
-//                    "makeReport=true",
-//                    "histogramsDir=results/proc_benchmark_test/histograms",
-//                    "reportDir=results/proc_benchmark_test/report"
+                    "hdrCutTime=10",
+                    "makeReport=false",
+                    "histogramsDir=results/proc_benchmark_test/histograms",
+                    "reportDir=results/proc_benchmark_test/report"
             };
             String[] runCmd = {
                     "bash",

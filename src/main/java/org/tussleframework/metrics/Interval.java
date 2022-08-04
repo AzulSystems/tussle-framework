@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -48,7 +48,7 @@ public class Interval {
     public boolean contains(long start, long finish) {
         return start <= finish && this.start < finish && start <= this.finish;
     }
-    
+
     public static long mul(long v, long m) {
         if (v == Long.MAX_VALUE || v == Long.MIN_VALUE)
             return v;

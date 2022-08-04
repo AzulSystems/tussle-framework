@@ -69,6 +69,7 @@ public class HdrIntervalResult {
         return metricTypes[index];
     }
 
+    public int skippedHistos;
     private Metric metric;
     private HdrConfig config;
     private Interval interval;
@@ -146,12 +147,12 @@ public class HdrIntervalResult {
 
     public void addHistograms(Collection<AbstractHistogram> inputHistograms) {
         Histogram inputHistogramsSum = new Histogram(3);
-        int added = 0;
+        int addedHistos = 0;
         for (AbstractHistogram inputHistogram : inputHistograms) {
             if (interval.contains(inputHistogram.getStartTimeStamp(), inputHistogram.getEndTimeStamp())) {
                 addHistogram(inputHistogram);
                 inputHistogramsSum.add(inputHistogram);
-                added++;
+                addedHistos++;
                 for (int i = 0; i < movingWindowHistograms.length; i++) {
                     MovingWindowHistogram mwh = movingWindowHistograms[i];
                     mwh.add(inputHistogram);
@@ -163,9 +164,11 @@ public class HdrIntervalResult {
                         movingWindowMaxValues[i] = mwValue;
                     }
                 }
+            } else {
+                skippedHistos++;
             }
         }
-        if (added > 0) {
+        if (addedHistos > 0) {
             for (int i = 0; i < metricTypes.length; i++) {
                 metricValues[i].add(metricTypes[i].getValue(inputHistogramsSum, config.hdrFactor));
             }

@@ -291,6 +291,9 @@ public class ResultsRecorder implements TimeRecorder {
         Analyzer analyzer = new Analyzer();
         AnalyzerConfig analyzerConfig = new AnalyzerConfig(runnerConfig);
         analyzerConfig.sleConfig = runnerConfig.sleConfig;
+        if (runnerConfig.hdrCutTime > 0) {
+            analyzerConfig.intervals = new Interval[] { new Interval(runnerConfig.hdrCutTime, Long.MAX_VALUE, "", false) };
+        }
         analyzer.init(analyzerConfig);
         analyzer.currentRunArgs = runArgs;
         analyzer.processFile(resultFile);
@@ -304,7 +307,11 @@ public class ResultsRecorder implements TimeRecorder {
             LoggerTool.log(getClass().getSimpleName(), " skipping operation %s", hdrResult.operationName());
             return null;
         }
-        hdrResult.loadHdrFile(null, null);
+        Interval[] intervals = null;
+        if (runnerConfig.hdrCutTime > 0) {
+            intervals = new Interval[] { new Interval(runnerConfig.hdrCutTime, Long.MAX_VALUE, "", false) };
+        }
+        hdrResult.loadHdrFile(null, intervals);
         LoggerTool.log(getClass().getSimpleName(), "Loadied HDR from file: '%s', %s %s, rate %s %s", resultFile, hdrResult.operationName(), hdrResult.metricName(), roundFormat(hdrResult.getRate()), hdrResult.rateUnits());
         return hdrResult;
     }

@@ -49,6 +49,7 @@ public class ProcBenchmarkSamplesTest {
         String[] runnerArgs = {
                 "targetRate=1k",
                 "runTime=1m", 
+                "hdrCutTime=30",
                 "warmupTime=0",
                 "histogramsDir=results/proc_benchmark_samples_test/histograms",
                 "operationsExclude=[check-cluster-health]"
@@ -59,6 +60,7 @@ public class ProcBenchmarkSamplesTest {
                 "echo STEP={runStep} TIME={runTime} WARMUP={warmupTime} TARGET={targetRate} TTT={TTT}; sleep 1; echo run; sleep 1; echo DONE",
         };
         ProcConfig procConfig = new ProcConfig();
+        procConfig.printLog = true;
         procConfig.vars.put("TTT", "some_ttt...");
         procConfig.name = "proc-samples-test";
         procConfig.logPrefix = " *** "; 

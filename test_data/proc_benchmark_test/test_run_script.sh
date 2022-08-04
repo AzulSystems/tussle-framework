@@ -53,7 +53,7 @@ run() {
         cat<<EOF>result.json
 {"rate": ${actualRate},
  "rateUnits": "ooop/s",
- "time": ${TIME} }
+ "time": ${TIME}000 }
 EOF
         cat result.json
     else
