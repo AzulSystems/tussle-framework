@@ -59,10 +59,6 @@ INT0="- {${INT0}}"
 [[ -n "${INT2}" ]] && INT2="- {${INT2}}"
 [[ -n "${INT3}" ]] && INT3="- {${INT3}}"
 
-[[ -n "${SLE1}" ]] && SLE1="- {${SLE1}}"
-[[ -n "${SLE2}" ]] && SLE2="- {${SLE2}}"
-[[ -n "${SLE3}" ]] && SLE3="- {${SLE3}}"
-
 metricsConf="
 histogramsDir: .
 makeReport: ${MAKE_REPORT}
@@ -75,10 +71,7 @@ ${INT0}
 ${INT1}
 ${INT2}
 ${INT3}
-sleConfig:
-${SLE1}
-${SLE2}
-${SLE3}
+sleConfig: ${SLE}
 "
 
 analyzer=org.tussleframework.tools.Analyzer
