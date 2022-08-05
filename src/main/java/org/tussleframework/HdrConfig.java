@@ -70,20 +70,23 @@ public class HdrConfig implements AbstractConfig {
 
     @Override
     public void validate(boolean runMode) {
+        if (hdrCutTime < 0) {
+            throw new IllegalArgumentException(String.format("Invalid hdrCutTime(%d) - should be >= 0", hdrCutTime));   
+        }
         if (histogramsDir == null) {
             throw new IllegalArgumentException("Invalid histogramsDir - null");
         }
         if (hdrInterval < 10) {
-            throw new IllegalArgumentException(String.format("Invalid hdrInterval(%d) < 10", hdrInterval));
+            throw new IllegalArgumentException(String.format("Invalid hdrInterval(%d) - should be >= 10", hdrInterval));
         }
         if (hdrFactor <= 0) {
             throw new IllegalArgumentException(String.format("Invalid hdrFactor(%d) - should be positive", hdrFactor));
         }
         if (reportInterval < hdrInterval) {
-            throw new IllegalArgumentException(String.format("Invalid reportInterval(%d) < hdrInterval", reportInterval));
+            throw new IllegalArgumentException(String.format("Invalid reportInterval(%d) - should be >= hdrInterval(%d)", reportInterval, hdrInterval));
         }
         if (progressInterval < 0) {
-            throw new IllegalArgumentException(String.format("Invalid progressInterval(%d) < 0", progressInterval));
+            throw new IllegalArgumentException(String.format("Invalid progressInterval(%d) - should be >= 0", progressInterval));
         }
         if (operationsInclude != null) {
             for (String pattern : operationsInclude) {

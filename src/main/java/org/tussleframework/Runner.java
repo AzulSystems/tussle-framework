@@ -33,6 +33,20 @@
 package org.tussleframework;
 
 public interface Runner {
+
+    /**
+     * Benchmark Runner initialisation
+     * 
+     * @param args
+     * @throws TussleException
+     */
     void init(String[] args) throws TussleException;
+
+    /**
+     * Runner runs specified Benchmark using its internal scenario
+     * 
+     * @param benchmark
+     * @throws TussleException
+     */
     void run(Benchmark benchmark) throws TussleException;
 }

@@ -225,11 +225,11 @@ public class HdrIntervalResult {
     protected void getMovingWindowSLEMetrics(HdrResult hdrResult, MetricData metricData) {
         long start = histogram.getStartTimeStamp();
         long finish = histogram.getEndTimeStamp();
-        log("getMetrics sleConfig count %d", sleConfig.length);
+        log("getMovingWindowSLEMetrics sleConfig count %d", sleConfig.length);
         for (int i = 0; i < sleConfig.length; i++) {
             double[] values = movingWindowValues[i].build().toArray();
             double[] counts = movingWindowCounts[i].build().toArray();
-            log("  sleConfig %s, max %f, values %d, counts %d", sleConfig[i].longName(), movingWindowMaxValues[i], values.length, counts.length);
+            log("  sleConfig %s, max %f, values %d, counts %d (%s, %s)", sleConfig[i].longName(), movingWindowMaxValues[i], values.length, counts.length, hdrResult.metricName(), hdrResult.operationName());
             String mwMetricName = (hdrResult.metricName() + " " + sleConfig[i].longName() + " " + interval.name).trim();
             Metric mwMetric = Metric.builder()
                     .name(mwMetricName)

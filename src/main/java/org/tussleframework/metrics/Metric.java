@@ -102,14 +102,23 @@ public class Metric {
 
     public Collection<String> scoreOn() {
         ArrayList<String> res = new ArrayList<>();
-        String opName = String.format("%s%s", operation != null ? operation : "op", name != null ? " " + name : "");
+        String opName = "";
+        if (operation != null) {
+            opName += operation + " ";
+        }
+        if (name != null) {
+            opName += name + " ";
+        }
+        if (percentOfHighBound != null) {
+            opName += FormatTool.roundFormatPercent(percentOfHighBound) + " ";
+        }
         if (targetRate != null && targetRate > 0) {
-            opName += " " + FormatTool.roundFormat(targetRate);
+            opName += FormatTool.roundFormat(targetRate) + " ";
         }
         if (retry != null && retry > 0) {
-            opName += " " + retry;
+            opName += retry + " ";
         }
-        opName = opName.replace(" ", "_");
+        opName = opName.trim().replace(" ", "_");
         if (value != null) {
             res.add(String.format("%s: %s %s", opName, FormatTool.format(value), units != null ? units : ""));
         }

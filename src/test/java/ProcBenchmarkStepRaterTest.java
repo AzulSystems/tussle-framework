@@ -40,7 +40,7 @@ import org.tussleframework.tools.LoggerTool;
 
 public class ProcBenchmarkStepRaterTest {
 
-    {
+    static {
         LoggerTool.init("", "java.util.logging.ConsoleHandler");
     }
 
@@ -50,12 +50,12 @@ public class ProcBenchmarkStepRaterTest {
         String[] runnerArgs = {
                 "initialRunTime=5s",
                 "runTime=2s",
-                "hdrCutTime=10",
+                "hdrCutTime=6",
                 "ratePercentStep=10",
                 "makeReport=false",
                 "histogramsDir=results/proc_benchmark_steprater_test/histograms",
                 "reportDir=results/proc_benchmark_steprater_test/report",
-                "sleConfig=[[50,2,3]]",
+                "sleConfig=[[50,1,3],[90,5,10],[99,10,10],[99.99,100,10]]",
         };
         String[] runCmd = {
                 "bash",

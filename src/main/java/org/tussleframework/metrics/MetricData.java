@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -65,5 +65,9 @@ public class MetricData {
         runProperties.getHardware().putAll(Informator.getHwInfo());
         runProperties.getOs().putAll(Informator.getOsInfo());
         runProperties.getJvm().putAll(Informator.getJvmInfo());
+    }
+
+    public Metric find(String name) {
+        return metrics.stream().filter(metric -> metric.name.equals(name)).findFirst().orElse(null);
     }
 }

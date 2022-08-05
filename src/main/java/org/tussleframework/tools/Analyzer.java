@@ -53,6 +53,7 @@ import org.tussleframework.TussleException;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Interval;
+import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.metrics.MetricInfo;
 import org.tussleframework.metrics.MovingWindowSLE;
@@ -170,7 +171,7 @@ public class Analyzer implements Tool {
         }
         if (analyzerConfig.intervals == null || analyzerConfig.intervals.length == 0) {
             analyzerConfig.intervals = new Interval[] {
-                    new Interval(0, 1000000, "", false),
+                    new Interval(analyzerConfig.hdrCutTime, 1000000, "", false),
             };
         }
         log("Config: %s", new Yaml().dump(analyzerConfig).trim());
@@ -439,5 +440,32 @@ public class Analyzer implements Tool {
         }
         result.getMetrics(metricData, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort);
         hdrResults.add(result);
+    }
+
+    protected boolean hasMetric(String name) {
+        return metricData.find(name) != null;
+    }
+
+    protected Metric addMetric(Metric metric) {
+        metricData.add(metric);
+        return metric;
+    }
+
+    protected Metric addMetric(String name, String opName, Double value, String rateUnits) {
+        return addMetric(Metric.builder()
+                .name(name)
+                .operation(opName)
+                .value(value)
+                .units(rateUnits)
+                .build());
+    }
+
+    protected Metric addMetric(String name, String opName, String timeUnits, String rateUnits, String[] xValues) {
+        return addMetric(Metric.builder()
+                .name(name)
+                .operation(opName)
+                .units(timeUnits)
+                .xunits(rateUnits)
+                .xValues(xValues).build());
     }
 }

@@ -309,25 +309,29 @@ public class HdrResult {
                 , recordsCount, metricInfo.operationName, metricInfo.metricName, FormatTool.format(config.hdrFactor), config.reportInterval, config.hdrInterval, mergeHistos);
     }
 
-    public boolean checkSLE(ServiceLevelExpectation aSLE) {
+    public boolean checkSLE(ServiceLevelExpectation aSLE, Interval interval) {
         if (!(aSLE instanceof MovingWindowSLE)) {
             return false;
         }
         try (HistogramLogReader hdrReader = new HistogramLogReader(hdrFile)) {
-            return checkSLE(() -> (AbstractHistogram) hdrReader.nextIntervalHistogram(0.0, Double.MAX_VALUE), (MovingWindowSLE) aSLE);
+            return checkSLE(() -> (AbstractHistogram) hdrReader.nextIntervalHistogram(0.0, Double.MAX_VALUE), (MovingWindowSLE) aSLE, interval);
         } catch (Exception e) {
             LoggerTool.logException(null, e);
             return true;
         }
     }
 
-    public boolean checkSLE(HdrIterator hdrIter, MovingWindowSLE mwSLE) {
+    public boolean checkSLE(HdrIterator hdrIter, MovingWindowSLE mwSLE, Interval interval) {
         MovingWindowHistogram mwHistogram = new MovingWindowHistogram(mwSLE, config.hdrFactor);
         AbstractHistogram intervalHistogram = hdrIter.next();
+        interval = interval.scale(1000L);
         while (intervalHistogram != null) {
-            mwHistogram.add(intervalHistogram);
-            if (!mwHistogram.checkSLE()) {
-                return false;
+            interval.adjust(intervalHistogram.getStartTimeStamp());
+            if (interval.contains(intervalHistogram.getStartTimeStamp(), intervalHistogram.getEndTimeStamp())) {
+                mwHistogram.add(intervalHistogram);
+                if (!mwHistogram.checkSLE()) {
+                    return false;
+                }
             }
             intervalHistogram = hdrIter.next();
         }

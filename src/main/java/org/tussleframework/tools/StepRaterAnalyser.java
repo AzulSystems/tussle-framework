@@ -36,6 +36,7 @@ import static org.tussleframework.WithException.withException;
 import static org.tussleframework.WithException.wrapException;
 import static org.tussleframework.metrics.HdrIntervalResult.metricType;
 import static org.tussleframework.metrics.HdrIntervalResult.metricTypeCount;
+import static org.tussleframework.tools.FormatTool.parseValue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,7 +105,7 @@ public class StepRaterAnalyser extends Analyzer {
             Iterator<MovingWindowSLE> iterator = unbrokenSleConfig.iterator();
             while (iterator.hasNext()) {
                 ServiceLevelExpectation sle = iterator.next();
-                if (!hdrResult.checkSLE(sle)) {
+                if (!hdrResult.checkSLE(sle, analyzerConfig.intervals[0])) {
                     log("%s SLE for %s broken on %s %s", opAndMetricName, sle, FormatTool.format(hdrResult.targetRate()), hdrResult.rateUnits());
                     iterator.remove();
                     sleBroken.put(sle.longName(), hdrResult.targetRate());
@@ -168,58 +169,32 @@ public class StepRaterAnalyser extends Analyzer {
         }
         HdrResult firstHdrResult = optionalHdrResult.get();
         String[] xValues = xValuesBuff.toArray(EMPTY);
-        Metric mAvg = Metric.builder()
-                .name(firstHdrResult.metricName() + " summary_avg" )
-                .operation(firstHdrResult.operationName())
-                .units(firstHdrResult.timeUnits())
-                .xunits(firstHdrResult.rateUnits())
-                .xValues(xValues).build();
-        Metric mMax = Metric.builder()
-                .name(firstHdrResult.metricName() + " summary_max")
-                .operation(firstHdrResult.operationName())
-                .units(firstHdrResult.timeUnits())
-                .xunits(firstHdrResult.rateUnits())
-                .xValues(xValues)
-                .build();
+        Metric mAvg = addMetric(firstHdrResult.metricName() + " summary_avg", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
+        Metric mMax = addMetric(firstHdrResult.metricName() + " summary_max", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
         for (int i = 0; i < metricTypeCount(); i++) {
             mAvg.add(new MetricValue(metricType(i).name(), valBuffersAvg[i].build().toArray()));
             mMax.add(new MetricValue(metricType(i).name(), valBuffersMax[i].build().toArray()));
         }
-        metricData.add(mAvg);
-        metricData.add(mMax);
-        double maxRate = hdrResults.get(hdrResults.size() - 1).targetRate();
-        String oName = firstHdrResult.operationName();
-        metricData.add(Metric.builder()
-                .name(firstHdrResult.metricName() + " max_rate")
-                .operation(oName)
-                .units(firstHdrResult.rateUnits())
-                .value(maxRate)
-                .build());
-//        metricData.add(Metric.builder()
-//                .name(firstHdrResult.metricName() + " high-bound")
-//                .operation(oName)
-//                .units(firstHdrResult.rateUnits())
-//                .value(highBound)
-//                .build());
+        double maxActualRate = hdrResults.get(hdrResults.size() - 1).getRate();
+        String opName = firstHdrResult.operationName();
+        addMetric(firstHdrResult.metricName() + " max_rate", opName, maxActualRate, firstHdrResult.rateUnits());
+        double maxTargetRate = hdrResults.get(hdrResults.size() - 1).targetRate();
+        if (maxTargetRate > 0 && !hasMetric("max_target_rate")) {
+            addMetric("max_target_rate", null, maxTargetRate, firstHdrResult.rateUnits());
+        }
+        double highBound = parseValue(analyzerConfig.highBound);
+        if (highBound > 0 && !hasMetric("high_bound")) {
+            addMetric("high_bound", null, highBound, firstHdrResult.rateUnits());
+        }
         ///String[] sleTypes = getTypes(sleConfig);
         for (int i = 0; i < analyzerConfig.sleConfig.length; i++) {
             MovingWindowSLE sle = analyzerConfig.sleConfig[i];
             String sleName = sle.longName();
             String mName = firstHdrResult.metricName() + " " + sleName;
             if (sleBroken.containsKey(sleName)) {
-                metricData.add(Metric.builder()
-                        .name(mName + " conforming_rate")
-                        .operation(oName)
-                        .units(firstHdrResult.rateUnits())
-                        .value(sleBroken.get(sleName))
-                        .build());
+                addMetric(mName + " conforming_rate", opName, sleBroken.get(sleName), firstHdrResult.rateUnits());
             } else {
-                metricData.add(Metric.builder()
-                        .name(mName + " conforming_rate (unbroken)")
-                        .operation(oName)
-                        .units(firstHdrResult.rateUnits())
-                        .value(maxRate)
-                        .build());
+                addMetric(mName + " conforming_rate (unbroken)", opName, maxTargetRate, firstHdrResult.rateUnits());
             }
             //TODO: targetMetric.add(new MetricValue(valName + "_max", movingWindowMax[i]))
 //            metricData.add(Metric.builder()

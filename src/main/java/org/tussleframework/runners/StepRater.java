@@ -201,6 +201,7 @@ public class StepRater extends BasicRunner {
         } else {
             log("High-bound from setup %s op/s", roundFormat(highBound));
         }
+        runnerConfig.highBound = roundFormat(highBound);
         if (highBound > 0) {
             ArrayList<HdrResult> results = new ArrayList<>();
             iterateTargetRates(benchmark, highBound, runnerConfig.startingRatePercent, runnerConfig.finishingRatePercent, runnerConfig.ratePercentStep, runnerConfig.finerRateSteps, results);
