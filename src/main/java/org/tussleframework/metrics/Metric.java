@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
 
-import org.tussleframework.tools.FormatTool;
+import static org.tussleframework.tools.FormatTool.*;
 
 import lombok.Builder;
 import lombok.Data;
@@ -110,20 +110,20 @@ public class Metric {
             opName += name + " ";
         }
         if (percentOfHighBound != null) {
-            opName += FormatTool.roundFormatPercent(percentOfHighBound) + " ";
+            opName += roundFormatPercent(percentOfHighBound) + " ";
         }
         if (targetRate != null && targetRate > 0) {
-            opName += FormatTool.roundFormat(targetRate) + " ";
+            opName += roundFormat(targetRate) + " ";
         }
         if (retry != null && retry > 0) {
             opName += retry + " ";
         }
         opName = opName.trim().replace(" ", "_");
         if (value != null) {
-            res.add(String.format("%s: %s %s", opName, FormatTool.format(value), units != null ? units : ""));
+            res.add(String.format("%s: %s %s", opName, roundFormat(value), units != null ? units : ""));
         }
         if (actualRate != null) {
-            res.add(String.format("%s_actual_rate: %s %s", opName, FormatTool.roundFormat(actualRate), rateUnits != null ? rateUnits : ""));
+            res.add(String.format("%s_actual_rate: %s %s", opName, roundFormat(actualRate), rateUnits != null ? rateUnits : ""));
         }
         MetricValue pnames = byType(MetricType.PERCENTILE_NAMES.name());
         MetricValue pvalues = byType(MetricType.PERCENTILE_VALUES.name());
@@ -131,7 +131,7 @@ public class Metric {
             for (int i = 0; i < pnames.values.length; i++) {
                 double p = pnames.values[i];
                 if (p == 50 || p == 99 || p == 99.9) {
-                    res.add(String.format("%s_p%s: %s %s", opName, FormatTool.format(p), FormatTool.roundFormat(pvalues.values[i]), units != null ? units : ""));
+                    res.add(String.format("%s_p%s: %s %s", opName, format(p), roundFormat(pvalues.values[i]), units != null ? units : ""));
                 }
             }
         }
