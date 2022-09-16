@@ -38,6 +38,7 @@ MAKE_REPORT=${MAKE_REPORT:-false}
 MH=${MH:-3}
 STEPRATER=${STEPRATER:-false}
 HDR_FACTOR=${HDR_FACTOR:-1000}
+HEAP=${HEAP:-8g}
 
 while [[ "${1}" == *=* ]]
 do
@@ -87,7 +88,7 @@ process_dir() {
         echo "No any run.properties found. Processing topmost results dir: ${histogramsDir} ..."
         (
         cd "${histogramsDir}" && \
-        java -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
+        java -Xmx${HEAP} -Xms${HEAP} -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
         return
     fi
@@ -97,7 +98,7 @@ process_dir() {
         echo "Processing results dir: ${histogramsDir} ..."
         (
         cd "${histogramsDir}" && \
-        java -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
+        java -Xmx${HEAP} -Xms${HEAP} -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
         )
     done
 }
