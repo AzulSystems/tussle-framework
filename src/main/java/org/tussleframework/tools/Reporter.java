@@ -42,12 +42,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.logging.Level;
 
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.MetricData;
 
-public class Reporter {
+public class Reporter implements Tool {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Reporter.class.getName());
     public static final String RES_REPORT = "/repfiles";
@@ -65,46 +65,57 @@ public class Reporter {
             if (args[0].equals("--get-res")) {
                 extractReportFiles(args[1]);
             } else {
-                make(args[0], args[1]);
+                String reportDir = args[0];
+                String[] metricsJsons = Arrays.copyOfRange(args, 1, args.length);
+                make(reportDir, metricsJsons);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static void make(MetricData metricData, String reportDir) throws TussleException {
-        try {
-            Files.createDirectories(Paths.get(reportDir));
-            File dataJson = new File(reportDir, "data.json");
-            try (PrintStream out = new PrintStream(dataJson)) {
-                log("Generating data.json: " + dataJson);
-                JsonTool.printJson(metricData, out);
-            }
-            make(reportDir, dataJson.getAbsolutePath());
-            Files.delete(dataJson.toPath());
-        } catch (Exception e) {
-            throw new TussleException(e);
-        }
-    }
+// TODEL
+//    public static void make(MetricData metricData, String reportDir) throws TussleException {
+//        try {
+//            Files.createDirectories(Paths.get(reportDir));
+//            File dataJson = new File(reportDir, "data.json");
+//            try (PrintStream out = new PrintStream(dataJson)) {
+//                log("Generating data.json: " + dataJson);
+//                JsonTool.printJson(metricData, out);
+//            }
+//            make(reportDir, new String[] { dataJson.getAbsolutePath() });
+//            Files.delete(dataJson.toPath());
+//        } catch (Exception e) {
+//            throw new TussleException(e);
+//        }
+//    }
 
     public static void make(String reportDir, String metricsJson) throws TussleException {
+        make(reportDir, new String[] { metricsJson }); 
+    }
+
+    public static void make(String reportDir, String[] metricsJsons) throws TussleException {
         try {
             extractReportFiles(reportDir);
-            File reportDirJs = new File(reportDir, "js");
-            File dataJs = new File(reportDirJs, "data.js");
-            Files.deleteIfExists(dataJs.toPath());
-            log("Generating report data.js: " + metricsJson);
-            try (PrintStream out = new PrintStream(dataJs); BufferedReader br = new BufferedReader(new FileReader(metricsJson))) {
-                out.print("const metricsData = [{ \"_source\": ");
-                String line = br.readLine();
-                int i = 0;
-                while (line != null) {
-                    if (i > 0) out.println();
-                    out.print(line);
-                    line = br.readLine();
-                    i++;
+            int idx = 0;
+            for (String metricsJson : metricsJsons) {
+                idx++;
+                File reportDirJs = new File(reportDir, "js");
+                File dataJs = new File(reportDirJs, String.format("data%d.js", idx));
+                Files.deleteIfExists(dataJs.toPath());
+                log("Generating report data #%d js from '%s' ", idx, metricsJson);
+                try (PrintStream out = new PrintStream(dataJs); BufferedReader br = new BufferedReader(new FileReader(metricsJson))) {
+                    out.printf("window.metricsData%d = [{ \"_source\": ", idx);
+                    String line = br.readLine();
+                    int i = 0;
+                    while (line != null) {
+                        if (i > 0) out.println();
+                        out.print(line);
+                        line = br.readLine();
+                        i++;
+                    }
+                    out.println(" }];");
                 }
-                out.println(" }];");
             }
         } catch (Exception e) {
             throw new TussleException(e);

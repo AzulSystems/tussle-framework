@@ -31,9 +31,11 @@
  */
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -104,5 +106,17 @@ public class FormatToolTest {
         assertEquals("TEST_targetRate12345_warmupTime777", FormatTool.applyArg("TEST_targetRate{targetRate}_warmupTime{warmupTime}", pairs));
         assertEquals("TEST_targetRate12345_warmupTimewarmupTime}", FormatTool.applyArg("TEST_targetRate{targetRate}_warmupTimewarmupTime}", pairs));
         assertEquals(new File("").getAbsolutePath(), FormatTool.applyArg("{user.dir}", pairs));
+    }
+
+    @Test
+    public void testTime() {
+        System.err.println("testTime...");
+        try {
+            System.err.println("formatDate " + FormatTool.formatDate(Calendar.getInstance().getTime()));
+            System.err.println("formatDate2 " + FormatTool.formatIsoDatetime(Calendar.getInstance().getTime()));
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
     }
 }

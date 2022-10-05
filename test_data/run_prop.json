@@ -1,0 +1,19 @@
+{
+  "config": "heap40 nodes_node1-i3en.2xlarge,node2-i3en.2xlarge,node3-i3en.2xlarge",
+  "host": "loadgen-m5n.8xlarge",
+  "build": "zing21.10.0.0-3-jdk11.0.13",
+  "build_type": "",
+  "vm_type": "zing",
+  "vm_home": "zing21.10.0.0-3-jdk11.0.13",
+  "vm_args": "-Xms40g -Xmx40g __JHICCUP__ __LOGGC__ __LOGCOMP__ ",
+  "vm_version": "11",
+  "client_vm_home": "zulu11.52.13-ca-jdk11.0.13",
+  "client_vm_args": "-Xmx8g -Xms8g __JHICCUP__ __LOGGC__",
+  "os": "Ubuntu 18.04.5 LTS (Bionic Beaver)",
+  "application": "kafka_2.13-2.8.1",
+  "benchmark": "kafka-bench",
+  "workload_name": "kafka_e2e",
+  "workload_parameters" : "targetRate=100k,partitions=12,rf=2,time=600,warmup=0,producers=30,consumers=12",
+  "start_time": "2022-01-25T11:36:50",
+  "finish_time": "2022-01-25T11:36:50"
+}

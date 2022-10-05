@@ -49,7 +49,7 @@ $ mvn clean package -DskipTests
 Optionally install **tussle-framework jar** in the local Maven repository to be visible for other projects depending on tussle-framework:
 
 ```
-$ mvn install:install-file -Dfile=target/tussle-framework-$version-jar-with-dependencies.jar -DpomFile=pom.xml
+$ mvn install:install-file -Dfile=target/tussle-framework-$version.jar -DpomFile=pom.xml
 ```
 
 Alternatively it can be build and installed using provided script:
@@ -178,3 +178,13 @@ Tussle Framework basically operates with histogram data and can provide differen
 ![tussle image 3](assets/tussle3.png)
 
 
+Tussle Reporting
+================
+
+Generate html report from existing prepared metrics:
+
+    $ java -jar target/tussle-framework-*.jar Reporter report_dir results1/metrics.json results2/metrics.json
+
+Generate html report from existing metrics under certain dir:
+
+    $ java -jar target/tussle-framework-*.jar Reporter report_dir $(find dir_with_results -type f -name metrics.json)

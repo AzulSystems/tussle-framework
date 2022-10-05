@@ -39,7 +39,7 @@ const BASE_RELEASE_API_URL = 'release';
 const BASE_SEARCH_API_URL = 'search';
 const DISPLAY_RUNS = 'RUNS';
 const DISPLAY_SUMMARY = 'SUMMARY';
-const DISPLAY_DETAILS = 'DETAILS';
+const DISPLAY_TABLE = 'TABLE';
 const DISPLAY_REPORT = 'REPORT';
 const DISPLAY_HL_SUMMARY = 'HL_SUMMARY';
 const DISPLAY_PORTAL = 'PORTAL';
@@ -549,24 +549,45 @@ function produceAggregatedComparisonReport($scope, hits, reducedResults, existin
     return summary;
 }
 
-function produceReport($scope, hits, reducedResults) {
+let addHead = false;
+
+function topScore(row) {
+    if (!isValue(row.type)) {
+        return false;
+    }
+    const name = row[0].value.replace(/ /, '_');
+    return name.indexOf('conforming_rate') >= 0 || name.indexOf('max_rate') >= 0 || name.indexOf('high_bound') >= 0;
+}
+
+function topReportProperty(row) {
+    if (!isHeader(row.type)) {
+        return false;
+    }
+    const name = row[0].value;
+    return name == 'VM' ||  name == 'Benchmark' || name == 'Tested by';
+}
+
+
+function produceTussleReport($scope, hits, reducedResults) {
     const resultToggles = $scope.resultToggles;
     const displayDetails = { name: 'More Metrics', show: false };
     const displayHeader = { name: 'Configuration', show: true };
     const displaySummary = { name: 'Results', show: true };
-    const headerInfo = reduceResultsTable($scope, produceBasicReportTable(hits));
-    const summaryResults = filterValueResultsTable(reducedResults, row => isValue(row.type) &&
-        (row[0].value.indexOf('conforming rate') >= 0 || row[0].value.indexOf('max rate') >= 0 || row[0].value.indexOf('high bound') >= 0));
+    const topTable = filterValueResultsTable(reducedResults, row => topReportProperty(row) || topScore(row));
     const report =
         [{
             logo: true,
             cls: 'main_logo'
         }, {
             html: '<div class="center-aligner">'
-                + '<div class="main_title">ISV Report</div>'
-                + '<div class="main_subtitle">Copyright &copy; 2021 Azul Systems</div>'
+                + '<div class="main_title">TUSSLE Report</div>'
+                + '<div class="main_subtitle">Copyright &copy; Azul Systems</div>'
                 + '<br/></div>'
-        }, {
+        },];
+    if (addHead) {
+        const headerInfo = reduceResultsTable($scope, produceReportBasicConfigurationTable(hits));
+        const summaryResults = filterValueResultsTable(reducedResults, row => topScore(row));
+        report.push({
             cls: 'sub_table half',
             table_caption: displayHeader.name,
             //hidingToggles: [],
@@ -590,42 +611,30 @@ function produceReport($scope, hits, reducedResults) {
         }, {
             cls: 'sub_table half',
             vspace: true,
-        }];
-    const hwInfo = reduceResultsTable($scope, produceHardwareTable(hits));
-    if (hwInfo && Object.keys(hwInfo).length > 0) {
-        const displayHw = { name: 'HW Details', show: false };
-        report.push({
-            cls: 'sub_table',
-            hidingToggles: [],
-            displayToggles: displayHw,
-            displayTable: displayHw,
-            table: hwInfo,
-            //vspace: true,
         });
     }
-    const osInfo = reduceResultsTable($scope, produceOsTable(hits));
-    if (osInfo && Object.keys(osInfo).length > 0) {
-        const displayOs = { name: 'OS Details', show: false };
-        report.push({
-            cls: 'sub_table',
-            hidingToggles: [],
-            displayToggles: displayOs,
-            displayTable: displayOs,
-            table: osInfo,
-            //vspace: true,
-        });
-    }
-    const jvmInfo = reduceResultsTable($scope, produceJvmTable(hits));
-    if (jvmInfo && Object.keys(jvmInfo).length > 0) {
-        const displayJvm = { name: 'JVM Details', show: false };
-        report.push({
-            cls: 'sub_table',
-            hidingToggles: [],
-            displayToggles: displayJvm,
-            displayTable: displayJvm,
-            table: jvmInfo,
-            //vspace: true,
-        });
+    report.push({
+        cls: 'sub_table',
+        displayToggles: displayHeader,
+        //hidingToggles: resultToggles,
+        displayTable: { show: true },
+        table: topTable,
+        table_width: '100%',
+    });
+    for (const prop of ['jvmInfo', 'osInfo', 'hardwareInfo' ]) {
+        //const info = reduceResultsTable($scope, producePropsTable(hits, prop));
+        const info = producePropsTable(hits, prop);
+        if (info && Object.keys(info).length > 0) {
+            const displaySubtable = { name: prop.capitalize() + ' info', show: false };
+            report.push({
+                cls: 'sub_table',
+                hidingToggles: [],
+                displayToggles: displaySubtable,
+                displayTable: displaySubtable,
+                table: info,
+                //table_width: '100%',
+            });
+        }
     }
     report.push({
         cls: 'sub_table',
@@ -647,7 +656,7 @@ function createToggleFilter($scope, filterWhat) {
         togglesFilter.toggles[0].name = togglesFilter.value;
         togglesFilter.toggles[0].visible = !!togglesFilter.value;
     };
-    let newToggle = () => {/* */};
+    let newToggle = () => {/* */ };
     const onRemove = t => {
         for (let i = 0; i < togglesFilter.toggles.length; i++) {
             if (t === togglesFilter.toggles[i]) {
@@ -672,7 +681,7 @@ function createToggleFilter($scope, filterWhat) {
 }
 
 function produceDetailedComparisonReport($scope, hits, reducedResults) {
-    const resultToggles = $scope.resultToggles; 
+    const resultToggles = $scope.resultToggles;
     const displayDetails = { show: true };
     const toShow = () => resultToggles.filter(t => t.selected && !t.generic && t.name !== 'avg').map(t => convertShowArg(t.name)).join(',');
     const toOpts = () => $scope.showOptions.join(',');
@@ -705,7 +714,7 @@ function produceDetailedComparisonReport($scope, hits, reducedResults) {
     }];
 }
 
-function produceBasicReportTable(hits) {
+function produceReportBasicConfigurationTable(hits) {
     let table = {};
     if (hits.length > 0) {
         for (let hidx = 0; hidx < hits.length; hidx++) {
@@ -714,8 +723,9 @@ function produceBasicReportTable(hits) {
             let cls = runProperties.vm_name.toLowerCase();
             pushVal(table, 'Benchmark', TYPE_HEADER, runProperties.benchmark, hidx, cls);
             pushVal(table, 'Tested by', TYPE_HEADER, runProperties.testedBy, hidx, cls);
-            pushVal(table, 'Test date', TYPE_HEADER, runProperties.date, hidx, cls);
-            pushVal(table, 'Test sponsor', TYPE_HEADER, runProperties.sponsor, hidx, cls);
+            pushVal(table, 'Test start time', TYPE_DATETIME, runProperties.start_time, hidx, cls);
+            pushVal(table, 'Test finish time', TYPE_DATETIME, runProperties.finish_time, hidx, cls);
+            //pushVal(table, 'Test sponsor', TYPE_HEADER, runProperties.sponsor, hidx, cls);
         }
     }
     return table;
@@ -723,32 +733,44 @@ function produceBasicReportTable(hits) {
 
 function producePropsTable(hits, propsName) {
     let table = {};
+    let added = 0;
     if (hits.length > 0) {
+        let propsNameSet = null;
         for (let hidx = 0; hidx < hits.length; hidx++) {
-            let hit = hits[hidx];
-            let runProperties = hit._source.runProperties;
-            let cls = runProperties.vm_name.toLowerCase();
-            if (runProperties[propsName] && runProperties[propsName].length === 1) {
+            const runProperties = hits[hidx]._source.runProperties;
+            if (runProperties[propsName]) {
+                console.log(`producePropsTable ${propsName} - ${runProperties[propsName].length}`);
+                if (!propsNameSet) {
+                    propsNameSet = {};
+                }
                 const props = runProperties[propsName][0];
-                for (let prop in props) {
-                    pushVal(table, prop, TYPE_HEADER, props[prop], hidx, cls);
+                for (const prop in props) {
+                    propsNameSet[prop] = true;
+                }
+            }
+        }
+        if (propsNameSet) {
+            for (let hidx = 0; hidx < hits.length; hidx++) {
+                const runProperties = hits[hidx]._source.runProperties;
+                const cls = runProperties.vm_name.toLowerCase();
+                pushVal(table, "VM", TYPE_HEADER, runProperties.vm_name, hidx, cls);
+                if (runProperties[propsName]) {
+                    const props = runProperties[propsName][0];
+                    for (const prop in propsNameSet) {
+                        pushVal(table, prop, TYPE_HEADER, props[prop] || "n/a", hidx, cls);
+                        added++;
+                    }
+                } else {
+                    for (const prop in propsNameSet) {
+                        pushVal(table, prop, TYPE_HEADER, "n/a", hidx, cls);
+                        added++;
+                    }
                 }
             }
         }
     }
+    console.log(`producePropsTable ${propsName} added ${added}`);
     return table;
-}
-
-function produceHardwareTable(hits) {
-    return producePropsTable(hits, 'hardware');
-}
-
-function produceOsTable(hits) {
-    return producePropsTable(hits, 'os');
-}
-
-function produceJvmTable(hits) {
-    return producePropsTable(hits, 'jvm');
 }
 
 function produceSetupTable(hits) {
@@ -770,7 +792,7 @@ function produceSetupTable(hits) {
             pushVal(table, 'Params', TYPE_HEADER, runProperties.workload_parameters, hidx, cls);
             pushVal(table, 'Config', TYPE_HEADER, runProperties.config, hidx, cls, () => false);
             pushVal(table, 'Host', TYPE_HEADER, runProperties.hosts, hidx, cls);
-            pushVal(table, 'Test Run Date', TYPE_DATETIME, runProperties.start_time, hidx, cls);
+            pushVal(table, 'Test Run Date', TYPE_DATE, runProperties.start_time, hidx, cls);
             pushVal(table, 'Test Run Time (minutes)', TYPE_NUMBER, runProperties.time_spent_minutes, hidx, cls);
             pushVal(table, 'Test Run Conductor', TYPE_HEADER, runProperties.conductor, hidx, cls);
         }
@@ -832,13 +854,13 @@ function initLazyToggle(lazyElem, t, selected) {
     lazyElem.extra.push(() => t.selected = t.visible = lazyElem.selected);
     if (!lazyElem.toggle) {
         lazyElem.toggle = () => lazyElem.extra.forEach(f => f());
-    }    
+    }
 }
 
 function lazyChart(metric) {
-    return metric.name == 'hiccup_times' || metric.name == 'top' || metric.name == 'cpu' || 
+    return metric.name == 'hiccup_times' || metric.name == 'top' || metric.name == 'cpu' ||
         metric.name == 'network' || metric.name == 'disk' || metric.name.indexOf('-mw') >= 0;
-} 
+}
 
 function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
     const cls = runProperties.vm_name.toLowerCase();
@@ -935,7 +957,7 @@ function pushMetricsValues(metrics, runProperties, hidx, table, toggles, prefix,
         const toogleOperation = tooManyMetrics ? null : metric.operation || null;
         let error_rate = 0;
         if (isPrime(metric.name)) {
-            error_rate = metric.totalErrors / metric.totalValues;
+            error_rate = metric.totalValues ? metric.totalErrors / metric.totalValues : null;
             if (metric.operation) {
                 pushVal(table, prefix + metricLabel2 + ' error rate', TYPE_NUMBER, error_rate, hidx, cls + (error_rate > 0 ? ' data_error' : ''), () => toggles.selected(metric.name, toogleOperation, 'error rate'));
                 pushVal(table, prefix + metricLabel2 + ' total errors', TYPE_NUMBER, metric.totalErrors, hidx, cls, () => toggles.selected(metric.name, toogleOperation, 'total errors'));
@@ -1048,8 +1070,8 @@ function produceResultsTable(hits, $scope) {
             pushVal(table, 'Params', TYPE_HEADER, runProperties.workload_parameters, hidx, cls, () => toggles.selected('params')).cls += ' data_wrap';
             pushVal(table, 'Host', TYPE_HEADER, runProperties.hosts, hidx, cls, () => toggles.selected('host'));
             pushVal(table, 'Results', TYPE_RESULTS_DIR, runProperties.results_dir, hidx, cls, () => toggles.selected('results'));
-            pushVal(table, 'Test run date', TYPE_DATETIME, runProperties.start_time, hidx, cls, () => toggles.selected('run time'));
-            pushVal(table, 'Test run time (minutes)', TYPE_NUMBER, runProperties.time_spent_minutes, hidx, cls, () => toggles.selected('run time'));
+            pushVal(table, 'Test Run Date', TYPE_DATE, runProperties.start_time, hidx, cls, () => toggles.selected('run time'));
+            pushVal(table, 'Test Run Time (minutes)', TYPE_NUMBER, runProperties.time_spent_minutes, hidx, cls, () => toggles.selected('run time'));
             if (race_i === 0 && !noCharts) {
                 pushMetricsCharts(hit._source.metrics, hit._source.runProperties, hidx, table, toggles, prefix, race_i, showDataElements);
             }
@@ -1197,8 +1219,7 @@ function reduceResultsTable($scope, table) {
     const groupByToggles = $scope.groupByToggles;
     const benchmark = $scope.selectedBenchmark;
     const excludeData = $scope.excludeData;
-    const xTicks = $scope.xTicks;
-    console.log('groupByToggles: ' + groupByToggles.joinSelected('name', ','));
+    console.log(`reduceResultsTable: ${table} - ` + groupByToggles.joinSelected('name', ','));
     const tableOut = prepareTable(table);
     const totalCols = getTotalCols(table);
     let processed = [];
@@ -1241,10 +1262,12 @@ function reduceResultsTable($scope, table) {
             } else if (rowOut.type === TYPE_DATETIME) {
                 cell.values = [];
                 if (cell.value) {
-                    cell.values.push({
-                        value: cell.value.formatDateTimeUTC(),
-                        br: true
-                    });
+                    cell.values.push({ value: cell.value.formatDateTimeUTC(), br: true });
+                }
+            } else if (rowOut.type === TYPE_DATE) {
+                cell.values = [];
+                if (cell.value) {
+                    cell.values.push({ value: cell.value.formatDateUTC(), br: true });
                 }
             } else if (rowOut.type === TYPE_NUMBER) {
                 cell.valueMin = cell.orig_value;
@@ -1348,10 +1371,11 @@ function reduceResultsTable($scope, table) {
                         });
                     } else if (rowOut.type === TYPE_DATETIME) {
                         if (peer.value) {
-                            cell.values.push({
-                                value: peer.value.formatDateTimeUTC(),
-                                br: true
-                            });
+                            cell.values.push({ value: peer.value.formatDateTimeUTC(), br: true });
+                        }
+                    } else if (rowOut.type === TYPE_DATE) {
+                        if (peer.value) {
+                            cell.values.push({ value: peer.value.formatDateUTC(), br: true });
                         }
                     } else if (rowOut.type === TYPE_HEADER || rowOut.type === TYPE_PARAMS) {
                         let val1 = cell.value;
@@ -2063,12 +2087,12 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         toggles.forEach(t => t.visible = true);
         $scope.resultToggles = toggles.filter(t => !t.missing);
         $scope.producedResults = produceResultsTable(hits, $scope);
-        let reducedResults = reduceResultsTable($scope, $scope.producedResults);
-        reducedResults = produceComparisonTable(reducedResults, $scope.resultToggles, $scope.compare_prev);
+        const tableResults = reduceResultsTable($scope, $scope.producedResults);
+        const reducedResults = produceComparisonTable(tableResults, $scope.resultToggles, $scope.compare_prev);
         if ($scope.display === DISPLAY_SUMMARY) {
             $scope.report = produceAggregatedComparisonReport($scope, hits, reducedResults);
         } else if ($scope.display === DISPLAY_REPORT) {
-            $scope.report = produceReport($scope, hits, reducedResults);
+            $scope.report = produceTussleReport($scope, hits, reducedResults);
         } else {
             $scope.report = produceDetailedComparisonReport($scope, hits, reducedResults);
         }
@@ -2254,13 +2278,13 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
     }
     function getShowOpts() {
         if ($scope.showDefaultValues) {
-            return "";  
+            return "";
         }
         if ($scope.showAllMetrics) {
-            return "all";  
-        } 
-        if ($scope.showAllCharts) { 
-            return  "allcharts";
+            return "all";
+        }
+        if ($scope.showAllCharts) {
+            return "allcharts";
         }
         if ($scope.showAllValues) {
             return "allvalues";
@@ -2268,7 +2292,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         if ($scope.showCustomValues) {
             return $scope.showCustomTest;
         }
-        return $scope.showDataElements.join(',');   
+        return $scope.showDataElements.join(',');
     }
     function getFilterOpts() {
         if ($scope.filterValues) {
@@ -2280,7 +2304,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         const showOptions = [...$scope.showOptions];
         if ($scope.noSortMetrics) {
             showOptions.push("nosort");
-        }             
+        }
         if ($scope.optsValues) {
             showOptions.push($scope.optsText);
         }
@@ -2292,8 +2316,8 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             $scope.compare_prev = prev;
         }
         let runs = $scope.useIDs ?
-        $scope.foundResults.joinSelected('id', ',', encodeURIComponent) : 
-        $scope.foundResults.joinSelected('results_dir', ',', encodeURIComponent);
+            $scope.foundResults.joinSelected('id', ',', encodeURIComponent) :
+            $scope.foundResults.joinSelected('results_dir', ',', encodeURIComponent);
         if (runs.length > 0) {
             const q = $scope.queryArgs(runs, getOptionsOpts(), getShowOpts(), getFilterOpts(), summary);
             $scope.openResults(event, q, target);
@@ -2359,33 +2383,28 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         $scope.visibleRuns = [];
         $scope.visibleRuns.allSelected = false;
         let localMetrics = [];
-        if (typeof metricsData !== 'undefined') localMetrics.push(metricsData);
-        if (typeof metricsData1 !== 'undefined') localMetrics.push(metricsData1);
-        if (typeof metricsData2 !== 'undefined') localMetrics.push(metricsData2);
-        if (typeof metricsData3 !== 'undefined') localMetrics.push(metricsData3);
-        if (typeof metricsData4 !== 'undefined') localMetrics.push(metricsData4);
-        if (typeof metricsData5 !== 'undefined') localMetrics.push(metricsData5);
-        if (typeof metricsData6 !== 'undefined') localMetrics.push(metricsData6);
-        if (typeof metricsData7 !== 'undefined') localMetrics.push(metricsData7);
-        if (typeof metricsData8 !== 'undefined') localMetrics.push(metricsData8);
-        if (typeof metricsData9 !== 'undefined') localMetrics.push(metricsData9);
-        if (typeof metrics_data !== 'undefined') localMetrics.push(metrics_data);
-        if (typeof metrics_data1 !== 'undefined') localMetrics.push(metrics_data1);
-        if (typeof metrics_data2 !== 'undefined') localMetrics.push(metrics_data2);
-        if (typeof metrics_data3 !== 'undefined') localMetrics.push(metrics_data3);
-        if (typeof metrics_data4 !== 'undefined') localMetrics.push(metrics_data4);
-        if (typeof metrics_data5 !== 'undefined') localMetrics.push(metrics_data5);
-        if (typeof metrics_data6 !== 'undefined') localMetrics.push(metrics_data6);
-        if (typeof metrics_data7 !== 'undefined') localMetrics.push(metrics_data7);
-        if (typeof metrics_data8 !== 'undefined') localMetrics.push(metrics_data8);
-        if (typeof metrics_data9 !== 'undefined') localMetrics.push(metrics_data9);
+        let globalProps = Object.getOwnPropertyNames(window);
+        for (const globalProp of globalProps) {
+            if ((globalProp.startsWith('metricsData') || globalProp.startsWith('metrics_data')) && typeof window[globalProp] !== 'undefined') {
+                console.log(`found metricsData ${globalProp}`);
+                if (window[globalProp]) {
+                    localMetrics.push(window[globalProp]);
+                }
+            }
+        }
         if (localMetrics.length > 0) {
-            console.log('showResults: using local metrics...');
-            let docs = [];
-            localMetrics.forEach(adoc => adoc.forEach(doc => docs.push(doc)));
+            console.log('showResults: report mode...');
             $scope.display = DISPLAY_REPORT;
+            let docs = [];
+            localMetrics.forEach(adoc => adoc.forEach(doc => {
+                if (doc._source.doc) {
+                    doc._source = doc._source.doc;
+                }
+                docs.push(doc);
+            }));
             $scope.showDataElements = ['.*response_time_summary_max'];
-            $scope.wide_charts = true;
+            $scope.wide_charts = localMetrics.length === 1;
+            console.dir(docs)
             handleResultResponse({ data: { docs } });
             return;
         }
@@ -2397,24 +2416,24 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             }
         }
         if ($location.search().portal) {
-            console.log('showResults: portal...');
+            console.log('showResults: portal mode...');
             $scope.display = DISPLAY_PORTAL;
         } else if ($location.search().search) {
-            console.log('showResults: search...');
+            console.log('showResults: search mode...');
             $scope.display = DISPLAY_SEARCH;
         } else if ($scope.visibleRuns.length === 0) {
-            console.log('showResults: runs...');
+            console.log('showResults: runs mode...');
             $scope.display = DISPLAY_RUNS;
         } else {
             if ($location.search().summary) {
-                console.log('showResults: summary...');
+                console.log('showResults: summary mode...');
                 $scope.display = DISPLAY_SUMMARY;
             } else if ($location.search().hls) {
-                console.log('showResults: high level summary ..');
+                console.log('showResults: high level summary mode ..');
                 $scope.display = DISPLAY_HL_SUMMARY;
             } else {
-                console.log('showResults: details...');
-                $scope.display = DISPLAY_DETAILS;
+                console.log('showResults: table mode...');
+                $scope.display = DISPLAY_TABLE;
             }
             if ($location.search().g) {
                 $scope.groupByToggles.forEach(e => e.selected = false);
@@ -2534,7 +2553,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             }
             $window.open(qs, target);
         } else {
-            let prevHandler = $scope.$on('$locationChangeSuccess', () => {/**/});
+            let prevHandler = $scope.$on('$locationChangeSuccess', () => {/**/ });
             $location.search(q);
             $scope.$on('$locationChangeSuccess', prevHandler);
             $scope.showResults();

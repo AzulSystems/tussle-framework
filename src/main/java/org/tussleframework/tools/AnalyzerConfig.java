@@ -35,6 +35,7 @@ package org.tussleframework.tools;
 import java.io.File;
 
 import org.tussleframework.HdrConfig;
+import org.tussleframework.RunProperties;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Interval;
 import org.tussleframework.metrics.MovingWindowSLE;

@@ -38,6 +38,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -53,14 +54,41 @@ public class FormatTool {
     private FormatTool() {}
 
     private static final SimpleDateFormat BASIC_UTC_DATE_FORMAT;
+    private static final SimpleDateFormat BASIC_UTC_DATE_FORMAT2;
 
     static {
         BASIC_UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
         BASIC_UTC_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+        BASIC_UTC_DATE_FORMAT2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        BASIC_UTC_DATE_FORMAT2.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public static long parseUTCDate(String s) throws ParseException {
         return BASIC_UTC_DATE_FORMAT.parse(s.substring("START:".length()).trim()).getTime();
+    }
+
+    public static String formatDate(Date d) {
+        return BASIC_UTC_DATE_FORMAT.format(d);
+    }
+
+    public static String formatIsoDatetime(Date d) {
+        return BASIC_UTC_DATE_FORMAT2.format(d).replace(' ', 'T');
+    }
+
+    public static String formatIsoDatetime(long d) {
+        return BASIC_UTC_DATE_FORMAT2.format(new Date(d)).replace(' ', 'T');
+    }
+
+    public static String formatBytes(double n) {
+        if (Math.abs(n) < 1024.0)
+            return roundFormat(n) + "B";
+        if (Math.abs(n) < 1024.0 * 1024.0)
+            return roundFormat(n / 1024.0) + "KiB";
+        if (Math.abs(n) < 1024.0 * 1024.0 * 1024.0)
+            return roundFormat(n / 1024.0 / 1024.0) + "MiB";
+        if (Math.abs(n) < 1024.0 * 1024.0 * 1024.0 * 1024.0)
+            return roundFormat(n / 1024.0 / 1024.0 / 1024.0) + "GiB";
+        return roundFormat(n / 1024.0 / 1024.0 / 1024.0 / 1024.0) + "TiB";
     }
 
     public static String format(double d) {

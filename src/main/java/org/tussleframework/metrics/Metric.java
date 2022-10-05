@@ -41,31 +41,38 @@ import static org.tussleframework.tools.FormatTool.*;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Generic metric representation. It can be simple single value metric e.g. { name: 'score', value: ) 
+ * or full set of arrays containing different percentiles and counts. 
+ * 
+ * @author rus
+ *
+ */
 @Data
 @Builder
 public class Metric {
-    protected Long start;
-    protected Long finish;
-    protected Long totalValues;
-    protected Integer delay;
+    protected Long start;        // absolute measurement UTC start time in ms
+    protected Long finish;       // absolute measurement UTC finish time in ms
+    protected Long totalValues;  // total measured values (samples, requests, etc.)
+    protected Integer delay;     // metric measurement interval length
     protected Integer retry;
-    protected String name;
-    protected String host;
+    protected String name;       // response_time, service_time, etc. 
+    protected String host;       // host or node name where metric was collected
     protected String type;
     protected String group;
-    protected String units;
-    protected String xunits;
-    protected String rateUnits;
-    protected String operation;
-    protected Double highBound;
-    protected Double targetRate;
-    protected Double actualRate;
-    protected Double value;
-    protected Double meanValue;
+    protected String units;      // metric measurement value units (ms, s, etc.) 
+    protected String xunits;     // alternative metric X-axis units if it is not time-based
+    protected String rateUnits;  // metric measurement rate units (op/s, msg/s, etc.)
+    protected String operation;  // reads, writes, appends, end-to-end, etc.
+    protected Double highBound;  // optional target rate high-bound value which used for iterative scenarios, e.g. run at target rates from 50% to 110% of high-bound 
+    protected Double targetRate; // target rate
+    protected Double actualRate; // measured actual rate
+    protected Double value;      // metric value in case if it is single-value
+    protected Double meanValue;  // mean value of measured metric values
     protected Double percentOfHighBound;
-    protected String[] xValues;
+    protected String[] xValues;  // alternative metric X-axis values or labels
     protected ArrayList<Marker> markers;
-    protected ArrayList<MetricValue> metricValues;
+    protected ArrayList<MetricValue> metricValues; // measured metric values
 
     public Metric add(MetricValue mv) {
         if (metricValues == null) {

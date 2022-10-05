@@ -58,14 +58,14 @@ public class RunProperties extends HashMap<String, Object> {
     }
 
     public synchronized Properties getHardware() {
-        return getPropMap("hardware");
+        return getPropMap("hardwareInfo");
     }
 
     public synchronized Properties getOs() {
-        return getPropMap("os");
+        return getPropMap("osInfo");
     }
 
     public synchronized Properties getJvm() {
-        return getPropMap("jvm");
+        return getPropMap("jvmInfo");
     }
 }

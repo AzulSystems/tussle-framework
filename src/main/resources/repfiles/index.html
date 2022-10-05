@@ -283,11 +283,11 @@
                             ng-click="item.selected = !item.selected; visibleRuns.fixAllSelected()">
                             <span ng-if="headerProperty != 'results_dir' && headerProperty != '_id'">{{item | field:headerProperty}}</span> 
                             <span ng-if="headerProperty == '_id'"
-	                            ng-class="item[headerProperty] ? 'link' : ''"
-	                            ng-click="openID($event, item[headerProperty])">{{item[headerProperty]}}</span>
+                                ng-class="item[headerProperty] ? 'link' : ''"
+                                ng-click="openID($event, item[headerProperty])">{{item[headerProperty]}}</span>
                             <span ng-if="headerProperty == 'results_dir'"
-	                            ng-class="item[headerProperty] ? 'link' : ''"
-	                            ng-click="openResultsDir($event, item[headerProperty])">{{item[headerProperty] ? 'res' : 'n/a' }}</span>
+                                ng-class="item[headerProperty] ? 'link' : ''"
+                                ng-click="openResultsDir($event, item[headerProperty])">{{item[headerProperty] ? 'res' : 'n/a' }}</span>
                         </td>
                     </tr>
                 </tbody>
@@ -311,35 +311,35 @@
     <div> 
     <div ng-show="display == 'SUMMARY' || display == 'DETAILS' || display == 'REPORT'" ng-cloak>
         <span ng-repeat="item in report" ng-show="!item.visible || item.visible()" ng-class="item.cls + (item.sticky ? 'sticky' : '')">
-	        <span ng-if="item.logo" ng-class="item.cls">
-	            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="112.203" height="48" viewBox="0 0 112.203 48">
-				  <defs>
-				    <linearGradient id="a" x1="1" y1="0.5" x2="0" y2="0.5" gradientUnits="objectBoundingBox">
-				      <stop offset="0.009" stop-color="#0e1f60"/>
-				      <stop offset="0.186" stop-color="#233e92"/>
-				      <stop offset="0.561" stop-color="#0081b4"/>
-				      <stop offset="1" stop-color="#87d3eb"/>
-				    </linearGradient>
-				    <linearGradient id="c" x1="0.02" y1="1.017" x2="0.882" y2="-0.102" xlink:href="#a"/>
-				  </defs>
-				  <g transform="scale(0.4 0.4)"><g transform="translate(-322.42 -38.371)">
-				    <g transform="translate(358.305 52.592)">
-				      <path d="M362.076,54.086v.279l19.881.409-19.881.409V55.8l19.881.409-19.881.409v.615l19.881.409-19.881.409v.615l19.881.409-19.881.409v.615l19.881.409-19.881.409v.3h25.593V54.086Z" transform="translate(-362.076 -54.086)" fill="url(#a)"/>
-				    </g>
-				    <g transform="translate(322.42 38.371)">
-				      <g transform="translate(43.585 39.199)">
-				        <path d="M376.032,81.69l-.156.2,10.543.46-11.279.493-.334.431,11.613.48-12.379.512-.3.393,12.683.5-13.48.531-.276.357,13.756.516-14.577.547-.25.323,14.827.534-15.676.565-.158.2h17.829V81.69Z" transform="translate(-370.585 -81.69)" fill="url(#a)"/>
-				      </g>
-				      <g transform="translate(35.885 22.127)">
-				        <path d="M372.948,79.857l12.864-17.034h-.556L371.921,79.048l12.253-16.225h-.609L370.9,78.239l11.642-15.416h-.663L369.869,77.43,380.9,62.823h-.717l-11.341,13.8,10.421-13.8h-.771l-10.676,12.99,9.81-12.99h-.617L362.076,81.808V86.95h6.448l19.107-24.126h-.684Z" transform="translate(-362.076 -62.823)" fill="url(#c)"/>
-				      </g>
-				      <path d="M355.221,86.082a12.26,12.26,0,0,1-4.1.513c-3.466,0-6.146-1.634-7.257-5.165H343.8c-1.046,1.962-3.726,5.165-10.526,5.165-7.061,0-10.853-3.465-10.853-8.761,0-7.845,8.042-10.134,16.8-10.134h4.119V66.262c0-3.335-2.027-5.557-6.081-5.557-3.4,0-5.557,1.7-5.884,4.445H323.27c.523-7.256,6.146-11.245,14.449-11.245,9.349,0,14.318,4.9,14.318,13.011v10.33c0,1.308.588,1.961,1.5,1.961a4.03,4.03,0,0,0,1.634-.327ZM343.342,74.631V72.6H338.7c-4.773,0-7.585,1.373-7.585,4.184,0,2.092,1.57,3.269,4.642,3.269C340.466,80.058,343.342,77.181,343.342,74.631Z" transform="translate(-322.42 -39.848)" fill="#091a31"/>
-				      <path d="M445.143,84.5a12.092,12.092,0,0,1-4.2.618c-5.23,0-7.911-3.138-7.911-8.826V38.371h8.957v37.4c0,1.242.654,1.961,1.569,1.961a3.954,3.954,0,0,0,1.569-.327Z" transform="translate(-332.939 -38.371)" fill="#091a31"/>
-				      <path d="M427.047,78.915a3.953,3.953,0,0,1-1.569.327c-.916,0-1.569-.718-1.569-1.961V54.267H414.9V72.18c0,3.989-2.55,6.669-5.885,6.669-3.6,0-5.492-2.354-5.492-6.08v-18.5H394.5V74.862c0,6.6,3.727,11.768,11.05,11.768a11.9,11.9,0,0,0,9.842-5.252c.957,3.412,3.465,5.252,7.468,5.252a12.056,12.056,0,0,0,4.191-.618Z" transform="translate(-329.275 -39.883)" fill="#091a31"/>
-				    </g>
-				  </g></g>
-				</svg>
-			</span>
+            <span ng-if="item.logo" ng-class="item.cls">
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="112.203" height="48" viewBox="0 0 112.203 48">
+                  <defs>
+                    <linearGradient id="a" x1="1" y1="0.5" x2="0" y2="0.5" gradientUnits="objectBoundingBox">
+                      <stop offset="0.009" stop-color="#0e1f60"/>
+                      <stop offset="0.186" stop-color="#233e92"/>
+                      <stop offset="0.561" stop-color="#0081b4"/>
+                      <stop offset="1" stop-color="#87d3eb"/>
+                    </linearGradient>
+                    <linearGradient id="c" x1="0.02" y1="1.017" x2="0.882" y2="-0.102" xlink:href="#a"/>
+                  </defs>
+                  <g transform="scale(0.4 0.4)"><g transform="translate(-322.42 -38.371)">
+                    <g transform="translate(358.305 52.592)">
+                      <path d="M362.076,54.086v.279l19.881.409-19.881.409V55.8l19.881.409-19.881.409v.615l19.881.409-19.881.409v.615l19.881.409-19.881.409v.615l19.881.409-19.881.409v.3h25.593V54.086Z" transform="translate(-362.076 -54.086)" fill="url(#a)"/>
+                    </g>
+                    <g transform="translate(322.42 38.371)">
+                      <g transform="translate(43.585 39.199)">
+                        <path d="M376.032,81.69l-.156.2,10.543.46-11.279.493-.334.431,11.613.48-12.379.512-.3.393,12.683.5-13.48.531-.276.357,13.756.516-14.577.547-.25.323,14.827.534-15.676.565-.158.2h17.829V81.69Z" transform="translate(-370.585 -81.69)" fill="url(#a)"/>
+                      </g>
+                      <g transform="translate(35.885 22.127)">
+                        <path d="M372.948,79.857l12.864-17.034h-.556L371.921,79.048l12.253-16.225h-.609L370.9,78.239l11.642-15.416h-.663L369.869,77.43,380.9,62.823h-.717l-11.341,13.8,10.421-13.8h-.771l-10.676,12.99,9.81-12.99h-.617L362.076,81.808V86.95h6.448l19.107-24.126h-.684Z" transform="translate(-362.076 -62.823)" fill="url(#c)"/>
+                      </g>
+                      <path d="M355.221,86.082a12.26,12.26,0,0,1-4.1.513c-3.466,0-6.146-1.634-7.257-5.165H343.8c-1.046,1.962-3.726,5.165-10.526,5.165-7.061,0-10.853-3.465-10.853-8.761,0-7.845,8.042-10.134,16.8-10.134h4.119V66.262c0-3.335-2.027-5.557-6.081-5.557-3.4,0-5.557,1.7-5.884,4.445H323.27c.523-7.256,6.146-11.245,14.449-11.245,9.349,0,14.318,4.9,14.318,13.011v10.33c0,1.308.588,1.961,1.5,1.961a4.03,4.03,0,0,0,1.634-.327ZM343.342,74.631V72.6H338.7c-4.773,0-7.585,1.373-7.585,4.184,0,2.092,1.57,3.269,4.642,3.269C340.466,80.058,343.342,77.181,343.342,74.631Z" transform="translate(-322.42 -39.848)" fill="#091a31"/>
+                      <path d="M445.143,84.5a12.092,12.092,0,0,1-4.2.618c-5.23,0-7.911-3.138-7.911-8.826V38.371h8.957v37.4c0,1.242.654,1.961,1.569,1.961a3.954,3.954,0,0,0,1.569-.327Z" transform="translate(-332.939 -38.371)" fill="#091a31"/>
+                      <path d="M427.047,78.915a3.953,3.953,0,0,1-1.569.327c-.916,0-1.569-.718-1.569-1.961V54.267H414.9V72.18c0,3.989-2.55,6.669-5.885,6.669-3.6,0-5.492-2.354-5.492-6.08v-18.5H394.5V74.862c0,6.6,3.727,11.768,11.05,11.768a11.9,11.9,0,0,0,9.842-5.252c.957,3.412,3.465,5.252,7.468,5.252a12.056,12.056,0,0,0,4.191-.618Z" transform="translate(-329.275 -39.883)" fill="#091a31"/>
+                    </g>
+                  </g></g>
+                </svg>
+            </span>
             <span ng-if="item.label" ng-class="item.cls">{{ item.label }}</span>
             <span ng-if="item.html" ng-bind-html="item.html | trust"></span>
             <span ng-if="item.charts" ng-repeat="chart in item.charts track by $index" class="container">
@@ -395,30 +395,30 @@
                         <tr class="toggles">
                             <td>
                                 <span ng-repeat="toggle in item.hidingToggles">
-	                                <div ng-show="toggle.togglesFilter">
-	                                    {{toggle.name}}: <input ng-if="toggle.togglesFilter" type="text" ng-model="toggle.togglesFilter.value" ng-change="toggle.togglesFilter.onChange($event.target.value)">
-	                                    <span class="right" ng-if="toggle.togglesFilter.pin">
-	                                        <toggle
-	                                            ng-show="toggle.visible"
-	                                            bind-class="toggle_small noselect"
-	                                            bind-var="item.sticky" bind-name="pin" />
-	                                    </span>
-	                                    <span ng-repeat="toggle in toggle.togglesFilter.toggles">
-	                                        <toggle-del
-	                                            ng-show="toggle.visible"
-	                                            bind-class="{{toggle.style}} noselect" 
-	                                            bind-var="toggle.selected"
-	                                            on-del="toggle.remove(toggle)"
-	                                            bind-name="{{toggle.name}}"
-	                                            on-toggle="toggle.toggle(toggle)">_toggle_</toggle-del>
-	                                    </span>
-	                                </div>
+                                    <div ng-show="toggle.togglesFilter">
+                                        {{toggle.name}}: <input ng-if="toggle.togglesFilter" type="text" ng-model="toggle.togglesFilter.value" ng-change="toggle.togglesFilter.onChange($event.target.value)">
+                                        <span class="right" ng-if="toggle.togglesFilter.pin">
+                                            <toggle
+                                                ng-show="toggle.visible"
+                                                bind-class="toggle_small noselect"
+                                                bind-var="item.sticky" bind-name="pin" />
+                                        </span>
+                                        <span ng-repeat="toggle in toggle.togglesFilter.toggles">
+                                            <toggle-del
+                                                ng-show="toggle.visible"
+                                                bind-class="{{toggle.style}} noselect" 
+                                                bind-var="toggle.selected"
+                                                on-del="toggle.remove(toggle)"
+                                                bind-name="{{toggle.name}}"
+                                                on-toggle="toggle.toggle(toggle)">_toggle_</toggle-del>
+                                        </span>
+                                    </div>
                                     <toggle ng-if="toggle.style != 'toggle_separator' && toggle.style != 'toggle_label' && toggle.style != 'toggle_filter' && toggle.name"
-	                                    ng-show="toggle.visible"
-	                                    bind-class="toggle_small noselect {{toggle.style}}"
-	                                    bind-var="toggle.selected"
-	                                    bind-name="{{toggle.name}}"
-	                                    on-toggle="toggle.toggle(toggle)">_toggle_</toggle>
+                                        ng-show="toggle.visible"
+                                        bind-class="toggle_small noselect {{toggle.style}}"
+                                        bind-var="toggle.selected"
+                                        bind-name="{{toggle.name}}"
+                                        on-toggle="toggle.toggle(toggle)">_toggle_</toggle>
                                     <br ng-if="toggle.style == 'toggle_separator'" />
                                     <span ng-if="toggle.style == 'toggle_label'">{{toggle.name}}: </span>
                                 </span>
@@ -439,9 +439,9 @@
                             ng-show="!field.visible || field.visible()" ng-class="field.cls"
                             ng-attr-title="{{field.tooltip}}">
                             <toggle bind-class="toggle_small noselect"
-			                    bind-name="hide"
-			                    on-toggle="row.hide()"
-			                    ng-if="$index == 0 && row.hide">_hide_</toggle>
+                                bind-name="hide"
+                                on-toggle="row.hide()"
+                                ng-if="$index == 0 && row.hide">_hide_</toggle>
                             <div ng-if="field.charts"
                                 ng-repeat="chart in field.charts track by $index"
                                 class="container">
@@ -478,20 +478,23 @@
                             <span ng-if="!field.values"
                                 ng-click="field.onClick()" ng-attr-title="{{field.tooltip}}">{{field.value}}</span>
                             <span ng-if="field.comparisonBase"
-	                            ng-attr-title="Comparison base column">*</span>
+                                ng-attr-title="Comparison base column">*</span>
                             <span
-	                            ng-if="field.compareWith"
-	                            ng-attr-title="Select this column as base for comparison"
-	                            class="link" ng-click="field.compareWith()">^</span>
+                                ng-if="field.compareWith"
+                                ng-attr-title="Select this column as base for comparison"
+                                class="link" ng-click="field.compareWith()">^</span>
                         </td>
                     </tr>
                 </tbody>
                 </table>
+                <br/>
             </span>
             <div ng-if="item.vspace" class="vspace"> </div>
         </span>
         <br />
     </div>
     </div>
+    <br/>
+    <!-- <div>* - compare value with this marked configuration</div> -->
 </body>
 </html>

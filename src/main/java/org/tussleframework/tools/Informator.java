@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,12 +32,14 @@
 
 package org.tussleframework.tools;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.Properties;
 
-public class Informator {
+public class Informator implements Tool {
 
     public static void main(String[] args) {
-        printAll(System.err);
+        printAll(System.out);
     }
 
     static final String[] JVM_PROP = {
@@ -45,9 +47,19 @@ public class Informator {
             "java.vm.vendor",
             "java.vm.version",
             "java.vendor.url",
+            "java.specification.version",
             "java.vm.specification.version",
             "java.version.date",
+            "java.runtime.name",
+            "sun.management.compiler",
+            "jdk.debug",
     };
+
+    public static void print(Properties p, PrintStream out) {
+        for (Object key : p.keySet()) {
+            out.println(key + ": " + p.getProperty(key.toString(), "None"));
+        }
+    }
 
     public static void printAll(PrintStream out) {
         out.println("All system properties:");
@@ -65,39 +77,72 @@ public class Informator {
         out.println("");
     }
 
+    public static String capitalize(String s) {
+        if ("os".equals(s)) {
+            return "OS";
+        }
+        if ("jvm".equals(s)) {
+            return "JVM";
+        }
+        if ("jdk".equals(s)) {
+            return "JDK";
+        }
+        return s != null && s.length() > 0 ? s.substring(0, 1).toUpperCase() + s.substring(1) : s;
+    }
+
     public static String makeKey(String key) {
         if (key.startsWith("os.")) {
-            key = key.substring(3);
+            key = key.substring("os.".length());
         } else if (key.startsWith("java.")) {
-            key = key.substring(5);
+            key = key.substring("java.".length());
             if (key.startsWith("vm.")) {
-                key = key.substring(3);
+                key = key.substring("vm.".length());
             }
+        } else if (key.startsWith("sun.management.")) {
+            key = key.substring("sun.management.".length());
         }
         String[] ss = key.split("\\.");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < ss.length; i++) {
             String s = ss[i];
-            if (i > 0) {
-                s = s.substring(0, 1).toUpperCase() + s.substring(1);
+            s = capitalize(s);
+            if (sb.length() > 0) {
+                sb.append(' ');
             }
             sb.append(s);
         }
         return sb.toString();
     }
 
+    public static String getUser() {
+        return System.getProperty("user.name");
+    }
+
     public static Properties getJvmInfo() {
         Properties p = new Properties();
         for (String key : JVM_PROP) {
-            p.put(makeKey(key), System.getProperty(key, "None"));
+            p.put(makeKey(key), System.getProperty(key, ""));
+        }
+        try {
+            List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+            p.put(makeKey("jvm.args"), FormatTool.join(" ", jvmArgs));
+            long startTime = ManagementFactory.getRuntimeMXBean().getStartTime();
+            p.put(makeKey("jvm.start.time"), FormatTool.formatIsoDatetime(startTime));
+        } catch (Exception e) {
+            /// ignore
         }
         return p;
     }
 
+    public static String getJvmName() {
+        return System.getProperty("java.vm.name");
+    }
+
     static final String[] OS_PROP = {
             "os.name",
-            "os.version",
             "os.arch",
+            "os.version",
+            "user.name",
     };
 
     public static Properties getOsInfo() {
@@ -110,14 +155,10 @@ public class Informator {
 
     public static Properties getHwInfo() {
         Properties p = new Properties();
-        // TODO
-        p.put("name", "Server");
+        p.put(makeKey("available.processors"), "" + Runtime.getRuntime().availableProcessors());
+        p.put(makeKey("free.memory"), FormatTool.formatBytes(Runtime.getRuntime().freeMemory()));
+        p.put(makeKey("max.memory"), FormatTool.formatBytes(Runtime.getRuntime().maxMemory()));
+        p.put(makeKey("total.memory"), FormatTool.formatBytes(Runtime.getRuntime().totalMemory()));
         return p;
-    }
-
-    public static void print(Properties p, PrintStream out) {
-        for (Object key : p.keySet()) {
-            out.println(key + ": " + p.getProperty(key.toString(), "None"));
-        }
     }
 }

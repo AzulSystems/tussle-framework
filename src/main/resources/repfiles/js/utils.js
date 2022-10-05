@@ -39,6 +39,7 @@ const TYPE_HEADER_MIN = c_idx++;
 const TYPE_ID = c_idx++;
 const TYPE_HEADER = c_idx++;
 const TYPE_PARAMS = c_idx++;
+const TYPE_DATE = c_idx++;
 const TYPE_DATETIME = c_idx++;
 const TYPE_RESULTS_DIR = c_idx++;
 const TYPE_INFO = c_idx++;
@@ -49,7 +50,6 @@ const TYPE_HEADER_MAX = c_idx++;
 const TYPE_CHART_MIN = c_idx++;
 const TYPE_CHART_HEADER = c_idx++;
 const TYPE_CHART = c_idx++;
-const TYPE_JHICCUP_CHART = c_idx++;
 const TYPE_CHART_TIME = c_idx++;
 const TYPE_CHART_HISTOGRAM = c_idx++;
 const TYPE_CHART_COUNTS = c_idx++;
@@ -278,8 +278,9 @@ function pushRowVal(row, val, idx, clss) {
 }
 
 function pushVal(table, name, type, val, idx, clss, visible, hide) {
-    if (typeof val === 'undefined')
+    if (typeof val === 'undefined') {
         val = null;
+    }
     let row = table[name];
     if (!row) {
         row = table[name] = [{
@@ -443,6 +444,12 @@ Date.prototype.formatDateTimeUTC = function() {
         ' ' + pad(this.getUTCHours()) +
         ':' + pad(this.getUTCMinutes()) +
         ':' + pad(this.getUTCSeconds());
+};
+
+Date.prototype.formatDateUTC = function() {
+    return this.getUTCFullYear() +
+        '-' + pad(this.getUTCMonth() + 1) +
+        '-' + pad(this.getUTCDate());
 };
 
 Date.prototype.formatDateTime = function() {
@@ -830,6 +837,12 @@ String.prototype.hasWord = function(word) {
 }
 
 String.prototype.capitalize = function() {
+    if (this == 'os') {
+        return 'OS';
+    }
+    if (this == 'jvm') {
+        return 'JVM';
+    }
     if (this.length > 0) {
         return this.substring(0, 1).toUpperCase() + this.substring(1);
     } else {
@@ -1372,6 +1385,7 @@ function getMetricValuesLabels(metric, mvValues, showOptions) {
     const nums = showOptions.includes('nums');
     // TODO const loga = showOptions.includes('loga');
     const dateTime = showOptions.includes('dateTime');
+    const counts = showOptions.includes('counts');
     const utc = showOptions.includes('utc') || showOptions.includes('UTC');
     const noMin = showOptions.includes('noMin');
     // if (N > values.length)
@@ -1382,7 +1396,7 @@ function getMetricValuesLabels(metric, mvValues, showOptions) {
     if (metric.trimLeft) {
         offset = metric.delay * metric.trimLeft;
     }
-    const metricLabel = getMetricLabel(metric, true) + (mvValues[0].isCounts ? ' counts' : ' values');
+    const metricLabel = getMetricLabel(metric, true) + (mvValues[0].isCounts ? (counts ? ' counts' : 'rate') : ' values');
     const numLabels = composeSimpleChartLabels(valuesLength, 1 + (metric.trimLeft ? metric.trimLeft : 0), 1);
     let metricLabels;
     let chartType;
@@ -1645,7 +1659,8 @@ function getMetricThroughputChart(metric, showOptions) {
 }
 
 function getMetricCountChart(metric, showOptions) {
-    return getMetricChart(metric, showOptions, metric.getMetricValues('counts'), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
+    const counts = showOptions.includes('counts');
+    return getMetricChart(metric, showOptions, metric.getMetricValues('counts'), metric.maxCount, counts ? 'Counts' : 'Rate', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
 }
 
 function getMetricPercentilesChart(metric, showOptions) {
@@ -1726,12 +1741,9 @@ function getMetricProps(schedule, operation) {
     return 'N/A';
 }
 
-function getVMName(vm_type, config) {
-    if (!vm_type) {
-        vm_type = '';
-    }
+function getVMName(vmType, config) {
+    let vm_type = vmType || '';
     vm_type = vm_type.toLowerCase();
-
     if (vm_type === 'zing' || vm_type === 'falcon' || vm_type === 'cc2') {
         let ret = vm_type === 'cc2' ? 'Zing-C2' : 'Zing';
         if (config.hasWord('cc2') && vm_type.indexOf('-C2') < 0) {
@@ -1748,7 +1760,7 @@ function getVMName(vm_type, config) {
         }
         return ret;
     } else if (vm_type.indexOf('openjdk') === 0 || vm_type.indexOf('hotspot') === 0 || vm_type.indexOf('zulu') === 0) {
-        let ret = vm_type === 'openjdk' ? 'OpenJDK' : vm_type.capitalize();
+        let ret = vm_type === 'openjdk' ? 'OpenJDK' : vmType;
         if (config.hasWord('g1')) {
             ret += '-G1';
         } else if (config.hasWord('cms')) {
@@ -1762,7 +1774,7 @@ function getVMName(vm_type, config) {
         }
         return ret;
     } else {
-        return vm_type.capitalize();
+        return vmType;
     }
 }
 
@@ -2292,7 +2304,7 @@ function normalizeRunProperties(doc) {
     if (!runProperties.vm_version)
         runProperties.vm_version = '';
     if (!runProperties.vm_name)
-        runProperties.vm_name = '';
+        runProperties.vm_name = 'VM!';
     if (!runProperties.config)
         runProperties.config = '';
     if (!runProperties.workload_parameters)
@@ -2356,13 +2368,15 @@ function normalizeRunProperties(doc) {
     runProperties.hosts = hosts.join(',');
     if (runProperties.start_time) {
         runProperties.start_time = new Date(runProperties.start_time);
+    }
+    if (runProperties.finish_time) {
         runProperties.finish_time = new Date(runProperties.finish_time);
     }
     let pool = '/net/nfs/mnt/pool';
     if (runProperties.results_dir && runProperties.results_dir.startsWith(pool)) {
         runProperties.results_dir = runProperties.results_dir.substring(pool.length);
     }
-    if (runProperties.start_time) {
+    if (runProperties.start_time && runProperties.finish_time) {
         runProperties.time_spent_minutes = runProperties.finish_time.getTime() - runProperties.start_time.getTime();
         runProperties.time_spent_minutes /= 60000;
     }

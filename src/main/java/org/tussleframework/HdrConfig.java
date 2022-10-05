@@ -52,6 +52,8 @@ public class HdrConfig implements AbstractConfig {
     public String timeUnits = "ms";
     public String[] operationsInclude;
     public String[] operationsExclude;
+    public RunProperties runProperties;
+    public String runPropertiesFile;
 
     public HdrConfig copy(HdrConfig c) {
         hdrCutTime = c.hdrCutTime;
@@ -65,6 +67,8 @@ public class HdrConfig implements AbstractConfig {
         timeUnits = c.timeUnits;
         operationsInclude = c.operationsInclude;
         operationsExclude = c.operationsExclude;
+        runProperties = c.runProperties;
+        runPropertiesFile = c.runPropertiesFile;
         return this;
     }
 

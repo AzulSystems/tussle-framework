@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.tussleframework.RunProperties;
+import org.tussleframework.TussleException;
 import org.tussleframework.tools.Informator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,9 +56,13 @@ public class MetricData {
         metrics.add(m);
     }
 
-    public void loadRunProperties(String file) throws IOException {
+    public void loadRunProperties(String file) throws TussleException {
         ObjectReader or = new ObjectMapper().reader();
-        runProperties = or.readValue(new File(file), RunProperties.class);
+        try {
+            runProperties = or.readValue(new File(file), RunProperties.class);
+        } catch (IOException e) {
+            throw new TussleException(e);
+        }
     }
 
     public void loadDefaultRunProperties() {
@@ -65,6 +70,8 @@ public class MetricData {
         runProperties.getHardware().putAll(Informator.getHwInfo());
         runProperties.getOs().putAll(Informator.getOsInfo());
         runProperties.getJvm().putAll(Informator.getJvmInfo());
+        runProperties.setProperty("testedBy", Informator.getUser());
+        runProperties.setProperty("vm_type", Informator.getJvmName());
     }
 
     public Metric find(String name) {

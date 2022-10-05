@@ -32,12 +32,7 @@
 
 BASE_DIR=$(cd $(dirname $0); pwd)
 
-INT0_DEF="start: 0, finish: 36000, name: ''"
-INT0=${INT0:-${INT0_DEF}}
-MAKE_REPORT=${MAKE_REPORT:-false}
 REPORT_DIR=${REPORT_DIR:-report}
-MH=${MH:-3}
-HDR_FACTOR=${HDR_FACTOR:-1000}
 HEAP=${HEAP:-8g}
 
 while [[ "${1}" == *=* ]]
@@ -49,70 +44,35 @@ done
 
 RES_DIR=${RES_DIR:-${1:-.}}
 
-INT0="- {${INT0}}"
-[[ -n "${INT1}" ]] && INT1="- {${INT1}}"
-[[ -n "${INT2}" ]] && INT2="- {${INT2}}"
-[[ -n "${INT3}" ]] && INT3="- {${INT3}}"
-
-metricsConf="
-histogramsDir: .
-makeReport: false
-reportInterval: $((MH*1000))
-hdrFactor: ${HDR_FACTOR}
-operationsExclude:
- - check-cluster-health
-intervals:
-${INT0}
-${INT1}
-${INT2}
-${INT3}
-sleConfig: ${SLE}
-"
-
-analyzer=org.tussleframework.tools.Analyzer
-
 metricsJsons=()
 
-process_dir() {
+find_metrics() {
     local res_dir=$1
-    local run_props=$( find "${res_dir}" -type f -name "run.properties.json" )
-    local histogramsDir
-    if [[ -z "${run_props}" ]]
-    then
-        histogramsDir=${res_dir}
-        echo "No any run.properties found. Processing topmost results dir: ${histogramsDir} ..."
-        (
-        cd "${histogramsDir}" && \
-        java -Xmx${HEAP} -Xms${HEAP} -cp ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}"
-        )
-        metricsJsons+=( "${histogramsDir}/metrics.json" )
-        return
-    fi
-    echo "${run_props}" | while read r
+    local metrics=$( find "${res_dir}" -type f -name "metrics.json" | sort )
+    while read r
     do
-        histogramsDir=$(dirname "${r}")
-        echo "Processing results dir: ${histogramsDir} ..."
-        (
-        cd "${histogramsDir}" && \
-        java -Xmx${HEAP} -Xms${HEAP} -jar ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}" runPropertiesFile="${r}"
-        )
-        metricsJsons+=( "${histogramsDir}/metrics.json" )
-    done
+        echo "Found metrics: ${r} ..."
+        metricsJsons+=( "${r}" )
+    done << EOF
+${metrics}
+EOF
 }
 
 if [[ -z "${1}" ]]
 then
-    process_dir .
+    find_metrics .
 else
     while [[ -n "$1" ]]
     do
-    process_dir "$1"
+    find_metrics "$1"
     shift
     done
 fi
 
-if [[ "${MAKE_REPORT}" == true ]]
+if [[ -f "${metricsJsons[0]}" ]]
 then
     echo "Generating report based on ${#metricsJsons[@]} metrics..."
     java -Xmx${HEAP} -Xms${HEAP} -jar ${BASE_DIR}/target/tussle-framework-*.jar Reporter "${REPORT_DIR}" "${metricsJsons[@]}"
+else
+    echo "No metrics found"
 fi
