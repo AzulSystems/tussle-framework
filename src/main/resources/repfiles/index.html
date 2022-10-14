@@ -137,7 +137,7 @@
         <input type="checkbox" id="checkbox_show_opts" ng-model="optsValues">
         <label for="checkbox_show_opts">Apply opts=</label><input type="text" id="checkbox_show_opts2" ng-model="optsText">
         <br/>
-        <button ng-click="openSearchResults($event)">Open ISV Details Report</button>
+        <button ng-click="openSearchResults($event)">Open ISV Table Report</button>
         <button ng-click="openSearchResults($event, null, null, true)">Open ISV Summary Report</button>
     </div>
     <div ng-show="display == 'RUNS'" ng-cloak>
@@ -309,7 +309,7 @@
         <br />
     </div>
     <div> 
-    <div ng-show="display == 'SUMMARY' || display == 'DETAILS' || display == 'REPORT'" ng-cloak>
+    <div ng-show="display == 'SUMMARY' || display == 'TABLE' || display == 'REPORT'" ng-cloak>
         <span ng-repeat="item in report" ng-show="!item.visible || item.visible()" ng-class="item.cls + (item.sticky ? 'sticky' : '')">
             <span ng-if="item.logo" ng-class="item.cls">
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="112.203" height="48" viewBox="0 0 112.203 48">

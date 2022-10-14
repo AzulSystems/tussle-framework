@@ -2096,6 +2096,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         } else {
             $scope.report = produceDetailedComparisonReport($scope, hits, reducedResults);
         }
+        console.log(`handleResultResponse DONE: ${$scope.display}`);
     }
     $scope.excludeData = (id) => {
         for (let i = $scope.visibleRuns.length - 1; i >= 0; i--) {
