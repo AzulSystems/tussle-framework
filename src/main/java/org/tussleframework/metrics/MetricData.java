@@ -35,6 +35,7 @@ package org.tussleframework.metrics;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.tussleframework.RunProperties;
 import org.tussleframework.TussleException;
@@ -59,7 +60,23 @@ public class MetricData {
     public void loadRunProperties(String file) throws TussleException {
         ObjectReader or = new ObjectMapper().reader();
         try {
-            runProperties = or.readValue(new File(file), RunProperties.class);
+            HashMap<?, ?> props = or.readValue(new File(file), RunProperties.class);
+            if (props.containsKey("doc")) {
+                Object doc = props.get("doc");
+                if (doc instanceof HashMap<?, ?>) {
+                    props = (HashMap<?, ?>) doc;
+                }
+                doc = props.get("runProperties");
+                if (doc instanceof HashMap<?, ?>) {
+                    props = (HashMap<?, ?>) doc;
+                }
+                doc = props.get("run_properties");
+                if (doc instanceof HashMap<?, ?>) {
+                    props = (HashMap<?, ?>) doc;
+                }
+            }
+            runProperties = new RunProperties();
+            props.forEach((k, v) -> runProperties.put(k.toString(), v));
         } catch (IOException e) {
             throw new TussleException(e);
         }

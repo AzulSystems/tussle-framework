@@ -96,10 +96,6 @@ public class Analyzer implements Tool {
     public static final String[] EMPTY = {};
     private static final String SAMPLES2 = "samples_";
 
-//    private static double[] percentilesBasic = {
-//            0, 50, 90, 99, 99.9, 99.99, 100
-//    };
-
     private static double[] percentilesShort = {
             0, 50, 90, 95, 99, 99.5, 99.9, 99.95, 99.99, 99.995, 99.999, 99.9995, 100
     };
