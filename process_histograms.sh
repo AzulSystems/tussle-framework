@@ -94,7 +94,7 @@ process_dir() {
         echo "Processing results dir: ${histogramsDir} ..."
         (
         cd "${histogramsDir}" && \
-        java -Xmx${HEAP} -Xms${HEAP} -jar ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}" runPropertiesFile="${r}"
+        java -Xmx${HEAP} -Xms${HEAP} -jar ${BASE_DIR}/target/tussle-framework-*.jar ${analyzer} -s "${metricsConf}" runPropertiesFile="run.properties.json"
         )
         metricsJsons+=( "${histogramsDir}/metrics.json" )
     done
