@@ -32,6 +32,8 @@
 
 package org.tussleframework.metrics;
 
+import static org.tussleframework.tools.FormatTool.roundFormat;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -82,7 +84,7 @@ public class HdrResult {
         HashMap<String, HdrResult> hdrMap = new HashMap<>();
         hdrResults.forEach(hdr -> hdrMap.put(hdr.operationName(), hdr));
         for (HdrResult hdrResult : hdrMap.values()) {
-            runResult.rate += hdrResult.getRate();
+            runResult.actualRate += hdrResult.getRate();
             runResult.count += hdrResult.getCount();
             if (runResult.time < hdrResult.getTimeMs()) {
                 runResult.time = hdrResult.getTimeMs();
@@ -255,6 +257,22 @@ public class HdrResult {
 
     public String getOpName() {
         return String.format("%s_%s_%s_%d", metricInfo.operationName, FormatTool.roundFormatPercent(runArgs.ratePercent), FormatTool.format(runArgs.targetRate), runArgs.runStep);
+    }
+
+    public String formatMean() {
+        return String.format("%s %s mean: %s %s", operationName(), metricName(), roundFormat(getMean()), timeUnits());
+    }
+
+    public String formatRate() {
+        return String.format("%s %s rate: %s %s", operationName(), metricName(), roundFormat(getRate()), rateUnits());
+    }
+
+    public String formatTime() {
+        return String.format("%s %s time: %d s", operationName(), metricName(), getTimeMs() / 1000L);
+    }
+
+    public String formatPercentile(double percentile) {
+        return String.format("%s %s p%s: %s %s", operationName(), metricName(), roundFormat(percentile), roundFormat(getValueAtPercentile(percentile)), timeUnits());
     }
 
     public void loadHdrFile(MovingWindowSLE[] sleConfig, Interval[] intervals) throws TussleException {

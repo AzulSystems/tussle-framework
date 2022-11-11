@@ -50,8 +50,6 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class ScenarioRunnerConfig extends RunnerConfig {
 
-    public boolean separateSteps;
-
     /**
      * sequence of runs, each steps consisting of its own target rate and run time used by ScenarioRunner
      */

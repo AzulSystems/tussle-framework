@@ -117,4 +117,25 @@ public abstract class WlBenchmark implements Benchmark {
         result.timeUnits = config.timeUnits;
         return result;
     }
+
+    public static WlBenchmark createBenchmark(Runnable load, String name, String[] configArgs) throws TussleException {
+        WlBenchmark wlBenchmark = new WlBenchmark() {
+            @Override
+            public RunnableWithError getWorkload() {
+                return new RunnableWithError() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        load.run();
+                        return true;
+                    }
+                };
+            }
+            @Override
+            public String getOperationName() {
+                return name;
+            }
+        };
+        wlBenchmark.init(configArgs);
+        return wlBenchmark;
+    }
 }

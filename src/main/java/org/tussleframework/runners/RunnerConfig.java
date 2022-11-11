@@ -37,6 +37,7 @@ import java.io.File;
 import org.tussleframework.HdrConfig;
 import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.tools.FileTool;
+import org.tussleframework.tools.FormatTool;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -52,6 +53,7 @@ public class RunnerConfig extends HdrConfig {
     public boolean makeReport = false;      // generate detailed report in addition to the summary results printed to log
     public boolean serviceTimeOnly = false; // collect service-time or service-time+response-time
     public String reportDir = "./report";   // location for report files
+    public String highBound = "0";
     public String[] collectOps = {};        // if set collect metrics for only specified operations
     public double[] logPercentiles = { 0, 50, 90, 99, 99.9, 99.99, 100 };
     public MovingWindowSLE[] sleConfig = {};
@@ -59,6 +61,9 @@ public class RunnerConfig extends HdrConfig {
     @Override
     public void validate(boolean runMode) {
         super.validate(runMode);
+        if (FormatTool.parseValue(highBound) < 0) {
+            throw new IllegalArgumentException(String.format("Invalid highBound(%s) - should be non-negative", highBound));
+        }
         if (runMode) {
             FileTool.backupAndCreateDir(new File(histogramsDir));
             if (makeReport) {

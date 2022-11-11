@@ -53,8 +53,8 @@ public class HdrWriter extends TimerTask {
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(HdrWriter.class.getName());
     private static boolean progressHeaderPrinted;
 
-    public static void progressHeaderPrinted(boolean b) {
-        progressHeaderPrinted = b;
+    public static void resetProgressHeader() {
+        progressHeaderPrinted = false;
     }
 
     public static void log(String format, Object... args) {

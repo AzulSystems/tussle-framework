@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.tussleframework.tools.LoggerTool;
-import org.tussleframework.tools.Tool;
 
 public class Run {
 
@@ -49,36 +48,39 @@ public class Run {
         run(args);
     }
 
-    public static Class<?> findTussleClass(String className) throws ClassNotFoundException {
+    public static Class<?> findTussleClass(String className, ClassLoader classLoader) throws ClassNotFoundException {
         ClassNotFoundException err = null;
+        if (classLoader == null) {
+            classLoader = ClassLoader.getSystemClassLoader();
+        }
         try {
-            return ClassLoader.getSystemClassLoader().loadClass(className);
+            return classLoader.loadClass(className);
         } catch (ClassNotFoundException e) {
             err = e;
         }
         if (className.indexOf('.') < 0) {
             try {
-                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework." + className);
+                return classLoader.loadClass("org.tussleframework." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
             try {
-                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.runners." + className);
+                return classLoader.loadClass("org.tussleframework.runners." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
             try {
-                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.steprater." + className);
+                return classLoader.loadClass("org.tussleframework.steprater." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
             try {
-                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.examples." + className);
+                return classLoader.loadClass("org.tussleframework.examples." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
             try {
-                return ClassLoader.getSystemClassLoader().loadClass("org.tussleframework.tools." + className);
+                return classLoader.loadClass("org.tussleframework.tools." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
@@ -109,13 +111,17 @@ public class Run {
      *               tool-class-name [tool-args]
      */
     public static void run(String[] args) {
+        run(args, null);
+    }
+
+    public static void run(String[] args, ClassLoader classLoader) {
         LoggerTool.init("tussle");
         if (args.length == 0) {
             throw USAGE;
         }
         try {
             String toolClassName = args[0];
-            Class<?> tool = findTussleClass(toolClassName);
+            Class<?> tool = findTussleClass(toolClassName, classLoader);
             if (Tool.class.isAssignableFrom(tool)) {
                 runTool(tool, Arrays.copyOfRange(args, 1, args.length));
                 return;
@@ -132,9 +138,9 @@ public class Run {
         runnerArgs = Arrays.copyOfRange(runnerArgs, 1, runnerArgs.length);
         try {
             @SuppressWarnings("unchecked")
-            Class<? extends Benchmark> benchmarkClass = (Class<? extends Benchmark>) findTussleClass(benchmarkClassName);
+            Class<? extends Benchmark> benchmarkClass = (Class<? extends Benchmark>) findTussleClass(benchmarkClassName, classLoader);
             @SuppressWarnings("unchecked")
-            Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName);
+            Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName, classLoader);
             run(benchmarkClass, benchmarkArgs, runnerClass, runnerArgs);
         } catch (Exception e) {
             LoggerTool.logException(e);
@@ -154,13 +160,17 @@ public class Run {
      * @param args - [benchmark-args...]  [--runner runner-class [runner-args...]]  [-- ignoreable-args]
      */
     public static void run(Benchmark benchmark, String[] args) {
+        run(benchmark, args, null);
+    }
+
+    public static void run(Benchmark benchmark, String[] args, ClassLoader classLoader) {
         try {
             String[] defaultRunner = { "BasicRunner" };
             String[] runnerArgs = runnerArgs(args, defaultRunner);
             String runnerClassName = runnerArgs[0];
             runnerArgs = Arrays.copyOfRange(runnerArgs, 1, runnerArgs.length);
             @SuppressWarnings("unchecked")
-            Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName);
+            Class<? extends Runner> runnerClass = (Class<? extends Runner>) findTussleClass(runnerClassName, classLoader);
             run(benchmark, benchmarkArgs(args), runnerClass.getConstructor().newInstance(), runnerArgs);
         } catch (Exception e) {
             LoggerTool.logException(e);

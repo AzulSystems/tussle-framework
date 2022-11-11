@@ -35,9 +35,7 @@ package org.tussleframework.runners;
 import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,7 +44,6 @@ import org.tussleframework.Benchmark;
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunParams;
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.ConfigLoader;
 import org.tussleframework.tools.LoggerTool;
@@ -95,12 +92,12 @@ public class InteractiveRunner extends BasicRunner {
         }
     }
 
-    protected int runArg(Benchmark benchmark, String line, int step, Collection<HdrResult> results, ResultsRecorder recorder) {
+    protected int runArg(Benchmark benchmark, String line, int step, ResultsRecorder recorder) {
         log("Performing Benchmark run with args: %s...", line);
         try {
             RunParams params = ConfigLoader.loadConfig(new String[] { "-s", line }, true, RunParams.class);
             RunArgs runArgs = new RunArgs(parseValue(params.targetRate), 100, parseTimeLength(params.warmupTime), parseTimeLength(params.runTime), step, "run");
-            runOnce(benchmark, runArgs, results, recorder, false);
+            runOnce(benchmark, runArgs, true, recorder, false);
             return 1;
         } catch (Exception e) {
             LoggerTool.logException(logger, e);
@@ -120,7 +117,6 @@ public class InteractiveRunner extends BasicRunner {
             benchmark.reset();
         }
         try (Scanner scanner = new Scanner(System.in)) {
-            ArrayList<HdrResult> results = new ArrayList<>();
             int step = 0;
             while (true) {
                 String line = scanner.nextLine();
@@ -135,10 +131,12 @@ public class InteractiveRunner extends BasicRunner {
                 } else if (args.startsWith("init")) {
                     init(benchmark, line);
                 } else if (!line.isEmpty()) {
-                    step += runArg(benchmark, line, step, results, recorder);
+                    step += runArg(benchmark, line, step, recorder);
                 }
             }
-            makeReport(results);
+            if (runnerConfig.makeReport) {
+                report();
+            }
         } finally {
             recorder.cancel();
         }

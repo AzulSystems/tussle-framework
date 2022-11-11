@@ -66,6 +66,7 @@ public class BasicRunner implements Runner {
     }
 
     protected RunnerConfig runnerConfig;
+    protected Collection<HdrResult> collectedHdrResults = new ArrayList<>();
 
     public BasicRunner() {
     }
@@ -92,21 +93,40 @@ public class BasicRunner implements Runner {
         double targetRate = parseValue(config.targetRate);
         int warmupTime = parseTimeLength(config.warmupTime);
         int runTime = parseTimeLength(config.runTime);
-        ArrayList<HdrResult> results = new ArrayList<>();
         for (int runStep = 0; runStep < config.runSteps; runStep++) {
-            runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, runStep, ""), results, true, config.reset);
+            runOnce(benchmark, new RunArgs(targetRate, 100, warmupTime, runTime, runStep, ""), true, config.reset);
         }
-        makeReport(results);
+        if (runnerConfig.makeReport) {
+            report();
+        }
+    }
+    
+    @Override
+    public void report() throws TussleException {
+        if (collectedHdrResults.isEmpty()) {
+            return;
+        }
+        AnalyzerConfig analyzerConfig = new AnalyzerConfig();
+        analyzerConfig.copy(runnerConfig);
+        analyzerConfig.reportDir = runnerConfig.reportDir;
+        analyzerConfig.highBound = runnerConfig.highBound;
+        analyzerConfig.sleConfig = runnerConfig.sleConfig;
+        analyzerConfig.makeReport = true;
+        try {
+            new Analyzer().processResults(analyzerConfig, collectedHdrResults);
+        } catch (Exception e) {
+            LoggerTool.logException(logger, e);
+        }
     }
 
     /**
      * Reset and run benchmark using run once recorder
      */
-    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> hdrResults, boolean writeHdr, boolean reset) throws TussleException {
-        HdrWriter.progressHeaderPrinted(false);
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, writeHdr, true);
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, boolean collect, boolean reset) throws TussleException {
+        HdrWriter.resetProgressHeader();
+        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, collect, true);
         try {
-            return runOnce(benchmark, runArgs, hdrResults, recorder, reset);
+            return runOnce(benchmark, runArgs, collect, recorder, reset);
         } finally {
             recorder.cancel();
         }
@@ -115,7 +135,7 @@ public class BasicRunner implements Runner {
     /**
      * Just run benchmark
      */
-    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, Collection<HdrResult> hdrResults, ResultsRecorder recorder, boolean reset) throws TussleException {
+    public RunResult runOnce(Benchmark benchmark, RunArgs runArgs, boolean collect, ResultsRecorder recorder, boolean reset) throws TussleException {
         log("===================================================================");
         log("Run once: %s (step %d) started", benchmark.getName(), runArgs.runStep + 1);
         if (reset) {
@@ -125,17 +145,16 @@ public class BasicRunner implements Runner {
         benchmark.getConfig().runName = runArgs.name; 
         String rateUnits = benchmark.getConfig().rateUnits;
         String timeUnits = benchmark.getConfig().timeUnits;
-        log("Benchmark run at target rate %s %s (%s%%), warmup %d s, run time %d s...", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), runArgs.warmupTime, runArgs.runTime);
+        log("Benchmark run at %s...", runArgs.format(rateUnits));
         RunResult runResult = benchmark.run(runArgs.targetRate, runArgs.warmupTime, runArgs.runTime, recorder);
         Collection<HdrResult> newHdrResults = recorder.getHdrResults();
         if (!newHdrResults.isEmpty()) {
-            if (hdrResults != null) {
-                hdrResults.addAll(newHdrResults);
+            if (collect) {
+                collectedHdrResults.addAll(newHdrResults);
             }
-//            runResult = HdrResult.getSummaryResult(newHdrResults);
-            if (runResult.rate <= 0) {
+            if (runResult.actualRate <= 0) {
                 RunResult runResultSummary = HdrResult.getSummaryResult(newHdrResults);
-                runResult.rate = runResultSummary.rate;
+                runResult.actualRate = runResultSummary.actualRate;
                 runResult.time = runResultSummary.time;
             }
         }
@@ -146,51 +165,34 @@ public class BasicRunner implements Runner {
             runResult.timeUnits = timeUnits;
         }
         if (runArgs.ratePercent > 0) {
-            log("Reguested rate %s %s (%s%%), actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), roundFormat(runResult.rate), rateUnits);
+            log("Reguested rate %s %s (%s%%) , actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runArgs.ratePercent), roundFormat(runResult.actualRate), rateUnits);
         } else {
-            log("Reguested rate %s %s, actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runResult.rate), rateUnits);
+            log("Reguested rate %s %s, actual rate %s %s", roundFormat(runArgs.targetRate), rateUnits, roundFormat(runResult.actualRate), rateUnits);
         }
         log("-----------------------------------------------------");
         log("Run once: %s (step %d) finished", benchmark.getName(), runArgs.runStep + 1);
         logResult(runResult, runArgs.runStep);
-        logResults(newHdrResults);
+        logResults();
         return runResult;
-    }
-
-    public void makeReport(Collection<HdrResult> hdrResults) throws TussleException {
-        if (hdrResults !=  null && runnerConfig.isMakeReport()) {
-            AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-            analyzerConfig.copy(runnerConfig);
-            analyzerConfig.reportDir = runnerConfig.reportDir;
-            analyzerConfig.makeReport = true;
-            try {
-                new Analyzer().processResults(analyzerConfig, hdrResults);
-            } catch (Exception e) {
-                LoggerTool.logException(logger, e);
-            }
-        }
     }
 
     public void logResult(RunResult runResult, int step) {
         log("Results (step %d)", step + 1);
-        log("Count: %d", runResult.count);
+        log("Count: %d", runResult.getCount());
         log("Time: %s s", roundFormat(runResult.time / 1000d));
-        log("Rate: %s %s", roundFormat(runResult.rate), runResult.rateUnits);
-        log("Errors: %d", runResult.errors);
+        log("Rate: %s %s", roundFormat(runResult.actualRate), runResult.getRateUnits());
+        log("Errors: %d", runResult.getErrors());
     }
 
-    public void logResults(Collection<HdrResult> hdrResults) {
-        if (hdrResults == null) {
-            return;
-        }
-        hdrResults.stream().filter(r -> r.getCount() > 0).forEach(result -> {
-            log("%s %s time: %d s", result.operationName(), result.metricName(), result.getTimeMs() / 1000L);
+    public void logResults() {
+        collectedHdrResults.stream().filter(r -> r.getCount() > 0).forEach(result -> {
+            log(result.formatTime());
             double[] percentiles = runnerConfig.logPercentiles;
             for (int i = 0; i < percentiles.length; i++) {
-                log("%s %s p%s: %s %s", result.operationName(), result.metricName(), roundFormat(percentiles[i]), roundFormat(result.getValueAtPercentile(percentiles[i])), result.timeUnits());
+                log(result.formatPercentile(percentiles[i]));
             }
-            log("%s %s mean: %s %s", result.operationName(), result.metricName(), roundFormat(result.getMean()), result.timeUnits());
-            log("%s %s rate: %s %s", result.operationName(), result.metricName(), roundFormat(result.getRate()), result.rateUnits());
+            log(result.formatMean());
+            log(result.formatRate());
         });
     }
 }

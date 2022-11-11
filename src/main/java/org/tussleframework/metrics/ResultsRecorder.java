@@ -222,7 +222,7 @@ public class ResultsRecorder implements TimeRecorder {
         if (runnerConfig.collectOps != null) {
             Collections.addAll(recordingsFilter, runnerConfig.collectOps);
         }
-        HdrWriter.progressHeaderPrinted(false);
+        HdrWriter.resetProgressHeader();
     }
 
     public void cancel() {

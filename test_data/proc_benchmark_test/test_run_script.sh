@@ -20,7 +20,7 @@ init() {
 }
 
 cleanup() {
-    log "Init..."
+    log "Cleanup..."
     sleep 1
 }
 

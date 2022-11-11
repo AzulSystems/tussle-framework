@@ -124,7 +124,7 @@ public class TargetRunnerMT implements TargetRunner {
                 .time(maxTime)
                 .count(countSum)
                 .rateUnits("op/s")
-                .rate(maxTime > 0 ? countSum / ((double) maxTime / MS_IN_S) : 0)
+                .actualRate(maxTime > 0 ? countSum / ((double) maxTime / MS_IN_S) : 0)
                 .errors(errorSum)
                 .build();
         SleepTool.sleep(NS_IN_S);

@@ -35,7 +35,6 @@ package org.tussleframework.runners;
 import static org.tussleframework.tools.FormatTool.parseTimeLength;
 import static org.tussleframework.tools.FormatTool.parseValue;
 
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,10 +43,8 @@ import org.tussleframework.RunArgs;
 import org.tussleframework.RunParams;
 import org.tussleframework.TussleException;
 import org.tussleframework.metrics.HdrWriter;
-import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.ResultsRecorder;
 import org.tussleframework.tools.ConfigLoader;
-import org.tussleframework.tools.LoggerTool;
 import org.yaml.snakeyaml.Yaml;
 
 public class ScenarioRunner extends BasicRunner {
@@ -67,6 +64,11 @@ public class ScenarioRunner extends BasicRunner {
         init(args);
     }
 
+    public ScenarioRunner(ScenarioRunnerConfig config) {
+        this.runnerConfig = config;
+        this.runnerConfig.validate(true);
+    }
+
     @Override
     public void init(String[] args) throws TussleException {
         this.runnerConfig = ConfigLoader.loadConfig(args, true, ScenarioRunnerConfig.class);
@@ -76,38 +78,25 @@ public class ScenarioRunner extends BasicRunner {
     public void run(Benchmark benchmark) throws TussleException {
         ScenarioRunnerConfig config = (ScenarioRunnerConfig) this.runnerConfig;
         RunParams[] scenario = config.getScenario();
-        int runTimeSum = 0;
-        for (int runStep = 0; runStep < scenario.length; runStep++) {
-            runTimeSum += parseTimeLength(scenario[runStep].getRunTime());
-        }
-        ResultsRecorder recorder = new ResultsRecorder(runnerConfig, new RunArgs(0, 100, 0, runTimeSum, 0, "run"), true, false);
         log("Benchmark config: %s", new Yaml().dump(benchmark.getConfig()).trim());
         log("Runner config: %s", new Yaml().dump(config).trim());
-        try {
-            ArrayList<HdrResult> results = new ArrayList<>();
-            if (config.reset) {
-                log("Benchmark initial reset...");
-                benchmark.reset();
-            }
-            for (int runStep = 0; runStep < scenario.length; runStep++) {
-                log("===================================================================");
-                log("Benchmark: %s (step %d)", benchmark.getName(), runStep + 1);
-                HdrWriter.progressHeaderPrinted(false);
-                double targetRate = parseValue(scenario[runStep].getTargetRate());
-                int warmupTime = parseTimeLength(scenario[runStep].getWarmupTime());
-                int runTime = parseTimeLength(scenario[runStep].getRunTime());
-                RunArgs runArgs = new RunArgs(targetRate, 100, warmupTime, runTime, runStep, "run");
-                if (config.separateSteps) {
-                    recorder = new ResultsRecorder(runnerConfig, runArgs, true, false);
-                }
-                runOnce(benchmark, runArgs, results, recorder, false);
-                recorder.clearResults();
-            }
-            makeReport(results);
-        } catch (Exception e) {
-            LoggerTool.logException(logger, e);
-        } finally {
-            recorder.cancel();
+        if (config.reset) {
+            log("Benchmark initial reset...");
+            benchmark.reset();
+        }
+        for (int runStep = 0; runStep < scenario.length; runStep++) {
+            log("===================================================================");
+            log("Benchmark: %s (step %d)", benchmark.getName(), runStep + 1);
+            HdrWriter.resetProgressHeader();
+            double targetRate = parseValue(scenario[runStep].getTargetRate());
+            int warmupTime = parseTimeLength(scenario[runStep].getWarmupTime());
+            int runTime = parseTimeLength(scenario[runStep].getRunTime());
+            RunArgs runArgs = new RunArgs(targetRate, 100, warmupTime, runTime, runStep, "run");
+            ResultsRecorder recorder = new ResultsRecorder(runnerConfig, runArgs, true, false);
+            runOnce(benchmark, runArgs, true, recorder, false);
+        }
+        if (runnerConfig.makeReport) {
+            report();
         }
     }
 }

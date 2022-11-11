@@ -160,7 +160,7 @@ public class SleepWlTest {
     public void runWorkload(double targetRate, int timeInMs, RunnableWithError workload) throws Exception {
         log("runWorkload targetRate=" + targetRate + ", timeInMs=" + timeInMs);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
-        double actualThroughput = new TargetRunnerST().runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;
+        double actualThroughput = new TargetRunnerST().runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).actualRate;
         log(" actualThroughput(op/sec): " + actualThroughput);
         log(" serviceTime(ms): " + formatPercentiles(timeRecorder.serviceTimeRecorder.getIntervalHistogram()));
         log(" latency(ms): " + formatPercentiles(timeRecorder.responseTimeRecorder.getIntervalHistogram()));
@@ -169,7 +169,7 @@ public class SleepWlTest {
     public void runWorkloadMT(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws Exception {
         log("runWorkloadMT targetRate=" + targetRate + ", timeInMs=" + timeInMs + ". threads=" + threads);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
-        double actualThroughput = new TargetRunnerMT(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;
+        double actualThroughput = new TargetRunnerMT(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).actualRate;
         log(" actualThroughput(op/sec): " + actualThroughput);
         log(" serviceTime(ms): " + formatPercentiles(timeRecorder.serviceTimeRecorder.getIntervalHistogram()));
         log(" latency(ms): " + formatPercentiles(timeRecorder.responseTimeRecorder.getIntervalHistogram()));
@@ -178,7 +178,7 @@ public class SleepWlTest {
     public void runWorkloadAsync(double targetRate, int timeInMs, int threads, RunnableWithError workload) throws Exception {
         log("runWorkloadAsync targetRate=" + targetRate + ", timeInMs=" + timeInMs + ". threads=" + threads);
         final HdrTimeRecorder timeRecorder = new HdrTimeRecorder();
-        double actualThroughput = new TargetRunnerAsync(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).rate;
+        double actualThroughput = new TargetRunnerAsync(threads).runWorkload("sleep", targetRate, timeInMs, workload, timeRecorder).actualRate;
         log(" actualThroughput(op/sec): " + actualThroughput);
         log(" serviceTime(ms): " + formatPercentiles(timeRecorder.serviceTimeRecorder.getIntervalHistogram()));
         log(" latency(ms): " + formatPercentiles(timeRecorder.responseTimeRecorder.getIntervalHistogram()));

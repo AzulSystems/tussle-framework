@@ -30,7 +30,7 @@
  * 
  */
 
-package org.tussleframework.tools;
+package org.tussleframework;
 
 public interface Tool {
 }

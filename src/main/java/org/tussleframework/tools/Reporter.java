@@ -45,6 +45,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.logging.Level;
 
+import org.tussleframework.Tool;
 import org.tussleframework.TussleException;
 
 public class Reporter implements Tool {

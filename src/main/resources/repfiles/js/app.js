@@ -1171,7 +1171,7 @@ function dumpTable(msg, table) {
 }
 
 function prepareTable(table, filter) {
-    let tableOut = {};
+    const tableOut = {};
     let rowOutLastHeader = null;
     for (let key of Object.keys(table)) {
         if (filter && !filter(table[key])) {
@@ -1219,10 +1219,11 @@ function reduceResultsTable($scope, table) {
     const groupByToggles = $scope.groupByToggles;
     const benchmark = $scope.selectedBenchmark;
     const excludeData = $scope.excludeData;
+    const groupByEnabled = $scope.groupByEnabled;
     console.log(`reduceResultsTable: ${table} - ` + groupByToggles.joinSelected('name', ','));
     const tableOut = prepareTable(table);
     const totalCols = getTotalCols(table);
-    let processed = [];
+    const processed = [];
     let oi = 1;
     for (let i = 1; i < totalCols; i++) {
         if (processed[i]) {
@@ -1322,17 +1323,21 @@ function reduceResultsTable($scope, table) {
                 }
             }
         }
+        if (!groupByEnabled) {
+            oi++;
+            continue;
+        }
         // accumulate peer cells
         for (let j = i + 1; j < totalCols; j++) {
             let equal = 0;
             let total = 0;
-            for (let groupByItem of groupByToggles) {
+            for (const groupByItem of groupByToggles) {
                 if (groupByItem.selected) {
                     total++;
                     if (table[groupByItem.name]) {
                         equal += isEqual(table[groupByItem.name][i].value, table[groupByItem.name][j].value);
                     } else {
-                        let capitalised = groupByItem.name.capitalize();
+                        const capitalised = groupByItem.name.capitalize();
                         if (table[capitalised]) {
                             equal += isEqual(table[capitalised][i].value, table[capitalised][j].value);
                         } else {
@@ -1781,6 +1786,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         let name = headerNames.get(header);
         return (name ? name : header).capitalize();
     }
+    $scope.groupByEnabled = true;
     $scope.groupByToggles = [...groupByToggles_default];
     $scope.separateByToggles = [...separateByToggles_default];
     $scope.num_comparison_columns = 0;
@@ -2403,6 +2409,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
                 }
                 docs.push(doc);
             }));
+            $scope.groupByEnabled = false;
             $scope.showDataElements = ['.*response_time_summary_max'];
             $scope.wide_charts = localMetrics.length === 1;
             console.dir(docs)

@@ -37,8 +37,6 @@ import static org.tussleframework.tools.FormatTool.parseValue;
 import static org.tussleframework.tools.FormatTool.roundFormat;
 import static org.tussleframework.tools.FormatTool.withS;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,9 +44,6 @@ import org.tussleframework.Benchmark;
 import org.tussleframework.RunArgs;
 import org.tussleframework.RunResult;
 import org.tussleframework.TussleException;
-import org.tussleframework.metrics.HdrResult;
-import org.tussleframework.tools.AnalyzerConfig;
-import org.tussleframework.tools.StepRaterAnalyser;
 import org.yaml.snakeyaml.Yaml;
 
 public class StepRater extends BasicRunner {
@@ -70,35 +65,57 @@ public class StepRater extends BasicRunner {
         init(args);
     }
 
+    public StepRater(StepRaterConfig config) {
+        this.runnerConfig = config;
+        this.runnerConfig.validate(true);
+    }
+
     @Override
     public void init(String[] args) throws TussleException {
         this.runnerConfig = StepRaterConfig.load(args);
         this.runnerConfig.validate(true);
     }
 
-    public double findHighBound(Benchmark benchmark) throws TussleException {
-        log("Searching for high-bound...");
+    public double highBoundFromMaxRate(Benchmark benchmark) throws TussleException {
+        log("Detecting high-bound from max rate...");
         StepRaterConfig config = (StepRaterConfig) this.runnerConfig;
         String rateUnits = benchmark.getConfig().rateUnits;
-        int[] steps = config.getHighBoundSteps();
-        double highBound = parseValue(config.getHighBound());
+        int warmupTime = parseTimeLength(config.highBoundWarmupTime);
+        int runTime = parseTimeLength(config.highBoundRunTime);
+        runTime = runTime > 0 ? runTime : parseTimeLength(config.runTime);
+        RunArgs runArgs = new RunArgs(0, 0.0, warmupTime, runTime, 0, "find-high-bound");
+        RunResult result = runOnce(benchmark, runArgs, false, config.resetEachStep);
+        if (result.actualRate <= 0) {
+            log("Failed to find max-rate using unthrottled targetRate, warmupTime %d s, runTime %d s", warmupTime, runTime);
+            return -1;
+        }
+        double step = config.highBoundSteps[config.highBoundSteps.length - 1];
+        double highBound = (1 + Math.floor(result.actualRate / step)) * step;
+        log("High-bound found: %s %s (max-rate: %s %s)", roundFormat(highBound), rateUnits, roundFormat(result.actualRate), rateUnits);
+        return highBound;
+    }
+
+    public double highBoundBySteps(Benchmark benchmark) throws TussleException {
+        log("Searching for high-bound by steps...");
+        StepRaterConfig config = (StepRaterConfig) this.runnerConfig;
+        String rateUnits = benchmark.getConfig().rateUnits;
+        int[] steps = config.highBoundSteps;
+        double highBound = parseValue(config.highBound);
+        int warmupTime = parseTimeLength(config.highBoundWarmupTime);
+        int runTime = parseTimeLength(config.highBoundRunTime);
+        runTime = runTime > 0 ? runTime : parseTimeLength(config.runTime);
         int stepFactorMax = 10;
         for (int i = 0; i < steps.length; i++) {
             int step = steps[i];
             log("Starting iterating with step %d", step);
             for (int stepFactor = 1; stepFactor <= stepFactorMax; stepFactor++) {
                 double targetRate = highBound + (double) step * stepFactor;
-                int highBoundWarmupTime = parseTimeLength(config.getHighBoundWarmupTime());
-                int highBoundRunTime = parseTimeLength(config.getHighBoundTime());
-                int warmupTime = highBoundWarmupTime > 0 ? highBoundWarmupTime : parseTimeLength(config.getWarmupTime());
-                int runTime = highBoundRunTime > 0 ? highBoundRunTime : parseTimeLength(config.getRunTime());
                 RunArgs runArgs = new RunArgs(targetRate, 0.0, warmupTime, runTime, 0, "find-high-bound");
-                RunResult result = runOnce(benchmark, runArgs, null, false, config.resetEachStep);
-                if (result.rate <= 0) {
+                RunResult result = runOnce(benchmark, runArgs, false, config.resetEachStep);
+                if (result.actualRate <= 0) {
                     log("Failed to find high-bound on this step=%d inc=%d: targetRate %s %s, warmupTime %d s, runTime %d s", step, stepFactor, roundFormat(targetRate), rateUnits, warmupTime, runTime);
                     return -1;
-                }
-                if (targetRate >= config.targetFactor * result.rate) {
+                } else if (result.actualRate * config.rateFactor <= targetRate) {
                     if (stepFactor == 1 && i == steps.length - 1 && highBound == 0) {
                         highBound = step; // 1000
                         log("Using minimal high-bound on this step=%d inc=%d: %s %s", step, stepFactor, roundFormat(highBound), rateUnits);
@@ -114,13 +131,12 @@ public class StepRater extends BasicRunner {
         return highBound;
     }
 
-    public void iterateTargetRates(Benchmark benchmark, double highBound, double startingRatePercent, double finishingRatePercent, double ratePercentStep, int finerRateSteps, Collection<HdrResult> results) throws TussleException {
+    public void iterateRates(Benchmark benchmark, double highBound, double startingRatePercent, double finishingRatePercent, double ratePercentStep, int finerRateSteps) throws TussleException {
         log("Iterating target rates agains high-bound %s from %s%% to %s%% (d=%s%%)...", roundFormat(highBound), roundFormat(startingRatePercent), roundFormat(finishingRatePercent), roundFormat(ratePercentStep));
         StepRaterConfig runnerConfig = (StepRaterConfig) this.runnerConfig;
         int retry = 0;
-        int retriesMax = runnerConfig.getRetriesMax();
-        int runTime = parseTimeLength(runnerConfig.getRunTime());
-        int warmupTime = parseTimeLength(runnerConfig.getWarmupTime());
+        int runTime = parseTimeLength(runnerConfig.runTime);
+        int warmupTime = parseTimeLength(runnerConfig.warmupTime);
         String rateUnits = benchmark.getConfig().rateUnits;
         double ratePercent = startingRatePercent;
         boolean reachedFinishingRate = false;
@@ -128,14 +144,14 @@ public class StepRater extends BasicRunner {
             double targetRate = (highBound * ratePercent) / 100.0;
             RunArgs runArgs = new RunArgs(targetRate, ratePercent, warmupTime, runTime, retry, "");
             log("Iteration run: %s", runArgs);
-            RunResult result = runOnce(benchmark, runArgs, results, true, runnerConfig.resetEachStep);
+            RunResult result = runOnce(benchmark, runArgs, true, runnerConfig.resetEachStep);
             log("Iteration result: %s", result);
             if (result == null) {
                 finerRateSteps = 0;
                 break;
             }
-            if (result.rate * runnerConfig.targetFactor <= targetRate) {
-                if (retry < retriesMax) {
+            if (result.actualRate * runnerConfig.rateFactor <= targetRate) {
+                if (retry < runnerConfig.retriesMax) {
                     log("Retrying rate %s %s", roundFormat(targetRate), rateUnits);
                     retry++;
                 } else {
@@ -155,13 +171,13 @@ public class StepRater extends BasicRunner {
             double finerFinishRate = ratePercent;
             double finerStep = (finerFinishRate - finerStartRate) / (finerRateSteps + 1);
             log("Performing %s between %s%% and %s%% (d=%s%%)...", withS(finerRateSteps, "finer iteration"), roundFormat(finerStartRate), roundFormat(finerFinishRate), roundFormat(finerStep));
-            iterateTargetRates(benchmark, highBound, finerStartRate + finerStep, finerFinishRate - finerStep, finerStep, 0, results);
+            iterateRates(benchmark, highBound, finerStartRate + finerStep, finerFinishRate - finerStep, finerStep, 0);
         }
     }
 
     /**
      * 
-     * Steprater workflow:
+     * StepRater workflow:
      * 
      *  startup warmup
      *  find high bound
@@ -189,12 +205,16 @@ public class StepRater extends BasicRunner {
         if (initialWarmupTime + initialRunTime > 0) {
             double initialTargetRate = parseValue(runnerConfig.initialTargetRate);
             log("Initial warmup run %s %s (%ds+%ds)...", roundFormat(initialTargetRate), benchmark.getConfig().rateUnits, initialWarmupTime, initialRunTime);
-            runOnce(benchmark, new RunArgs(initialTargetRate, 0.0, initialWarmupTime, initialRunTime, 0, "initial_warmup"), null, false, false);
+            runOnce(benchmark, new RunArgs(initialTargetRate, 0.0, initialWarmupTime, initialRunTime, 0, "initial_warmup"), false, false);
         }
         double highBound = parseValue(runnerConfig.highBound);
-        if (highBound == 0 || runnerConfig.highboundOnly) {
-            highBound = findHighBound(benchmark);
-            if (runnerConfig.highboundOnly) {
+        if (highBound == 0 || runnerConfig.highBoundOnly) {
+            if (runnerConfig.highBoundFromMaxRate) {
+                highBound = highBoundFromMaxRate(benchmark);
+            } else {
+                highBound = highBoundBySteps(benchmark);
+            }
+            if (runnerConfig.highBoundOnly) {
                 log("Tussle end - found high-bound only");
                 return;
             }
@@ -203,22 +223,11 @@ public class StepRater extends BasicRunner {
         }
         runnerConfig.highBound = roundFormat(highBound);
         if (highBound > 0) {
-            ArrayList<HdrResult> results = new ArrayList<>();
-            iterateTargetRates(benchmark, highBound, runnerConfig.startingRatePercent, runnerConfig.finishingRatePercent, runnerConfig.ratePercentStep, runnerConfig.finerRateSteps, results);
-            makeReport(results);
+            iterateRates(benchmark, highBound, runnerConfig.startingRatePercent, runnerConfig.finishingRatePercent, runnerConfig.rateStepPercent, runnerConfig.finerRateSteps);
+            if (runnerConfig.makeReport) {
+                report();
+            }
         }
-        log("Tussle end");
-    }
-
-    @Override
-    public void makeReport(Collection<HdrResult> results) throws TussleException {
-        StepRaterConfig runnerConfig = (StepRaterConfig) this.runnerConfig;
-        AnalyzerConfig analyzerConfig = new AnalyzerConfig();
-        analyzerConfig.copy(runnerConfig);
-        analyzerConfig.makeReport = runnerConfig.makeReport;
-        analyzerConfig.highBound = runnerConfig.highBound;
-        analyzerConfig.reportDir = runnerConfig.reportDir;
-        analyzerConfig.sleConfig = runnerConfig.sleConfig;
-        new StepRaterAnalyser().processResults(analyzerConfig, results);
+        log("Tussle StepRater finished");
     }
 }

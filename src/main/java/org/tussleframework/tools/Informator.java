@@ -36,6 +36,8 @@ import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Properties;
 
+import org.tussleframework.Tool;
+
 public class Informator implements Tool {
 
     public static void main(String[] args) {

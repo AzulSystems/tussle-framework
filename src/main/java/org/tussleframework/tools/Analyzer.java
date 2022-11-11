@@ -57,6 +57,7 @@ import java.util.logging.Level;
 import java.util.stream.DoubleStream;
 
 import org.tussleframework.RunArgs;
+import org.tussleframework.Tool;
 import org.tussleframework.TussleException;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.HdrIntervalResult;
@@ -364,13 +365,13 @@ public class Analyzer implements Tool {
         mAvg.setMarkers(sleMarkers);
     }
 
-    public static String[] getTypes(MovingWindowSLE[] slaConfig) {
-        ArrayList<String> types = new ArrayList<>();
-        for (int i = 0; i < slaConfig.length; i++) {
-            types.add("P" + FormatTool.format(slaConfig[i].percentile) + "_VALUES");
-        }
-        return types.toArray(EMPTY);
-    }
+//    public static String[] getTypes(MovingWindowSLE[] slaConfig) {
+//        ArrayList<String> types = new ArrayList<>();
+//        for (int i = 0; i < slaConfig.length; i++) {
+//            types.add("P" + FormatTool.format(slaConfig[i].percentile) + "_VALUES");
+//        }
+//        return types.toArray(EMPTY);
+//    }
 
     public static boolean isRunPropertiesFile(String name) {
         name = FileTool.clearPathExt(name);
@@ -470,7 +471,7 @@ public class Analyzer implements Tool {
         } else if (isHiccupFile(fileName)) {
             new HiccupProcessor().processData(metricData, null, inputStream, host, logger);
         } else if (isHistogramFile(fileName)) {
-            processResultHistograms(inputStream, fileName);
+            processHdrStream(inputStream, fileName);
         } else if (isTLPStressResults(fileName)) {
             new TLPStressProcessor().processData(metricData, null, inputStream, host, logger);
         } else if (isSamplesFile(fileName)) {
@@ -569,7 +570,7 @@ public class Analyzer implements Tool {
         }
     }
 
-    public void processResultHistograms(InputStream inputStream, String fileName) {
+    public void processHdrStream(InputStream inputStream, String fileName) {
         log("Processing histogram file '%s'...", fileName);
         HdrResult result = new HdrResult(fileName, analyzerConfig);
         result.loadHdrData(inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals);
@@ -581,13 +582,11 @@ public class Analyzer implements Tool {
         if (result.hdrFile() != null) {
             log("Loading HDR data from file '%s'...", result.hdrFile());
             try (InputStream inputStream = new FileInputStream(result.hdrFile())) {
-                result.loadHdrData(inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals);
+                processHdrStream(inputStream, result.hdrFile());
             } catch (Exception e) {
                 throw new TussleException(e);
             }
         }
-        result.getMetrics(metricData, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort);
-        hdrResults.add(result);
     }
 
     protected boolean hasMetric(String name) {

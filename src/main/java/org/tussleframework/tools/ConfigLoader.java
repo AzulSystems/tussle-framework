@@ -107,7 +107,7 @@ public class ConfigLoader {
                 } else if (args[i].equals("--property") || args[i].equals("-p")) {
                     i++;
                     addProperty(sb, args[i]);
-                } else if (args[i].indexOf('=') > 0 && args[i].indexOf('-') != 0) {
+                } else if (args[i].indexOf('=') >= 1 && args[i].indexOf('-') != 0) {
                     addProperty(sb, args[i]);
                 } else {
                     throw USAGE;

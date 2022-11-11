@@ -43,7 +43,7 @@ public class SleepBenchmark extends WlBenchmark {
 
     public SleepBenchmark() {
     }
-    
+
     public SleepBenchmark(String[] args) throws TussleException {
         init(args);
     }

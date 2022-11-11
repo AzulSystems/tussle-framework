@@ -79,6 +79,7 @@ public class ProcBenchmarkTest {
                     "cleanup",
             };
             ProcConfig procConfig = new ProcConfig();
+            procConfig.printLog = true;
             procConfig.name = "proc-test";
             procConfig.logPrefix = "-> ";
             procConfig.run.dir = "test_data/proc_benchmark_test";

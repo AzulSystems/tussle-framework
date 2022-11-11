@@ -44,17 +44,17 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class StepRaterConfig extends BasicRunnerConfig {
     public int retriesMax = 2;
-    public int ratePercentStep = 1;
+    public int rateStepPercent = 1;
     public int startingRatePercent = 50;
     public int finishingRatePercent = 110;
     public int finerRateSteps = 0;
-    public double targetFactor = 1.01;
+    public double rateFactor = 1.01;
     public double rangeStartTime = 0.0;
     public boolean resetEachStep = true;
-    public boolean highboundOnly = false;
+    public boolean highBoundOnly = false;
+    public boolean highBoundFromMaxRate = false;
     public boolean processHistograms = false;
-    public String highBound = "0";
-    public String highBoundTime = "0";
+    public String highBoundRunTime = "1m";
     public String highBoundWarmupTime = "0";
     public String initialWarmupTime = "0";
     public String initialRunTime = "1m";
@@ -63,11 +63,8 @@ public class StepRaterConfig extends BasicRunnerConfig {
 
     @Override
     public void validate(boolean runMode) {
-        if (FormatTool.parseValue(highBound) < 0) {
-            throw new IllegalArgumentException(String.format("Invalid highBound(%s) - should be non-negative", highBound));
-        }
-        if (FormatTool.parseTimeLength(highBoundTime) < 0) {
-            throw new IllegalArgumentException(String.format("Invalid highBoundTime(%s) - should be non-negative", highBoundTime));
+        if (FormatTool.parseTimeLength(highBoundRunTime) < 0) {
+            throw new IllegalArgumentException(String.format("Invalid highBoundRunTime(%s) - should be non-negative", highBoundRunTime));
         }
         if (FormatTool.parseTimeLength(highBoundWarmupTime) < 0) {
             throw new IllegalArgumentException(String.format("Invalid highBoundWarmupTime(%s) - should be non-negative", highBoundWarmupTime));
@@ -78,8 +75,8 @@ public class StepRaterConfig extends BasicRunnerConfig {
         if (FormatTool.parseTimeLength(initialRunTime) < 0) {
             throw new IllegalArgumentException(String.format("Invalid initialRunTime(%s) - should be non-negative", initialRunTime));
         }
-        if (ratePercentStep <= 0) {
-            throw new IllegalArgumentException(String.format("Invalid ratePercentStep(%d) - should be positive", ratePercentStep));
+        if (rateStepPercent <= 0) {
+            throw new IllegalArgumentException(String.format("Invalid ratePercentStep(%d) - should be positive", rateStepPercent));
         }
         if (startingRatePercent < 0) {
             throw new IllegalArgumentException(String.format("Invalid startingRatePercent(%d) - should be non-negative", startingRatePercent));

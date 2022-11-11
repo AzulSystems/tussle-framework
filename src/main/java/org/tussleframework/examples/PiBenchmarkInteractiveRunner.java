@@ -30,52 +30,19 @@
  * 
  */
 
-import static org.junit.Assert.fail;
+package org.tussleframework.examples;
 
-import org.junit.Test;
-import org.tussleframework.ProcBenchmark;
-import org.tussleframework.ProcConfig;
-import org.tussleframework.runners.BasicRunner;
+import org.tussleframework.Run;
+import org.tussleframework.runners.InteractiveRunner;
 import org.tussleframework.tools.LoggerTool;
 
-public class ProcBenchmarkSamplesTest {
-
-    {
-        LoggerTool.init("", "java.util.logging.ConsoleHandler");
-    }
-
-    @Test
-    public void testBasic() {
-        String[] runnerArgs = {
-                "targetRate=1k",
-                "runTime=1m", 
-                "hdrCutTime=30",
-                "warmupTime=0",
-                "histogramsDir=results/proc_benchmark_samples_test/histograms",
-                "operationsExclude=[check-cluster-health]"
-        };
-        String[] runCmd = {
-                "bash",
-                "-c",
-                "echo STEP={runStep} TIME={runTime} WARMUP={warmupTime} TARGET={targetRate} TTT={TTT}; sleep 1; echo run; sleep 1; echo DONE",
-        };
-        ProcConfig procConfig = new ProcConfig();
-        procConfig.printLog = true;
-        procConfig.printLog = true;
-        procConfig.vars.put("TTT", "some_ttt...");
-        procConfig.name = "proc-samples-test";
-        procConfig.logPrefix = " *** "; 
-        procConfig.run.dir = "test_data/proc_samples_test";
-        procConfig.run.cmd = runCmd;
-        procConfig.run.delay = "5s";
-        procConfig.resultFiles = new String[] {
-                "samples.zip"
-        };
+public class PiBenchmarkInteractiveRunner {
+    public static void main(String[] args) {
+        LoggerTool.init("benchmark");
         try {
-            new BasicRunner(runnerArgs).run(new ProcBenchmark(procConfig));
+            new InteractiveRunner(Run.runnerArgs(args)).run(new PiBenchmark(Run.benchmarkArgs(args)));
         } catch (Exception e) {
             e.printStackTrace();
-            fail();
         }
     }
 }

@@ -32,6 +32,8 @@
 
 package org.tussleframework;
 
+import static org.tussleframework.tools.FormatTool.roundFormat;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -87,5 +89,14 @@ public class RunArgs {
             }
         }
         return filledParts;
+    }
+
+    public String format(String rateUnits) {
+        if (rateUnits == null) {
+            rateUnits = "";
+        } else {
+            rateUnits = " " + rateUnits;
+        }
+        return String.format("target rate %s%s (%s%%), warmup %d s, run time %d s", roundFormat(targetRate), rateUnits, roundFormat(ratePercent), warmupTime, runTime);
     }
 }

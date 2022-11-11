@@ -153,7 +153,7 @@ public class TargetRunnerAsync implements TargetRunner {
                 .count(ops)
                 .errors(errs)
                 .rateUnits("op/s")
-                .rate(ops > 0 ? ops / ((double) time / MS_IN_S) : 0)
+                .actualRate(ops > 0 ? ops / ((double) time / MS_IN_S) : 0)
                 .build();
         SleepTool.sleep(NS_IN_S);
         log("Result: " + result);

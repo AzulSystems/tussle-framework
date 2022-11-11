@@ -55,6 +55,7 @@ public class ProcBenchmarkErrorTest {
                 "exit 1",
         };
         ProcConfig procConfig = new ProcConfig();
+        procConfig.printLog = true;
         procConfig.run.cmd = runCmd;
         try {
             new BasicRunner(runnerArgs).run(new ProcBenchmark(procConfig));

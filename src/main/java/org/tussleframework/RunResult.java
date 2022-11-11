@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -46,7 +46,7 @@ import lombok.ToString;
 public class RunResult {
     public String rateUnits;
     public String timeUnits;
-    public double rate;
+    public double actualRate;
     public long errors;
     public long count;
     public long time;

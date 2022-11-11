@@ -104,7 +104,7 @@ public class TargetRunnerST implements TargetRunner {
                 .count(opIndex)
                 .errors(errs)
                 .rateUnits("op/s")
-                .rate(opIndex > 0 ? opIndex / ((double) time / MS_IN_S) : 0)
+                .actualRate(opIndex > 0 ? opIndex / ((double) time / MS_IN_S) : 0)
                 .build();
         SleepTool.sleep(NS_IN_S);
         log("Result: " + result);
