@@ -122,11 +122,12 @@ public abstract class WlBenchmark implements Benchmark {
         WlBenchmark wlBenchmark = new WlBenchmark() {
             @Override
             public RunnableWithError getWorkload() {
-                return new RunnableWithError() {
-                    @Override
-                    public Boolean call() throws Exception {
+                return () -> {
+                    try {
                         load.run();
                         return true;
+                    } catch (Exception e) {
+                        return false;
                     }
                 };
             }
