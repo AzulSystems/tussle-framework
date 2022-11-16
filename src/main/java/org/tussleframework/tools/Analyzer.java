@@ -304,9 +304,9 @@ public class Analyzer implements Tool {
                     valBuffersAvg[metricIdx].add(-1.0);
                 } else if (metricType(metricIdx) == MetricType.COUNTS) {
                     if (metric.getFinish() > metric.getStart()) {
-                        double throughput = metricValue.sumValue() * 1000.0 / (metric.getFinish() - metric.getStart());
-                        valBuffersMax[metricIdx].add(throughput);
-                        valBuffersAvg[metricIdx].add(throughput);
+                        double count = metricValue.sumValue() * 1000.0 / (metric.getFinish() - metric.getStart());
+                        valBuffersMax[metricIdx].add(count);
+                        valBuffersAvg[metricIdx].add(count);
                     } else {
                         valBuffersMax[metricIdx].add(-1.0);
                         valBuffersAvg[metricIdx].add(-1.0);
@@ -575,6 +575,7 @@ public class Analyzer implements Tool {
         HdrResult result = new HdrResult(fileName, analyzerConfig);
         result.loadHdrData(inputStream, analyzerConfig.sleConfig, analyzerConfig.intervals);
         result.getMetrics(metricData, analyzerConfig.allPercentiles ? percentilesLong : percentilesShort);
+        // TODO: result.unloadHdrData(); # need to unload in order to reduce memory consumption 
         hdrResults.add(result);
     }
 

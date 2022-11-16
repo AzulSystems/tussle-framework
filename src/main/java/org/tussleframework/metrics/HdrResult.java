@@ -290,6 +290,10 @@ public class HdrResult {
         }
     }
 
+    public void unloadHdrData() {
+        hdrIntervalResults.clear();
+    }
+
     public void loadHdrData(HdrIterator hdrIter, MovingWindowSLE[] sleConfig, Interval[] intervals) {
         int mergeHistos = config.reportInterval / config.hdrInterval;
         if (intervals == null || intervals.length == 0) {
