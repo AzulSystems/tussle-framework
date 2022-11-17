@@ -1675,6 +1675,14 @@ const module = angular.module('ISVViewerApp', ['chart.js']);
 initModule(module);
 
 module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
+    console.log(`ISVViewer start: ${location.search}`);
+    const params = (location.search && location.search.length > 1 ? location.search.substring(1) : "").split("&");
+    let viewMode = '';
+    if (params.find(param => param == "summary")) {
+        viewMode = DISPLAY_SUMMARY;
+    } else if (params.find(param => param == "report")) {
+        viewMode = DISPLAY_REPORT;
+    }
     $scope.isLoading = 0;
     $scope.workloads = [];
     $scope.times = [{
@@ -1790,7 +1798,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
     $scope.groupByToggles = [...groupByToggles_default];
     $scope.separateByToggles = [...separateByToggles_default];
     $scope.num_comparison_columns = 0;
-    $scope.display = DISPLAY_RUNS;
+    $scope.display = viewMode || DISPLAY_RUNS;
     $scope.displayProducedResults = false;
     $scope.moveItem = (arr, index, n) => {
         if (index + n >= 0 && index + n < arr.length) {
@@ -2400,8 +2408,8 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             }
         }
         if (localMetrics.length > 0) {
-            console.log('showResults: report mode...');
-            $scope.display = DISPLAY_REPORT;
+            $scope.display = viewMode || DISPLAY_REPORT;
+            console.log(`showResults: ${$scope.display}...`);
             let docs = [];
             localMetrics.forEach(adoc => adoc.forEach(doc => {
                 if (doc._source.doc) {
@@ -2424,23 +2432,17 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             }
         }
         if ($location.search().portal) {
-            console.log('showResults: portal mode...');
             $scope.display = DISPLAY_PORTAL;
         } else if ($location.search().search) {
-            console.log('showResults: search mode...');
             $scope.display = DISPLAY_SEARCH;
         } else if ($scope.visibleRuns.length === 0) {
-            console.log('showResults: runs mode...');
             $scope.display = DISPLAY_RUNS;
         } else {
             if ($location.search().summary) {
-                console.log('showResults: summary mode...');
                 $scope.display = DISPLAY_SUMMARY;
             } else if ($location.search().hls) {
-                console.log('showResults: high level summary mode ..');
                 $scope.display = DISPLAY_HL_SUMMARY;
             } else {
-                console.log('showResults: table mode...');
                 $scope.display = DISPLAY_TABLE;
             }
             if ($location.search().g) {
@@ -2480,6 +2482,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             $scope.selectedBenchmark = $location.search().b;
             console.log('selectedBenchmark1: ' + $scope.selectedBenchmark + ' processDirsRec: ' + $scope.processDirsRec);
         }
+        console.log(`showResults: ${$scope.display}...`);
         if ($location.search().xTicks) {
             $scope.xTicks = $location.search().xTicks;
         }

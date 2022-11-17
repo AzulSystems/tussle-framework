@@ -201,9 +201,12 @@ public class Run {
      */
     public static void run(Benchmark benchmark, String[] benchmarkArgs, Runner runner, String[] runnerArgs) throws TussleException {
         runner.init(runnerArgs);
-        benchmark.init(benchmarkArgs);
-        runner.run(benchmark);
-        benchmark.cleanup();
+        try {
+            benchmark.init(benchmarkArgs);
+            runner.run(benchmark);
+        } finally {
+            benchmark.cleanup();
+        }
     }
 
     /**
