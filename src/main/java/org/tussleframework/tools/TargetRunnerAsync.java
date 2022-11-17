@@ -75,7 +75,7 @@ public class TargetRunnerAsync implements TargetRunner {
     }
 
     @AllArgsConstructor
-    private class C implements Runnable {
+    private class WorkloadCall implements Runnable {
         Callable<Boolean> workload;
         TimeRecorder recorder;
         String operation;
@@ -117,7 +117,7 @@ public class TargetRunnerAsync implements TargetRunner {
         int lastOneIdx = 0;
         while (deadline - System.nanoTime() > 0) {
             long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
-            lastOnes[(lastOneIdx++) % lastOnes.length] = executor.submit(new C(workload, recorder, operationName, intendedStartTime));
+            lastOnes[(lastOneIdx++) % lastOnes.length] = executor.submit(new WorkloadCall(workload, recorder, operationName, intendedStartTime));
             opIndex++;
             long intendedNextStartTime = startRunTime + opIndex * delayBetweenOps;
             SleepTool.sleepUntil(intendedNextStartTime);

@@ -86,9 +86,9 @@ public abstract class WlBenchmark implements Benchmark {
     @Override
     public RunResult run(double targetRate, int warmupTime, int runTime, TimeRecorder recorder) throws TussleException {
         if (warmupTime > 0) {
-            doSomeWork(targetRate, warmupTime, null);
+            doWork(targetRate, warmupTime, null);
         }
-        return doSomeWork(targetRate, runTime, recorder);
+        return doWork(targetRate, runTime, recorder);
     }
 
     public Class<? extends WlConfig> getConfigClass() {
@@ -105,7 +105,7 @@ public abstract class WlBenchmark implements Benchmark {
         }
     }
 
-    protected RunResult doSomeWork(double targetRate, int runTime, TimeRecorder recorder) throws TussleException {
+    protected RunResult doWork(double targetRate, int runTime, TimeRecorder recorder) throws TussleException {
         if (recorder != null) {
             recorder.startRecording(getOperationName(), "op/s", "ms");
         }
