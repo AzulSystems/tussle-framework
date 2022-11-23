@@ -71,6 +71,7 @@ import org.tussleframework.metrics.MetricType;
 import org.tussleframework.metrics.MetricValue;
 import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.metrics.ServiceLevelExpectation;
+import org.tussleframework.tools.processors.CompileLogProcessor;
 import org.tussleframework.tools.processors.DiskstatProcessor;
 import org.tussleframework.tools.processors.HiccupProcessor;
 import org.tussleframework.tools.processors.IpstatProcessor;
@@ -431,6 +432,11 @@ public class Analyzer implements Tool {
         return name.startsWith("workload") && name.indexOf("OMB") >= 0 && name.endsWith(".json");
     }
 
+    public static boolean isCompileLog(String name) {
+        name = FileTool.clearPathExt(name);
+        return name.endsWith("_comp.log");
+    }
+
     public static boolean isResultsFile(String fileName) {
         return isRunPropertiesFile(fileName)
                 || isTopFile(fileName)
@@ -441,7 +447,8 @@ public class Analyzer implements Tool {
                 || isHistogramFile(fileName)
                 || isTLPStressResults(fileName)
                 || isSamplesFile(fileName)
-                || isOMBFile(fileName);
+                || isOMBFile(fileName)
+                || isCompileLog(fileName);
     }
 
     public String getOperationName(String fileName) {
@@ -478,6 +485,8 @@ public class Analyzer implements Tool {
             processSamples(inputStream, host, fileName);
         } else if (isOMBFile(fileName)) {
             new OMBProcessor().processData(metricData, null, inputStream, host, logger);
+        } else if (isCompileLog(fileName)) {
+            new CompileLogProcessor().processData(metricData, null, inputStream, host, logger);
         } else {
             res = false;
         }

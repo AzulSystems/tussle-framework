@@ -32,6 +32,7 @@
 
 package org.tussleframework.tools;
 
+@Deprecated
 public class StepRaterAnalyser extends Analyzer {
 
 //    public static void main(String[] args) {
