@@ -39,6 +39,7 @@ REPORT_DIR=${REPORT_DIR:-report}
 MH=${MH:-3}
 HDR_FACTOR=${HDR_FACTOR:-1000}
 HEAP=${HEAP:-8g}
+WARMUP=${WARMUP:-false}
 
 while [[ "${1}" == *=* ]]
 do
@@ -59,6 +60,7 @@ histogramsDir: .
 makeReport: false
 reportInterval: $((MH*1000))
 hdrFactor: ${HDR_FACTOR}
+includeWarmup: ${WARMUP}
 operationsExclude:
  - check-cluster-health
 intervals:
