@@ -667,7 +667,7 @@ Array.prototype.selected = function() {
             posAll++;
         }
         for (const item of this) {
-            if (typeof item.name !== 'undefined' && item.name === name && item.selected) {
+            if (typeof item.name !== 'undefined' && item.name === name && item.selected && item.visible) {
                 check ? neg++ : pos++;
                 break;
             }
@@ -736,7 +736,7 @@ Array.prototype.addToggleOpt = function(name, type, showDataElements, style, hid
     let elem = this.byName(name);
     if (!elem) {
         let pos = this.getNextPos(type);
-        console.log(`addToggleOpt [${name}] [${type}]`);
+        ///console.log(`addToggleOpt [${name}] [${type}]`);
         elem = { name, type, style, selected: showData(name, type, showDataElements), visible: !hidden };
         this.splice(pos, 0, elem);
     }
@@ -886,7 +886,6 @@ const linePlugin = {
     renderVerticalLine: function(chart, point, color) {
         const model = this.getLinePosition(chart, 0);
         if (!model) return;
-        ///if (nnn === 0) console.dir(chart);
         const xscale = chart.scales['x-axis-0'];
         const yscale = chart.scales['y-axis-0'];
         const context = chart.chart.ctx;
@@ -895,7 +894,6 @@ const linePlugin = {
         const xLeft = xscale.left + xscale.paddingLeft;
         const xRight = xscale.right;
         const lineLeftOffset = xLeft + (xRight - xLeft) * (point.x - xscale.min) / (xscale.max - xscale.min);
-        ///if (nnn === 0) console.dir(xscale);
         nnn++;
         // render vertical line
         context.beginPath();
@@ -1223,8 +1221,11 @@ function getMetricLatencyPercentileValue(metric, percentile) {
 }
 
 function getMetricsNameSuffix(metric, scale, mname) {
-    let name = mname || metric.name;
-    name = name./*replace(/_/g, ' ').*/replace(/times/g, 'time');
+    let name = metric.name;
+    name = name.replace(/times/g, 'time');
+    if (mname) {
+        name = name.replace(/response_time/g, mname).replace(/service_time/g, mname);
+    }
     if (scale && metric.units) {
         name += ' (' + metric.units + ')';
     }
@@ -1280,13 +1281,14 @@ const SELECTED_BY_DEFAULT = [
 ];
 
 const PRIME_METRICS = [
-    'response_time', 'service_time'
+    'response_time', 'service_time', 'counts', 'rate'
 ];
 
 const SECONDARY_METRICS = [
     'hiccups', 
     'hiccup_times',
     'top',
+    'top_threads',
     'disk',
     'diskstat',
     'network',
@@ -1295,12 +1297,12 @@ const SECONDARY_METRICS = [
     'cpu_utilization',
 ];
 
-function isPrime(name) {
+function isPrimaryMetric(name) {
     return !!PRIME_METRICS.find(p => name.indexOf(p) >= 0) && !(name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0);
 }
 
-const hiddenByDefault = name => UNSELECTED_BY_DEFAULT.includes(name) || name.indexOf('hdr_counts') >= 0 || name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0;   
-const shownByDefault = name => SELECTED_BY_DEFAULT.includes(name) || isPrime(name);
+const hiddenByDefault = name => UNSELECTED_BY_DEFAULT.includes(name) || name.indexOf('hdr') >= 0 || name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0;   
+const shownByDefault = name => SELECTED_BY_DEFAULT.includes(name) || isPrimaryMetric(name);
 
 function checkDataPatterns(names, showDataElements, type) {
     for (const p of showDataElements) {
@@ -1329,7 +1331,7 @@ function checkDataPatterns(names, showDataElements, type) {
     return false;
 }
 
-function showData(name, type, showDataElements) {
+function showDataImpl(name, type, showDataElements) {
     name = name.toLowerCase().replace(/ /g, '_');
     if (!showDataElements || showDataElements.length === 0) {
         return shownByDefault(name);
@@ -1355,7 +1357,14 @@ function showData(name, type, showDataElements) {
     if (name === 'value') {
         return true;
     }
+    console.log(`showData name=${name} type=${type} => checkDataPatterns ${showDataElements.join()}...`);
     return checkDataPatterns([name], showDataElements, 'SHOW');
+}
+
+function showData(name, type, showDataElements) {
+    const res = showDataImpl(name, type, showDataElements);
+    ///console.log(`showData name=${name} type=${type} => ${res}`);
+    return res;
 }
 
 function equalXvalues(metric1, metric2) {
@@ -1655,12 +1664,11 @@ function getMetricChart(metric, showOptions, mv, valMax, label, units) {
 }
 
 function getMetricThroughputChart(metric, showOptions) {
-   return getMetricChart(metric, showOptions, metric.getMetricValues('throughput'), metric.maxCount, 'Throughput', 'op/s');
+   return getMetricChart(metric, showOptions, metric.getMetricValues('throughput'), metric.maxRate, 'Rate', 'op/s');
 }
 
 function getMetricCountChart(metric, showOptions) {
-    const counts = showOptions.includes('counts');
-    return getMetricChart(metric, showOptions, metric.getMetricValues('counts'), metric.maxCount, counts ? 'Counts' : 'Rate', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
+    return getMetricChart(metric, showOptions, metric.getMetricValues('counts'), metric.maxCount, 'Counts', metric.delayS !== 1 ? `op/${metric.delayS}s` : 'op/s');
 }
 
 function getMetricPercentilesChart(metric, showOptions) {
@@ -1778,39 +1786,10 @@ function getVMName(vmType, config) {
     }
 }
 
-function normalizeWorkloadParams(benchmark, par) {
+function normalizeWorkloadParams(par) {
     let ret = [];
-    par.split('+').forEach(step => {
-//        step = step.replace(/\.warmup-iterations=/g, '.wi=')
-//            .replace(/\.target-throughput=/g, '.tt=')
-//            .replace(/\.clients=/g, '.c=')
-//            .replace(/\.iterations=/g, '.i=');
-//        if (benchmark.startsWith('esrally')) {
-//            let words = step.split(',');
-//            if (words.length > 1) {
-//                let sub_wl = words[0];
-//                words.splice(0, 1);
-//                words.sort();
-//                step = sub_wl + ',' + words.join(',');
-//            }
-//        }
-        //ret.push(step);
-        ret.push(step.split(',').sort().join(' '));
-    });
+    par.split('+').forEach(step => ret.push(step.split(',').sort().join(' ')));
     return ret.join(';');
-}
-
-function defaultWorkload(benchmark, workload_name) {
-    if (benchmark.startsWith('esrally'))
-        switch (workload_name) {
-            case 'geotest':
-                return 'index-search';
-            case 'nested':
-                return 'nested-search-challenge';
-            default:
-                return 'append-no-conflicts';
-        }
-    return '';
 }
 
 function normalizeVM(vm, build, vm_version) {
@@ -2019,8 +1998,11 @@ function fixMetricFields(metric) {
     }
 }
 
-function fixMetricValues(metric) {
+function fixMetricValues(metric, showOpts) {
+    console.log(`fixMetricValues: fixing metric ${metric.name} ${metric.operation}`);
+    const delay = metric.delay / 1000;
     metric.metricValues = metric.metricValues || [];
+    let mvRate = null;
     for (const type of ['values', 'p0_values', 'p50_values', 'p90_values', 'p99_values',
         'p999_values', 'p99_9_values', 'p9999_values', 'p99_99_values', 'p100_values', 'counts', 'throughput']) {
         if (metric[type]) {
@@ -2065,11 +2047,33 @@ function fixMetricValues(metric) {
         if (!mv.name) {
             mv.name = metric.name;
         }
+        if (mv.type === 'counts' && showOpts.counts !== 'keep'  && delay && delay > 0 && !metric.metricValues.find(mv => mv.type === 'throughput')) {
+            if (showOpts.counts === 'both') {
+                console.log(`fixMetricValues: adding rate in addition to ${mv.type} ${mv.values.length}...`);
+                mvRate = {
+                    values: [],
+                    isThroughput: true,
+                };
+            } else {
+                console.log(`fixMetricValues: normalizing rate ${mv.type} ${mv.values.length}...`);
+                mvRate = mv;
+            }
+            for (let i = 0; i < mv.values.length; i++) {
+                mvRate.values[i] = mv.values[i] / delay;
+            }
+            mvRate.type = 'throughput';
+            if (showOpts.counts !== 'both') {
+                mvRate = null;
+            }
+        }
         mv.isValues = mv.values && mv.values.length > 0 && mv.type.endsWith('values') && mv.type.indexOf('percentile') < 0;
         mv.isCounts = mv.values && mv.values.length > 0 && mv.type === 'counts';
         mv.isThroughput = mv.values && mv.values.length > 0 && mv.type === 'throughput';
         mv.isPercentiles = mv.values && mv.values.length > 0 && mv.type.indexOf('percentile') >= 0;
     });
+    if (mvRate) {
+        metric.metricValues.push(mvRate);
+    }
     metric.hasValues = () => !!metric.metricValues.find(mv => mv.isValues && mv.values);
     metric.hasCounts = () => !!metric.metricValues.find(mv => mv.isCounts && mv.values);
     metric.hasThroughput = () => !!metric.metricValues.find(mv => mv.isThroughput && mv.values);
@@ -2083,7 +2087,7 @@ function trimMetricValues(metric, showOpts) {
     const trimLeft = showOpts.trimLeft; 
     const trimRight = showOpts.trimRight;
     const shortMetrics = showOpts.shortMetrics;
-    const prime = isPrime(metric.name);
+    const prime = isPrimaryMetric(metric.name);
     let shortened = false;
     if ((trimLeft > 0 || trimRight > 0) && prime) {
         metric.metricValues.forEach(mv => trimArray(mv.values, trimLeft, trimRight));
@@ -2142,15 +2146,21 @@ function calcMetricAverages(metric) {
     });
 }
 
-function collectMetricStats(metric, mapRespMax, mapRespMaxCount, mapMinLength) {
+function collectMetricStats(metric, mapMaxes, mapMinLength) {
     const metricLabel = getMetricLabel(metric);
+    const metricLabelCounts = getMetricLabel(metric) + '_counts';
+    const metricLabelRate = getMetricLabel(metric) + '_rate';
     const metricMax = metric.getValues('values')?.max() || null;
-    if (metricMax && !mapRespMax.has(metricLabel) || mapRespMax.get(metricLabel) < metricMax) {
-        mapRespMax.set(metricLabel, metricMax);
+    if (metricMax && !mapMaxes.has(metricLabel) || mapMaxes.get(metricLabel) < metricMax) {
+        mapMaxes.set(metricLabel, metricMax);
     }
     const metricMaxCount = metric.getValues('counts')?.max() || null;
-    if (metricMaxCount && !mapRespMaxCount.has(metricLabel) || mapRespMaxCount.get(metricLabel) < metricMaxCount) {
-        mapRespMaxCount.set(metricLabel, metricMaxCount);
+    if (metricMaxCount && !mapMaxes.has(metricLabelCounts) || mapMaxes.get(metricLabelCounts) < metricMaxCount) {
+        mapMaxes.set(metricLabelCounts, metricMaxCount);
+    }
+    const metricMaxRate = metric.getValues('throughput')?.max() || null;
+    if (metricMaxRate && !mapMaxes.has(metricLabelRate) || mapMaxes.get(metricLabelRate) < metricMaxRate) {
+        mapMaxes.set(metricLabelRate, metricMaxRate);
     }
     const values = metric.getValues('values') || metric.getValues('p50_values');
     const metricLength = values ? values.length : null;
@@ -2159,7 +2169,7 @@ function collectMetricStats(metric, mapRespMax, mapRespMaxCount, mapMinLength) {
     }
 }
 
-function groupMetrics(metrics) {
+function groupMetrics(metrics, showOpts) {
     const groups = new Map();
     metrics.forEach(metric => {
         if (metric.group) {
@@ -2185,18 +2195,18 @@ function groupMetrics(metrics) {
             scale: grMetrics[0].scale,
             step: grMetrics[0].step
         };
-        fixMetricValues(metric);
+        fixMetricValues(metric, showOpts);
         metrics.push(metric);
     });
 }
 
-function normalizeMetricsStart(metrics, runProperties, filterDataElements, showOpts, mapRespMax, mapRespMaxCount, mapMinLength) {
+function normalizeMetricsStart(metrics, runProperties, filterDataElements, showOpts, mapMaxes, mapMinLength) {
     if (!metrics) {
         return;
     }
     metrics.forEach(m => m.runProperties = runProperties);
     metrics.forEach(fixMetricFields);
-    metrics.forEach(fixMetricValues);
+    metrics.forEach(metric => fixMetricValues(metric, showOpts));
     if (!showOpts.noSortMetrics) {
         console.log('Sorting metrics...')
         metrics.sortNum('name', 1, ['operation', 'operation_step']);
@@ -2213,7 +2223,7 @@ function normalizeMetricsStart(metrics, runProperties, filterDataElements, showO
     let minStart = MAX_LONG;
     metrics.forEach(metric => {
         trimMetricValues(metric, showOpts);
-        collectMetricStats(metric, mapRespMax, mapRespMaxCount, mapMinLength);
+        collectMetricStats(metric, mapMaxes, mapMinLength);
         if (metric.start > 0) {
             minStart = Math.min(minStart, metric.start);
         }
@@ -2223,13 +2233,14 @@ function normalizeMetricsStart(metrics, runProperties, filterDataElements, showO
         minStart = 0;
     }
     metrics.forEach(metric => metric.minStart = metric.start > 0 ? minStart : metric.start);
-    groupMetrics(metrics);
+    groupMetrics(metrics, showOpts);
 }
 
-function normalizeMetricsFinish(metrics, mapRespMax, mapRespMaxCount, showOpts) {
+function normalizeMetricsFinish(metrics, mapMaxes, showOpts) {
     if (metrics) {
-        metrics.forEach(metric => metric.maxValue = mapRespMax.get(getMetricLabel(metric)));
-        metrics.forEach(metric => metric.maxCount = mapRespMaxCount.get(getMetricLabel(metric)));
+        metrics.forEach(metric => metric.maxValue = mapMaxes.get(getMetricLabel(metric)));
+        metrics.forEach(metric => metric.maxCount = mapMaxes.get(getMetricLabel(metric) + '_counts'));
+        metrics.forEach(metric => metric.maxRate = mapMaxes.get(getMetricLabel(metric) + '_rate'));
         if (showOpts.noCharts) {
             console.log('No charts mode');
             metrics.forEach(clearMetricValues);
@@ -2244,7 +2255,8 @@ function parseShowOpts(showOptions) {
         shortMetrics: false,
         normalizeWarmup: false,
         noSortMetrics: false,
-        noCharts: false
+        noCharts: false,
+        counts: 'rate',
     };
     showOptions.forEach(e => {
         if (e.startsWith('chopLeft')) {
@@ -2261,6 +2273,8 @@ function parseShowOpts(showOptions) {
             showOpts.noCharts = true;
         } else if (e.startsWith('noSort') || e.startsWith('nosort')) {
             showOpts.noSortMetrics = true;
+        } else if (e.startsWith('counts')) {
+            showOpts.counts = e.substring(6).toLowerCase();
         }
     });
     return showOpts;
@@ -2270,12 +2284,11 @@ function normalizeHitsMetrics(hits, showOptions, filterDataElements) {
     console.log('normalizeHitsMetrics showOptions: ' + showOptions + ', ' + filterDataElements);
     const showOpts = parseShowOpts(showOptions);
     console.log(`normalizeHitsMetrics showOpts=${showOpts}`);
-    hits.mapRespMax = new Map();
+    hits.mapMaxes = new Map();
     hits.mapMinLength = new Map();
-    hits.mapRespMaxCount = new Map();
     //hits.forEach(hit => hit._source.metrics = [hit._source.metrics[0],hit._source.metrics[1]]); /// DEBUG !!!
-    hits.forEach(hit => normalizeMetricsStart(hit._source.metrics, hit._source.runProperties, filterDataElements, showOpts, hits.mapRespMax, hits.mapRespMaxCount, hits.mapMinLength));
-    hits.forEach(hit => normalizeMetricsFinish(hit._source.metrics, hits.mapRespMax, hits.mapRespMaxCount, showOpts));
+    hits.forEach(hit => normalizeMetricsStart(hit._source.metrics, hit._source.runProperties, filterDataElements, showOpts, hits.mapMaxes, hits.mapMinLength));
+    hits.forEach(hit => normalizeMetricsFinish(hit._source.metrics, hits.mapMaxes, showOpts));
     if (showOpts.normalizeWarmup) {
         addNormalizedMetrics(hits);
         hits.hasNormed = true;
@@ -2322,10 +2335,7 @@ function normalizeRunProperties(doc) {
     }
     runProperties.vm_type = normalizeVM(runProperties.vm_type, runProperties.build, runProperties.vm_version);
     runProperties.vm_name = getVMName(runProperties.vm_type, runProperties.config);
-    runProperties.workload_parameters = normalizeWorkloadParams(runProperties.benchmark, runProperties.workload_parameters);
-    if (runProperties.workload_parameters === '') {
-        runProperties.workload_parameters = defaultWorkload(runProperties.benchmark, runProperties.workload_name);
-    }
+    runProperties.workload_parameters = normalizeWorkloadParams(runProperties.workload_parameters);
     runProperties.config = runProperties.config.removeWords(vm_type_init, runProperties.vm_type);
     if (runProperties.vm_type === 'hotspot' || runProperties.vm_type === 'zulu' || runProperties.vm_type === 'openjdk') {
         runProperties.config = runProperties.config.removeWords('g1', 'cms', 'zgc', 'shenandoah');
@@ -2495,7 +2505,7 @@ function initModule(module) {
             scope: {
                 fileRead: '='
             },
-            link: function(scope, element, attributes) {
+            link: function(scope, element, _attributes) {
                 element.bind('change', changeEvent => {
                     console.log('fileRead change');
                     const reader = new FileReader();

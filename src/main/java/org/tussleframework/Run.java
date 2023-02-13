@@ -70,17 +70,17 @@ public class Run {
                 /// ignore
             }
             try {
-                return classLoader.loadClass("org.tussleframework.steprater." + className);
-            } catch (ClassNotFoundException e) {
-                /// ignore
-            }
-            try {
                 return classLoader.loadClass("org.tussleframework.examples." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }
             try {
                 return classLoader.loadClass("org.tussleframework.tools." + className);
+            } catch (ClassNotFoundException e) {
+                /// ignore
+            }
+            try {
+                return classLoader.loadClass("org.tussleframework.tools.processors." + className);
             } catch (ClassNotFoundException e) {
                 /// ignore
             }

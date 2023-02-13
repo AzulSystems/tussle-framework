@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -97,6 +97,10 @@ public class Analyzer implements Tool {
     public static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Analyzer.class.getName());
     public static final String[] EMPTY = {};
     private static final String SAMPLES2 = "samples_";
+
+    private static double[] percentilesBasic = {
+            0, 50, 90, 99, 99.9, 99.99, 100
+    };
 
     private static double[] percentilesShort = {
             0, 50, 90, 95, 99, 99.5, 99.9, 99.95, 99.99, 99.995, 99.999, 99.9995, 100
@@ -208,14 +212,14 @@ public class Analyzer implements Tool {
     public void processResults(AnalyzerConfig config) throws TussleException {
         init(config);
         processRecursive();
-        //getHdrDataMetrics();
+        getHdrDataMetrics();
         processSummary();
         printResults();
     }
 
-//    public void getHdrDataMetrics() {
-//        hdrDataMap.forEach((key, hdrData) -> hdrData.getMetrics(metricData, percentilesBasic));
-//    }
+    protected void getHdrDataMetrics() {
+        hdrDataMap.forEach((key, hdrData) -> hdrData.getMetrics(metricData, percentilesBasic));
+    }
 
     public void getHdrResults(Collection<HdrResult> hdrResults) {
         hdrDataMap.forEach((key, hdrData) -> hdrData.getHdrResults(hdrResults));
@@ -285,12 +289,12 @@ public class Analyzer implements Tool {
 //        for (int j = 0; j < sleConfig.length; j++) {
 //            valBuffersMW[j] = DoubleStream.builder();
 //        }
-        ArrayList<String> xValuesBuff = new ArrayList<>();
+        ArrayList<String> summaryValuesBuff = new ArrayList<>();
         for (HdrResult hdrResult : hdrResults) {
             if (hdrResult.recordsCount() == 0) {
                 continue;
             }
-            xValuesBuff.add(FormatTool.format(hdrResult.targetRate()));
+            summaryValuesBuff.add(FormatTool.format(hdrResult.targetRate()));
             HdrIntervalResult hdrPrimeResult = hdrResult.getPrimeResult();
             for (int metricIdx = 0; metricIdx < metricTypeCount(); metricIdx++) {
                 Metric metric = hdrPrimeResult.getMetric();
@@ -323,12 +327,16 @@ public class Analyzer implements Tool {
             return;
         }
         HdrResult firstHdrResult = optionalHdrResult.get();
-        String[] xValues = xValuesBuff.toArray(EMPTY);
-        Metric mAvg = addMetric(firstHdrResult.metricName() + " summary_avg", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
-        Metric mMax = addMetric(firstHdrResult.metricName() + " summary_max", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
-        for (int i = 0; i < metricTypeCount(); i++) {
-            mAvg.add(new MetricValue(metricType(i).name(), valBuffersAvg[i].build().toArray()));
-            mMax.add(new MetricValue(metricType(i).name(), valBuffersMax[i].build().toArray()));
+        if (summaryValuesBuff.size() > 1) {
+            String[] xValues = summaryValuesBuff.toArray(EMPTY);
+            Metric mAvg = addMetric(firstHdrResult.metricName() + " summary_avg", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
+            Metric mMax = addMetric(firstHdrResult.metricName() + " summary_max", firstHdrResult.operationName(), firstHdrResult.timeUnits(), firstHdrResult.rateUnits(), xValues);
+            for (int i = 0; i < metricTypeCount(); i++) {
+                mAvg.add(new MetricValue(metricType(i).name(), valBuffersAvg[i].build().toArray()));
+                mMax.add(new MetricValue(metricType(i).name(), valBuffersMax[i].build().toArray()));
+            }
+            mMax.setMarkers(sleMarkers);
+            mAvg.setMarkers(sleMarkers);
         }
         double maxActualRate = hdrResults.get(hdrResults.size() - 1).getRate();
         String opName = firstHdrResult.operationName();
@@ -362,8 +370,6 @@ public class Analyzer implements Tool {
 //                    .build()
 //                    .add(new MetricValue(sleTypes[i], valBuffersMW[i].build().toArray())));
         }
-        mMax.setMarkers(sleMarkers);
-        mAvg.setMarkers(sleMarkers);
     }
 
 //    public static String[] getTypes(MovingWindowSLE[] slaConfig) {

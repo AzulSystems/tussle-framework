@@ -155,12 +155,14 @@ public class HdrWriter extends TimerTask {
         long time = spentTime / 1000;
         long totalCount = hdrResult.getCount();
         long count = progressHistogram.getTotalCount();
+        double histoTime = (progressHistogram.getEndTimeStamp() - progressHistogram.getStartTimeStamp()) / 1000.0;
+        double rate = histoTime > 0 ? count / histoTime : 0;
         double p50 = progressHistogram.getValueAtPercentile(50.0) / hdrResult.hdrFactor();
         double p90 = progressHistogram.getValueAtPercentile(90.0) / hdrResult.hdrFactor();
         double p99 = progressHistogram.getValueAtPercentile(99.0) / hdrResult.hdrFactor();
         double p100 = progressHistogram.getValueAtPercentile(100.0) / hdrResult.hdrFactor();
         double mean = progressHistogram.getMean() / hdrResult.hdrFactor();
-        log("%14s | %6d | %5s%% | %8s | %8s | %8s | %8s | %8s | %8d | %8d", shortName, time, String.format("%2.1f", progress), roundFormat(p50), roundFormat(p90), roundFormat(p99), roundFormat(p100), roundFormat(mean), count, totalCount);
+        log("%14s | %6d | %5s%% | %8s | %8s | %8s | %8s | %8s | %8d | %8s | %8d", shortName, time, String.format("%2.1f", progress), roundFormat(p50), roundFormat(p90), roundFormat(p99), roundFormat(p100), roundFormat(mean), count, roundFormat(rate), totalCount);
     }
 
     private void printProgressHeader() {
@@ -168,9 +170,9 @@ public class HdrWriter extends TimerTask {
             synchronized (logger) {
                 if (!progressHeaderPrinted) {
                     progressHeaderPrinted = true;
-                    log("---------------------------------------------------------------------------------------------------------------");
-                    log("%14s | %6s | %6s | %8s | %8s | %8s | %8s | %8s | %8s | %8s", "name", "time", "progr", "p50ms", "p90ms", "p99ms", "p100ms", "mean", "count", "total");
-                    log("---------------------------------------------------------------------------------------------------------------");
+                    log("--------------------------------------------------------------------------------------------------------------------------");
+                    log("%14s | %6s | %6s | %8s | %8s | %8s | %8s | %8s | %8s | %8s | %8s", "name", "time", "progr", "p50ms", "p90ms", "p99ms", "p100ms", "mean", "count", "rate", "total");
+                    log("--------------------------------------------------------------------------------------------------------------------------");
                 }
             }
         }

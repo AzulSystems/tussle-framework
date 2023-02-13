@@ -683,7 +683,7 @@ function createToggleFilter($scope, filterWhat) {
 function produceDetailedComparisonReport($scope, hits, reducedResults) {
     const resultToggles = $scope.resultToggles;
     const displayDetails = { show: true };
-    const toShow = () => resultToggles.filter(t => t.selected && !t.generic && t.name !== 'avg').map(t => convertShowArg(t.name)).join(',');
+    const toShow = () => resultToggles.filter(t => t.selected && !t.generic).map(t => convertShowArg(t.name)).join(',');
     const toOpts = () => $scope.showOptions.join(',');
     const toFilter = () => $scope.filterDataElements.join(',');
     const filterValues = resultToggles.find(toggle => toggle.type === TYPE_FILTER_VALUES);
@@ -849,20 +849,42 @@ function hasChartValues(hits) {
 }
 
 function initLazyToggle(lazyElem, t, selected) {
-    t.selected = t.visible = lazyElem.selected = selected;
+    if (!lazyElem.selected) {
+        t.visible = lazyElem.selected = t.selected;
+    }
     lazyElem.extra = lazyElem.extra || [];
-    lazyElem.extra.push(() => t.selected = t.visible = lazyElem.selected);
+    lazyElem.extra.push(() => t.visible = lazyElem.selected);
     if (!lazyElem.toggle) {
         lazyElem.toggle = () => lazyElem.extra.forEach(f => f());
     }
 }
 
-function lazyChart(metric) {
-    return metric.name == 'hiccup_times' || metric.name == 'top' || metric.name == 'cpu' ||
-        metric.name == 'network' || metric.name == 'disk' || metric.name.indexOf('-mw') >= 0;
+function secondaryMetric(metric) {
+    return metric.name == 'hiccup_times' ||
+        metric.name == 'top' ||
+        metric.name == 'network' ||
+        metric.name == 'disk' ||
+        metric.name.startsWith('cpu') ||
+        metric.name.indexOf('-mw') >= 0;
 }
 
-function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
+function commonName(metric) {
+    if (metric.name.startsWith('cpu')) {
+        if (metric.name.indexOf('per_thread') >= 0) {
+            return 'CPU threads'
+        }
+        return 'CPU'
+    }
+    if (metric.name.indexOf('-mw') >= 0) {
+        return 'MV'
+    }
+    if (metric.name === 'hiccup_times') {
+        return 'hiccup'
+    }
+    return metric.name;
+}
+
+function pushMetricChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
     const cls = runProperties.vm_name.toLowerCase();
     if (metric.operation && metric.operation.startsWith('warmup_')) {
         return;
@@ -870,36 +892,33 @@ function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, s
     if (metric.group) {
         return;
     }
+    const prime = isPrimaryMetric(metric.name);
+    const mname = prime ? 'primary' : commonName(metric);
     if (metric.hasValues()) {
         const metricLabel = getMetricLabel(metric) + ' (chart)';
         pushVal(table, prefix + metricLabel, TYPE_CHART_TIME, metric, hidx, cls, () => toggles.selected(metricLabel), () => toggles.select(metricLabel, false));
         console.log('ADDED values chart ' + metricLabel);
         const t = toggles.addToggleOpt(metricLabel, TYPE_CHART_TIME, showDataElements);
-        if (lazyChart(metric)) {
-            const mwName = metric.name.indexOf('-mw') >= 0 ? 'MW' : metric.name;
-            const mname = metric.name == 'hiccup_times' ? 'hiccup' : mwName;
-            const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
-            initLazyToggle(lazyElem, t, false);
-        }
+        const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
+        initLazyToggle(lazyElem, t, prime);
     }
     if (metric.hasCounts()) {
-        const metricLabel = getMetricLabel(metric) + ' counts (chart)';
+        const metricLabel = getMetricLabel(metric, false, 'counts') + ' (chart)';
         toggles.addToggleOpt(metricLabel, TYPE_CHART_COUNTS, showDataElements);
         pushVal(table, prefix + metricLabel, TYPE_CHART_COUNTS, metric, hidx, cls, () => toggles.selected(metricLabel), () => toggles.select(metricLabel, false));
         console.log('ADDED counts chart ' + metricLabel);
         const t = toggles.addToggleOpt(metricLabel, TYPE_CHART_COUNTS, showDataElements);
-        if (lazyChart(metric)) {
-            const mwName = metric.name.indexOf('-mw') >= 0 ? 'MW' : metric.name;
-            const mname = metric.name == 'hiccup_times' ? 'hiccup' : mwName;
-            const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
-            initLazyToggle(lazyElem, t, false);
-        }
+        const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
+        initLazyToggle(lazyElem, t, prime);
     }
     if (metric.hasThroughput()) {
-        const metricLabel = getMetricLabel(metric) + ' throughput (chart)';
+        const metricLabel = getMetricLabel(metric, false, 'rate') + ' (chart)';
         toggles.addToggleOpt(metricLabel, TYPE_CHART_THROUGHPUT, showDataElements);
         pushVal(table, prefix + metricLabel, TYPE_CHART_THROUGHPUT, metric, hidx, cls, () => toggles.selected(metricLabel), () => toggles.select(metricLabel, false));
         console.log('ADDED throughput chart ' + metricLabel);
+        const t = toggles.addToggleOpt(metricLabel, TYPE_CHART_THROUGHPUT, showDataElements);
+        const lazyElem = toggles.addToggleOpt(`${mname} charts`, TYPE_CHART_HEADER, showDataElements, 'common_toggle');
+        initLazyToggle(lazyElem, t, prime);
     }
     const showHdr = showData('hdr', TYPE_CHART, showDataElements);
     if (metric.hasPercentiles()) {
@@ -920,24 +939,24 @@ function pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, s
     }
 }
 
-function pushMetricsCharts(metrics, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
+function pushMetricCharts(metrics, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
     if (metrics) {
-        metrics.forEach(metric => pushMetricsChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements));
+        metrics.forEach(metric => pushMetricChart(metric, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements));
     }
 }
 
-function pushMetricsValues(metrics, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
+function pushMetricValues(metrics, runProperties, hidx, table, toggles, prefix, stepNumber, showDataElements) {
     if (!metrics)
         return;
     const cls = runProperties.vm_name.toLowerCase();
-    const tooManyMetrics = metrics.length > 100;
+    const tooManyMetrics = metrics.length > 300;
     metrics.forEach(metric => {
         if (metric.operation && metric.operation.startsWith('warmup_') || stepNumber !== metric.step) {
             return;
         }
         const toogleOperation = tooManyMetrics ? null : metric.operation;
         if (toogleOperation) {
-            toggles.addToggleOpt(metric.operation, TYPE_NUMBER, "all");
+            toggles.addToggleOpt(metric.operation, TYPE_NUMBER, showDataElements);
         }
     });
     metrics.forEach(metric => {
@@ -956,7 +975,7 @@ function pushMetricsValues(metrics, runProperties, hidx, table, toggles, prefix,
         const metricLabel2 = getMetricLabel(metric);
         const toogleOperation = tooManyMetrics ? null : metric.operation || null;
         let error_rate = 0;
-        if (isPrime(metric.name)) {
+        if (isPrimaryMetric(metric.name)) {
             error_rate = metric.totalValues ? metric.totalErrors / metric.totalValues : null;
             if (metric.operation) {
                 pushVal(table, prefix + metricLabel2 + ' error rate', TYPE_NUMBER, error_rate, hidx, cls + (error_rate > 0 ? ' data_error' : ''), () => toggles.selected(metric.name, toogleOperation, 'error rate'));
@@ -1073,7 +1092,7 @@ function produceResultsTable(hits, $scope) {
             pushVal(table, 'Test Run Date', TYPE_DATE, runProperties.start_time, hidx, cls, () => toggles.selected('run time'));
             pushVal(table, 'Test Run Time (minutes)', TYPE_NUMBER, runProperties.time_spent_minutes, hidx, cls, () => toggles.selected('run time'));
             if (race_i === 0 && !noCharts) {
-                pushMetricsCharts(hit._source.metrics, hit._source.runProperties, hidx, table, toggles, prefix, race_i, showDataElements);
+                pushMetricCharts(hit._source.metrics, hit._source.runProperties, hidx, table, toggles, prefix, race_i, showDataElements);
             }
         }
     }
@@ -1085,7 +1104,7 @@ function produceResultsTable(hits, $scope) {
         let races = hit._source.races ? hit._source.races : [0];
         for (let race_i = 0; race_i < races.length; race_i++) {
             let prefix = getPrefix(hit._source.runProperties, separateByToggles);
-            pushMetricsValues(hit._source.metrics, hit._source.runProperties, hidx, table, toggles, prefix, race_i, showDataElements);
+            pushMetricValues(hit._source.metrics, hit._source.runProperties, hidx, table, toggles, prefix, race_i, showDataElements);
             hidx += stepsNotSeparated;
         }
     }
@@ -2057,8 +2076,9 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             { name: '', style: 'toggle_separator', missing: noCharts },
             { name: 'Filter Charts', type: TYPE_FILTER_CHARTS, style: 'toggle_filter', missing: noCharts },
             { name: 'Charts', style: 'toggle_label', missing: noCharts },
+            { name: '[wide]', type: TYPE_CHART_HEADER, style: 'common_toggle', selected: $scope.wide_charts, missing: noCharts, toggle: () => $scope.wide_charts = !$scope.wide_charts },
             { name: 'all charts', ...chart_header, selected: showAllCharts, missing: noCharts, toggle: t => $scope.toggleToggles(t, TYPE_ALL_CHARTS) },
-            { name: 'wide charts', type: TYPE_CHART_HEADER, style: 'common_toggle', selected: $scope.wide_charts, missing: noCharts, toggle: () => $scope.wide_charts = !$scope.wide_charts },
+            { name: 'primary charts', ...chart_header, selected: showAllCharts, missing: noCharts },
             { name: '', generic: true, type: TYPE_CHART_MAX },
             { name: '', generic: true, style: 'toggle_separator' },
             { name: 'Filter Values', type: TYPE_FILTER_VALUES, style: 'toggle_filter' },
@@ -2092,7 +2112,7 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             hit._source.metrics?.forEach(metric => {
                 metric.metricValues.forEach(mv => {
                     if (mv.isValues && mv.name) {
-                        toggles.addToggleOpt(mv.name, TYPE_HEADER, $scope.showDataElements, 'common_toggle');
+                        //toggles.addToggleOpt(mv.name, TYPE_HEADER, $scope.showDataElements, 'common_toggle');
                     }
                 });
             });
@@ -2278,6 +2298,9 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
         if (summary) {
             q.summary = '1';
         }
+        if ($scope.processDirsRec) {
+            q.rec = '1';
+        }
         return q;
     }
     $scope.openDetailedReport = (event, prev, target, summary) => {
@@ -2420,7 +2443,6 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             $scope.groupByEnabled = false;
             $scope.showDataElements = ['.*response_time_summary_max'];
             $scope.wide_charts = localMetrics.length === 1;
-            console.dir(docs)
             handleResultResponse({ data: { docs } });
             return;
         }
@@ -2540,6 +2562,9 @@ module.controller('ISVViewerCtrl', ($scope, $http, $location, $window) => {
             }
             if (q.r) {
                 qs += '&r=' + q.r; // runs
+            }
+            if (q.rec) {
+                qs += "&rec=true"
             }
             if (q.show) {
                 qs += '&show=' + q.show;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -93,9 +93,9 @@ public class SamplesProcessor implements DataLogProcessor {
                 } else if (config.hasHeader) {
                     for (int i = 0; i < parts.length; i++) {
                         String h = parts[i].toLowerCase();
-                        if (h.indexOf("stamp") > 0) {
+                        if (h.indexOf("stamp") >= 1) {
                             stampsIdx = i;
-                        } else if (h.indexOf("value") > 0) {
+                        } else if (h.indexOf("value") >= 1) {
                             valuesIdx = i;
                         }
                     }
@@ -104,7 +104,7 @@ public class SamplesProcessor implements DataLogProcessor {
                 }
             }
             if (samples2) {
-                processSamples2(hdrData, scanner, firstLine);
+                processSamples2(hdrData, scanner, firstLine, config.includeWarmup);
             } else {
                 processSamples(hdrData, scanner, firstLine, stampsIdx, valuesIdx);
             }
@@ -135,13 +135,13 @@ public class SamplesProcessor implements DataLogProcessor {
      1655401396.792424,0.013333,[25 pages],437.485229,True,W,439.595204
      1655402056.815843,0.893333,[25 pages],460.947098,True,M,463.013381
      */
-    protected void processSample2(HdrData hdrData, String line) {
+    protected void processSample2(HdrData hdrData, String line, boolean includeWarmup) {
         if (line == null) {
             return;
         }
         String[] parts = line.split(",");
         boolean isWarmup = parts.length > 5 && (parts[5].equalsIgnoreCase("w") || parts[5].equalsIgnoreCase("warmup"));
-        if (isWarmup) {
+        if (isWarmup && !includeWarmup) {
             return;
         }
         long stamp = Math.round(Double.valueOf(parts[0]) * config.timestampFactor);
@@ -159,12 +159,12 @@ public class SamplesProcessor implements DataLogProcessor {
         }
     }
 
-    protected void processSamples2(HdrData hdrData, Scanner scanner, String firstLine) {
+    protected void processSamples2(HdrData hdrData, Scanner scanner, String firstLine, boolean includeWarmup) {
         log("processSamples2...");
-        processSample2(hdrData, firstLine);
+        processSample2(hdrData, firstLine, includeWarmup);
         while (scanner.hasNext()) {
             String line = scanner.nextLine();
-            processSample2(hdrData, line);
+            processSample2(hdrData, line, includeWarmup);
         }
     }
 }

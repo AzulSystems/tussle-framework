@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -46,6 +46,7 @@ public class HdrConfig implements AbstractConfig {
     public int reportInterval = 3000;             // time interval in milliseconds used for reporting histogram results
     public int progressInterval = 5000;           // time interval in milliseconds used for writing progress in the log output
     public double hdrFactor = 1000d;              // histogram's units divider to milliseconds, e.g. for ns-to-ms it is 1000000
+    public boolean includeWarmup = false;
     public String histogramsDir = "./histograms"; // location for histogram (hdr) files
     public String metricName = HdrResult.SERVICE_TIME;
     public String rateUnits = "op/s";
@@ -61,6 +62,7 @@ public class HdrConfig implements AbstractConfig {
         reportInterval = c.reportInterval;
         progressInterval = c.progressInterval;
         hdrFactor = c.hdrFactor;
+        includeWarmup = c.includeWarmup;
         histogramsDir = c.histogramsDir;
         metricName = c.metricName;
         rateUnits = c.rateUnits;

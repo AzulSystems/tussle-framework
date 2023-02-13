@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -43,15 +43,20 @@ import org.tussleframework.metrics.MetricData;
 public class CompileLogProcessor implements DataLogProcessor {
 
 	@Override
-	public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host,
-			Logger logger) {
+	public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
 		int step = 0;
-		int count_of_methods_lvl0 = 0;
-		int count_of_methods_lvl1 = 0;
-		int count_of_methods_lvl2 = 0;
-		int count_of_osr_methods_lvl0 = 0;
-		int count_of_osr_methods_lvl1 = 0;
-		int count_of_osr_methods_lvl2 = 0;
+		int countOfMethodsLvl0 = 0;
+		int countOfMethodsLvl1 = 0;
+		int countOfMethodsLvl2 = 0;
+		int countOfOsrMethodsLvl0 = 0;
+		int countOfOsrMethodsvl1 = 0;
+		int countOfOsrMethodsvl2 = 0;
+		int timeOfMethodsLvl0 = 0;
+        int timeOfMethodsLvl1 = 0;
+        int timeOfMethodsLvl2 = 0;
+        int timeOfOsrMethodsLvl0 = 0;
+        int timeOfOsrMethodsvl1 = 0;
+        int timeOfOsrMethodsvSl2 = 0;
 		try (Scanner scanner = new Scanner(inputStream)) {
 			while (scanner.hasNext()) {
 				String line = scanner.nextLine().trim();
@@ -64,52 +69,52 @@ public class CompileLogProcessor implements DataLogProcessor {
 				} else if (line.indexOf(" 3 installed") >= 0) {
 					if (line.indexOf("%") >= 0) {
 						if (line.indexOf("lvl O0") >= 0) {
-							count_of_osr_methods_lvl0++;
+							countOfOsrMethodsLvl0++;
 						} else if (line.indexOf("lvl O1") >= 0) {
-							count_of_osr_methods_lvl1++;
+							countOfOsrMethodsvl1++;
 						} else if (line.indexOf("lvl O2") >= 0) {
-							count_of_osr_methods_lvl2++;
+							countOfOsrMethodsvl2++;
 						}
 					} else {
 						if (line.indexOf("lvl O0") >= 0) {
-							count_of_methods_lvl0++;
+							countOfMethodsLvl0++;
 						} else if (line.indexOf("lvl O1") >= 0) {
-							count_of_methods_lvl1++;
+							countOfMethodsLvl1++;
 						} else if (line.indexOf("lvl O2") >= 0) {
-							count_of_methods_lvl2++;
+							countOfMethodsLvl2++;
 						}
 					}
 				}
 			}
 		}
-		int total_count =
-				count_of_methods_lvl0 +
-				count_of_methods_lvl1 +
-				count_of_methods_lvl2 +
-				count_of_osr_methods_lvl2 +
-				count_of_osr_methods_lvl1 +
-				count_of_osr_methods_lvl0;
+		int totalCount =
+				countOfMethodsLvl0 +
+				countOfMethodsLvl1 +
+				countOfMethodsLvl2 +
+				countOfOsrMethodsvl2 +
+				countOfOsrMethodsvl1 +
+				countOfOsrMethodsLvl0;
 		metricData.add(Metric.builder()
 				.name("tier2_total_count").host(host)
-				.value(Double.valueOf(total_count)).build());
+				.value(Double.valueOf(totalCount)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_methods_lvl0").host(host)
-				.value(Double.valueOf(count_of_methods_lvl0)).build());
+				.value(Double.valueOf(countOfMethodsLvl0)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_methods_lvl1").host(host)
-				.value(Double.valueOf(count_of_methods_lvl1)).build());
+				.value(Double.valueOf(countOfMethodsLvl1)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_methods_lvl2").host(host)
-				.value(Double.valueOf(count_of_methods_lvl2)).build());
+				.value(Double.valueOf(countOfMethodsLvl2)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_osr_methods_lvl0").host(host)
-				.value(Double.valueOf(count_of_osr_methods_lvl0)).build());
+				.value(Double.valueOf(countOfOsrMethodsLvl0)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_osr_methods_lvl1").host(host)
-				.value(Double.valueOf(count_of_osr_methods_lvl1)).build());
+				.value(Double.valueOf(countOfOsrMethodsvl1)).build());
 		metricData.add(Metric.builder()
 				.name("tier2_installed_osr_methods_lvl2").host(host)
-				.value(Double.valueOf(count_of_osr_methods_lvl2)).build());
+				.value(Double.valueOf(countOfOsrMethodsvl2)).build());
 		return true;
 	}
 }

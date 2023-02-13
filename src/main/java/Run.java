@@ -31,7 +31,7 @@
  */
 
 public class Run {
-    public static void main(String[] args) throws ClassNotFoundException {
+    public static void main(String[] args) {
         org.tussleframework.Run.main(args);
     }
 }

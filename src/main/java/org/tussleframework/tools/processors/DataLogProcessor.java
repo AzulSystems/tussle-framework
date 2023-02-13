@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2022, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -35,9 +35,10 @@ package org.tussleframework.tools.processors;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
+import org.tussleframework.Tool;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.MetricData;
 
-public interface DataLogProcessor {
+public interface DataLogProcessor extends Tool {
     boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger);
 }
