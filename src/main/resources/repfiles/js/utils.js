@@ -48,7 +48,8 @@ const TYPE_FILTER_VALUES = c_idx++;
 const TYPE_HEADER_MAX = c_idx++;
 
 const TYPE_CHART_MIN = c_idx++;
-const TYPE_CHART_HEADER = c_idx++;
+const TYPE_CHART_CONTROLLER = c_idx++;
+const TYPE_CHART_GROUP = c_idx++;
 const TYPE_CHART = c_idx++;
 const TYPE_CHART_TIME = c_idx++;
 const TYPE_CHART_HISTOGRAM = c_idx++;
@@ -62,6 +63,7 @@ const TYPE_NUMBER = c_idx++;
 
 const TYPE_ALL = 1000;
 const TYPE_ALL_CHARTS = 2000;
+const TYPE_ALL_VISIBLE_CHARTS = 2100;
 const TYPE_ALL_VALUES = 3000;
 const _ALL_ = '_ALL_';
 const MAX_LONG = 900719925474099;
@@ -383,15 +385,15 @@ function splitStringDigit(s) {
 }
 
 function setCookie(cname, cvalue, exdays) {
-    if (!exdays)
+    if (!exdays) {
         exdays = 30;
-    let d = new Date();
+    }
+    const d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    let expires = 'expires=' + d.toUTCString();
-    document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
+    document.cookie = `${cname}=${cvalue};expires=${d.toUTCString()};path=/`;
 }
 
-function getCookie(cname) {
+function getCookie(cname, def) {
     let name = cname + '=';
     let decodedCookie = decodeURIComponent(document.cookie);
     for (const item of decodedCookie.split(';')) {
@@ -403,7 +405,16 @@ function getCookie(cname) {
             return c.substring(name.length, c.length);
         }
     }
-    return '';
+    return def;
+}
+
+function getCookieInt(cname, def) {
+    const res = parseInt(getCookie(cname, def));
+    if (isNaN(res)) {
+        return def;
+    } else {
+        return res;
+    }
 }
 
 function shortenPath(dir, baseDir) {
@@ -495,15 +506,19 @@ Array.prototype.avg = function() {
     return avgNumber(this);
 }
 
-Array.prototype.max = function() {
-    if (this.length === 0)
+function maxImpl(arr) {
+    if (!arr || arr.length === 0)
         return null;
-    let max = this[0];
-    for (let i = 1; i < this.length; i++) {
-        if (max < this[i])
-            max = this[i]
+    let max = arr[0];
+    for (let i = 1; i < arr.length; i++) {
+        if (max < arr[i])
+            max = arr[i]
     }
     return max;
+}
+
+Array.prototype.max = function() {
+    return maxImpl(this);
 }
 
 Array.prototype.min = function() {
@@ -647,6 +662,10 @@ Array.prototype.byName = function(name) {
     return this.find(item => !isNullOrUndefined(item.name) && item.name === name) || null;
 }
 
+Array.prototype.byNameType = function(name, type) {
+    return this.find(item => !isNullOrUndefined(item.name) && item.name === name && !isNullOrUndefined(item.type) && item.type === type) || null;
+}
+
 Array.prototype.byPropValue = function(prop, value) {
     return this.find(item => !isNullOrUndefined(item.name) && item[prop] === value) || null;
 }
@@ -680,7 +699,7 @@ Array.prototype.select = function() {
     let res = 0;
     const val = arguments.length > 0 ? arguments[arguments.length - 1] : false;
     for (let a = 0; a < arguments.length - 1; a++) {
-        let name = arguments[a];
+        const name = arguments[a];
         for (const item of this) {
             if (name === _ALL_ || typeof item.name !== 'undefined' && item.name === name) {
                 item.selected = val;
@@ -701,7 +720,7 @@ Array.prototype.selectedNames = function() {
     return selected;
 }
 
-Array.prototype.getNextPosForChartType = function(type) {
+Array.prototype.getNextPosForChartType = function(name, type) {
     let i = 0;
     while (i < this.length && !isChart(this[i].type)) {
         i++;
@@ -709,8 +728,14 @@ Array.prototype.getNextPosForChartType = function(type) {
     if (i === this.length) {
         return 0;
     }
-    while (i < this.length && isChart(this[i].type) && getNormedType(type) >= getNormedType(this[i].type)) {
-        i++;
+    if (type === TYPE_CHART_GROUP && name.startsWith('primary')) {
+        while (i < this.length && isChart(this[i].type) && this[i].type !== TYPE_CHART_GROUP) {
+            i++;
+        }
+    } else {
+        while (i < this.length && isChart(this[i].type) && getNormedType(type) >= getNormedType(this[i].type)) {
+            i++;
+        }
     }
     return i;
 }
@@ -728,14 +753,14 @@ Array.prototype.getNextPosForValueType = function(type) {
     return this.length;
 }
 
-Array.prototype.getNextPos = function(type) {
-    return isChart(type) ? this.getNextPosForChartType(type) : this.getNextPosForValueType(type);
+Array.prototype.getNextPos = function(name, type) {
+    return isChart(type) ? this.getNextPosForChartType(name, type) : this.getNextPosForValueType(type);
 }
 
 Array.prototype.addToggleOpt = function(name, type, showDataElements, style, hidden) {
-    let elem = this.byName(name);
+    let elem = this.byNameType(name, type);
     if (!elem) {
-        let pos = this.getNextPos(type);
+        let pos = this.getNextPos(name, type);
         ///console.log(`addToggleOpt [${name}] [${type}]`);
         elem = { name, type, style, selected: showData(name, type, showDataElements), visible: !hidden };
         this.splice(pos, 0, elem);
@@ -745,7 +770,7 @@ Array.prototype.addToggleOpt = function(name, type, showDataElements, style, hid
 
 Array.prototype.addToggle = function(name, type, selected, hidden) {
     if (!this.hasName(name)) {
-        let pos = this.getNextPos(type);
+        let pos = this.getNextPos(name, type);
         this.splice(pos, 0, { name, type, selected, visible: !hidden });
     }
 }
@@ -869,7 +894,6 @@ String.prototype.getVersion = function() {
 }
 
 // Charts
-var nnn = 0;
 
 const linePlugin = {
     id: 'ext',
@@ -894,7 +918,6 @@ const linePlugin = {
         const xLeft = xscale.left + xscale.paddingLeft;
         const xRight = xscale.right;
         const lineLeftOffset = xLeft + (xRight - xLeft) * (point.x - xscale.min) / (xscale.max - xscale.min);
-        nnn++;
         // render vertical line
         context.beginPath();
         context.strokeStyle = lineCol;
@@ -1298,13 +1321,16 @@ const SECONDARY_METRICS = [
 ];
 
 function isPrimaryMetric(name) {
-    return !!PRIME_METRICS.find(p => name.indexOf(p) >= 0) && !(name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0);
+    if (name.indexOf('_hdr') >= 0) {
+        return false;
+    }
+    return !!PRIME_METRICS.find(p => name.indexOf(p) >= 0) && !(name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0 || name.indexOf('error_rate') >= 0);
 }
 
-const hiddenByDefault = name => UNSELECTED_BY_DEFAULT.includes(name) || name.indexOf('hdr') >= 0 || name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0;   
 const shownByDefault = name => SELECTED_BY_DEFAULT.includes(name) || isPrimaryMetric(name);
+const hiddenWhenAll = name => UNSELECTED_BY_DEFAULT.includes(name) || name.indexOf('hdr') >= 0 || name.indexOf('-err') >= 0 || name.indexOf('tlp-') >= 0;   
 
-function checkDataPatterns(names, showDataElements, type) {
+function checkDataPatterns(names, showDataElements, from, type) {
     for (const p of showDataElements) {
         let pattern = p;
         let ret = true;
@@ -1312,16 +1338,32 @@ function checkDataPatterns(names, showDataElements, type) {
             pattern = pattern.substring(1); 
             ret = false;
         }
+        let forChart = false;
+        if (pattern.endsWith('_chart')) {
+            pattern = pattern.substring(0, pattern.length - 6);
+            forChart = true;
+        } else if (pattern.endsWith('_(chart)')) {
+            pattern = pattern.substring(0, pattern.length - 8);
+            forChart = true;
+        }
+        if (forChart !== isChart(type)) {
+            continue;
+        }
         if (names.find(name => pattern === name)) {
-            console.log(`${type} ${names} = ${pattern}: exact -> ${ret}`);
+            console.log(`[checkDataPatterns] ${from} ${names} = ${pattern}: exact -> ${ret}`);
             return ret;
         }
         if (pattern.indexOf('*') >= 0 || pattern.indexOf('^') >= 0 || pattern.indexOf('$') >= 0 || pattern.indexOf('?') >= 0) {
             try {
                 const regexp = new RegExp(pattern, 'ig');
-                if (names.find(name => regexp.test(name))) {
-                    console.log(`${type} ${names} ~ ${pattern}: regexp match > ${ret}`);
-                    return ret;
+                for (const name of names) {
+                    if (name.indexOf('_hdr') >= 0 && pattern.indexOf('_hdr') < 0) {
+                        continue;
+                    }
+                    if (regexp.test(name)) {
+                        console.log(`[checkDataPatterns] ${from} ${names} ~ ${pattern}: regexp match > ${ret}`);
+                        return ret;
+                    }
                 }
             } catch (e) {
                 // ignore bas regexp here
@@ -1331,39 +1373,53 @@ function checkDataPatterns(names, showDataElements, type) {
     return false;
 }
 
-function showDataImpl(name, type, showDataElements) {
+function showData(name, type, showDataElements) {
     name = name.toLowerCase().replace(/ /g, '_');
+    let res = false;
     if (!showDataElements || showDataElements.length === 0) {
-        return shownByDefault(name);
+        res = shownByDefault(name);
+        console.log(`[showData] name="${name}" type="${type}" => shownByDefault ${res}`);
+        return res;
     }
-    if (showDataElements.includes('ALL') || showDataElements.includes(name)) {
-        return true;
+    if (showDataElements.includes('ALL')) {
+        res = true;
+        console.log(`[showData] name="${name}" type="${type}" => ALL ${res}`);
+        return res;
+    }
+    if (showDataElements.includes(name)) {
+        res = true;
+        console.log(`[showData] name="${name}" type="${type}" => includes exact name ${res}`);
+        return res;
     }
     if (showDataElements.includes('all')) {
-        return !hiddenByDefault(name);
+        res = !hiddenWhenAll(name);
+        console.log(`[showData] name="${name}" type="${type}" => all - !hiddenWhenAll ${res}`);
+        return res;
     }
     if ((showDataElements.includes('allcharts') || showDataElements.includes('charts')) && isChart(type)) {
-        return true;
+        res = true;
+        console.log(`[showData] name="${name}" type="${type}" => isChart ${res}`);
+        return res;
     }
-    if (showDataElements.includes('allvalues') || showDataElements.includes('values')) {
+    if (showDataElements.includes('allvalues')) {
         if (isValue(type)) {
-            return true;
-        }
-        if (isHeader(type)) {
-            return !hiddenByDefault(name);
+            res = true;
+            console.log(`[showData] name="${name}" type="${type}" => isValue ${res}`);
+            return res;
+        } else if (isHeader(type)) {
+            res = !hiddenWhenAll(name);
+            console.log(`[showData] name="${name}" type="${type}" => isHeader ${res}`);
+            return res;
         }
     }
     name = convertShowArg(name);
     if (name === 'value') {
-        return true;
+        res = true;
+        console.log(`[showData] name="${name}" type="${type}" => isHeader ${res}`);
+        return res;
     }
-    console.log(`showData name=${name} type=${type} => checkDataPatterns ${showDataElements.join()}...`);
-    return checkDataPatterns([name], showDataElements, 'SHOW');
-}
-
-function showData(name, type, showDataElements) {
-    const res = showDataImpl(name, type, showDataElements);
-    ///console.log(`showData name=${name} type=${type} => ${res}`);
+    res = checkDataPatterns([name], showDataElements, 'SHOW', type);
+    console.log(`[showData] name="${name}" type="${type}" => checkDataPatterns ${showDataElements.join()} ${res}`);
     return res;
 }
 
@@ -1497,7 +1553,7 @@ function getMetricValuesLabels(metric, mvValues, showOptions) {
             mvValues.forEach(mv => s += ',' + mv.values[i]);
             data.push(`${s}\n`);
         }
-        const plain = chart.options.csvEvent?.ctrlKey;
+        const plain = chart.options.csvEvent ? chart.options.csvEvent.ctrlKey : null;
         const blob = new Blob(data, { type: plain ? 'text/plain' : 'text/csv' });
         if (plain) {
             window.open(URL.createObjectURL(blob), '_blank');
@@ -1603,6 +1659,7 @@ function getVLines(metric) {
 }
 
 function getMetricValuesChart(metric, showOptions) {
+    console.log(`getMetricValuesChart ${getMetricLabel(metric)} hasValues=${metric.hasValues()}`);
     if (!metric.hasValues()) {
         return;
     }
@@ -1632,6 +1689,9 @@ function getMetricValuesChart(metric, showOptions) {
         });
     }
     const options = getChartOptions(getMetricLabel(metric), metric.xunits, metric.units, metric.maxValue, hlines, getVLines(metric), isLong, showOptions, datasets)
+    console.log(`getMetricValuesChart wide=${wide} labelsSet=${labelsSet}`);
+    console.dir(data);
+    console.dir(datasets);
     return {
         wide,
         data,
@@ -2047,7 +2107,7 @@ function fixMetricValues(metric, showOpts) {
         if (!mv.name) {
             mv.name = metric.name;
         }
-        if (mv.type === 'counts' && showOpts.counts !== 'keep'  && delay && delay > 0 && !metric.metricValues.find(mv => mv.type === 'throughput')) {
+        if (mv.type === 'counts' && showOpts.counts !== 'keep' && delay && delay > 0 && !metric.metricValues.find(mv => mv.type === 'throughput')) {
             if (showOpts.counts === 'both') {
                 console.log(`fixMetricValues: adding rate in addition to ${mv.type} ${mv.values.length}...`);
                 mvRate = {
@@ -2079,7 +2139,10 @@ function fixMetricValues(metric, showOpts) {
     metric.hasThroughput = () => !!metric.metricValues.find(mv => mv.isThroughput && mv.values);
     metric.hasPercentiles = () => !!metric.metricValues.find(mv => mv.isPercentiles && mv.values);
     metric.getMetricValues = (mvName) => metric.metricValues.find(mv => mv.type === mvName);
-    metric.getValues = (mvName) => metric.getMetricValues(mvName)?.values;
+    metric.getValues = (mvName) => {
+        const mvals = metric.getMetricValues(mvName);
+        return mvals ? mvals.values : null;
+    }
     metric.collectValues = () => metric.metricValues.filter(mv => mv.isValues);
 }
 
@@ -2150,15 +2213,15 @@ function collectMetricStats(metric, mapMaxes, mapMinLength) {
     const metricLabel = getMetricLabel(metric);
     const metricLabelCounts = getMetricLabel(metric) + '_counts';
     const metricLabelRate = getMetricLabel(metric) + '_rate';
-    const metricMax = metric.getValues('values')?.max() || null;
+    const metricMax = maxImpl(metric.getValues('values'));
     if (metricMax && !mapMaxes.has(metricLabel) || mapMaxes.get(metricLabel) < metricMax) {
         mapMaxes.set(metricLabel, metricMax);
     }
-    const metricMaxCount = metric.getValues('counts')?.max() || null;
+    const metricMaxCount = maxImpl(metric.getValues('counts'));
     if (metricMaxCount && !mapMaxes.has(metricLabelCounts) || mapMaxes.get(metricLabelCounts) < metricMaxCount) {
         mapMaxes.set(metricLabelCounts, metricMaxCount);
     }
-    const metricMaxRate = metric.getValues('throughput')?.max() || null;
+    const metricMaxRate = maxImpl(metric.getValues('throughput'));
     if (metricMaxRate && !mapMaxes.has(metricLabelRate) || mapMaxes.get(metricLabelRate) < metricMaxRate) {
         mapMaxes.set(metricLabelRate, metricMaxRate);
     }
@@ -2214,7 +2277,7 @@ function normalizeMetricsStart(metrics, runProperties, filterDataElements, showO
     if (filterDataElements && filterDataElements.length > 0) {
         for (let i = metrics.length - 1; i >= 0; i--) {
             const metricLabel = getMetricLabel(metrics[i]);
-            if (!checkDataPatterns([metrics[i].name, metricLabel], filterDataElements, 'FILTER')) {
+            if (!checkDataPatterns([metrics[i].name, metricLabel], filterDataElements, 'FILTER', 0)) {
                 console.log(`normalizeMetricsStart excluding metric ${metricLabel}`);
                 metrics.splice(i, 1);
             }

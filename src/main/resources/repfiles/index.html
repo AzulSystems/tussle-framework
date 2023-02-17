@@ -459,8 +459,7 @@
                                     ng-repeat="ibutton in chart.options.ibuttons"
                                     bind-var="ibutton.pressed" bind-name="{{ibutton.name}}"
                                     on-toggle="ibutton.toggle(chart)">_ttt_</toggle>
-                                <div
-                                    class="{{wide_charts ? 'chart-box-normal' : 'chart-box-small'}} offset_chart">
+                                <div class="offset_chart" ng-style="{width: chartWidth + 'px', height: chartHeight + 'px'}">
                                     <canvas id="chart.id" class="chart chart-line"
                                         chart-data="chart.data"
                                         chart-dataset-override="chart.datasets"
@@ -483,6 +482,7 @@
                                 ng-if="field.compareWith"
                                 ng-attr-title="Select this column as base for comparison"
                                 class="link" ng-click="field.compareWith()">^</span>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

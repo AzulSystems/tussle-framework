@@ -77,6 +77,7 @@ import org.tussleframework.tools.processors.HiccupProcessor;
 import org.tussleframework.tools.processors.IpstatProcessor;
 import org.tussleframework.tools.processors.MpstatProcessor;
 import org.tussleframework.tools.processors.OMBProcessor;
+import org.tussleframework.tools.processors.PerfTestLogProcessor;
 import org.tussleframework.tools.processors.RunPropertiesProcessor;
 import org.tussleframework.tools.processors.SamplesProcessor;
 import org.tussleframework.tools.processors.SamplesProcessorConfig;
@@ -381,49 +382,49 @@ public class Analyzer implements Tool {
 //    }
 
     public static boolean isRunPropertiesFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.equals("run.properties.json") || name.equals("run-properties.json");
     }
 
     public static boolean isTopFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.endsWith("top.log");
     }
 
     public static boolean isMpstatFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.endsWith("mpstats.log") || name.endsWith("mpstat.log");
     }
 
     public static boolean isDiskstatFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.endsWith("diskstats.log") || name.endsWith("diskstat.log");
     }
 
     public static boolean isIpstatFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.endsWith("ipstats.log") || name.endsWith("ipstat.log");
     }
 
     public static boolean isHiccupFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.startsWith("hiccup") && name.endsWith(".hlog");
     }
 
     public static boolean isHistogramFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return  name.endsWith(".hgrm") && !name.contains("processed") ||
                 name.endsWith(".hlog") && !name.contains("processed") && !name.startsWith("hiccup") ||
                 name.startsWith("tlp_stress_metrics") && name.indexOf(".hdr-") > 0;
     }
 
     public static boolean isTLPStressResults(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.startsWith("tlp_stress_metrics") && name.endsWith(".csv");
     }
 
     public static boolean isSamplesFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.startsWith("samples") && name.endsWith(".csv") ||
                 name.startsWith(SAMPLES2) && name.endsWith(".txt");
     }
@@ -434,13 +435,18 @@ public class Analyzer implements Tool {
     }
 
     public static boolean isOMBFile(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.startsWith("workload") && name.indexOf("OMB") >= 0 && name.endsWith(".json");
     }
 
     public static boolean isCompileLog(String name) {
-        name = FileTool.clearPathExt(name);
+        name = FileTool.clearExtPath(name);
         return name.endsWith("_comp.log");
+    }
+
+    public static boolean isPerfTestLog(String name) {
+        name = FileTool.clearExtPath(name);
+        return name.endsWith("perf_test.log");
     }
 
     public static boolean isResultsFile(String fileName) {
@@ -454,11 +460,12 @@ public class Analyzer implements Tool {
                 || isTLPStressResults(fileName)
                 || isSamplesFile(fileName)
                 || isOMBFile(fileName)
-                || isCompileLog(fileName);
+                || isCompileLog(fileName)
+                || isPerfTestLog(fileName);
     }
 
     public String getOperationName(String fileName) {
-        String name = FileTool.clearPathExt(fileName);
+        String name = FileTool.clearExtPath(fileName);
         int pos = name.indexOf(SAMPLES2);
         if (pos >= 0) {
             pos = name.indexOf("_", SAMPLES2.length());
@@ -493,6 +500,8 @@ public class Analyzer implements Tool {
             new OMBProcessor().processData(metricData, null, inputStream, host, logger);
         } else if (isCompileLog(fileName)) {
             new CompileLogProcessor().processData(metricData, null, inputStream, host, logger);
+        } else if (isPerfTestLog(fileName)) {
+            new PerfTestLogProcessor().processData(metricData, null, inputStream, host, logger);
         } else {
             res = false;
         }

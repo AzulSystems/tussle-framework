@@ -40,6 +40,7 @@ import java.util.stream.DoubleStream;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
+import org.tussleframework.metrics.MetricType;
 import org.tussleframework.metrics.MetricValue;
 import org.tussleframework.tools.FormatTool;
 import org.tussleframework.tools.LoggerTool;
@@ -124,7 +125,8 @@ or
                 .finish(finish)
                 .delay(intervalLength)
                 .build()
-                .add(new MetricValue("VALUES", buffValues.build().toArray())));
+                .add(new MetricValue(MetricType.VALUES, buffValues.build().toArray()))
+                );
         return true;
     }
 }

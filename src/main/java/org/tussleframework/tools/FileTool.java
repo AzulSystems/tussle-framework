@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -105,7 +105,7 @@ public class FileTool {
      * @param fileName
      * @return
      */
-    public static String clearPathExt(String fileName) {
+    public static String clearExtPath(String fileName) {
         fileName = clearPath(fileName);
         int pos = fileName.indexOf(":");
         if (pos >= 0) {
