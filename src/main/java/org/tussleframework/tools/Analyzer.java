@@ -446,7 +446,7 @@ public class Analyzer implements Tool {
 
     public static boolean isPerfTestLog(String name) {
         name = FileTool.clearExtPath(name);
-        return name.endsWith("perf_test.log");
+        return name.startsWith("perf_test") && name.endsWith(".log");
     }
 
     public static boolean isResultsFile(String fileName) {
