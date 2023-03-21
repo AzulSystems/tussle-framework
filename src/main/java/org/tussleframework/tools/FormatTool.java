@@ -406,7 +406,7 @@ public class FormatTool {
     }
 
     public static boolean matchFilters(String name, String[] include, String[] exclude) {
-        return matchFilters(name, Arrays.asList(include), Arrays.asList(exclude));
+        return matchFilters(name, include != null ? Arrays.asList(include) : null, exclude != null ? Arrays.asList(exclude) : null);
     }
 
     public static boolean matchFilters(String name, Collection<String> include, Collection<String> exclude) {
