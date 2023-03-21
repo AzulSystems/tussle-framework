@@ -72,6 +72,7 @@ import org.tussleframework.metrics.MetricValue;
 import org.tussleframework.metrics.MovingWindowSLE;
 import org.tussleframework.metrics.ServiceLevelExpectation;
 import org.tussleframework.tools.processors.CompileLogProcessor;
+import org.tussleframework.tools.processors.DataLogProcessor;
 import org.tussleframework.tools.processors.DiskstatProcessor;
 import org.tussleframework.tools.processors.HiccupProcessor;
 import org.tussleframework.tools.processors.IpstatProcessor;
@@ -477,35 +478,40 @@ public class Analyzer implements Tool {
     }
 
     public boolean processResultStream(InputStream inputStream, String host, String fileName) {
-        boolean res = true;
-        if (isRunPropertiesFile(fileName)) {
-            new RunPropertiesProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isTopFile(fileName)) {
-            new TopProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isMpstatFile(fileName)) {
-            new MpstatProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isDiskstatFile(fileName)) {
-            new DiskstatProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isIpstatFile(fileName)) {
-            new IpstatProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isHiccupFile(fileName)) {
-            new HiccupProcessor().processData(metricData, null, inputStream, host, logger);
-        } else if (isHistogramFile(fileName)) {
+        if (isHistogramFile(fileName)) {
             processHdrStream(inputStream, fileName);
-        } else if (isTLPStressResults(fileName)) {
-            new TLPStressProcessor().processData(metricData, null, inputStream, host, logger);
+            return true;
         } else if (isSamplesFile(fileName)) {
             processSamples(inputStream, host, fileName);
+            return true;
+        } 
+        DataLogProcessor processor = null;
+        if (isRunPropertiesFile(fileName)) {
+            processor = new RunPropertiesProcessor();
+        } else if (isTopFile(fileName)) {
+            processor = new TopProcessor();
+        } else if (isMpstatFile(fileName)) {
+            processor = new MpstatProcessor();
+        } else if (isDiskstatFile(fileName)) {
+            processor = new DiskstatProcessor();
+        } else if (isIpstatFile(fileName)) {
+            processor = new IpstatProcessor();
+        } else if (isHiccupFile(fileName)) {
+            processor = new HiccupProcessor();
+        } else if (isTLPStressResults(fileName)) {
+            processor = new TLPStressProcessor();
         } else if (isOMBFile(fileName)) {
-            new OMBProcessor().processData(metricData, null, inputStream, host, logger);
+            processor = new OMBProcessor();
         } else if (isCompileLog(fileName)) {
-            new CompileLogProcessor().processData(metricData, null, inputStream, host, logger);
+            processor = new CompileLogProcessor();
         } else if (isPerfTestLog(fileName)) {
-            new PerfTestLogProcessor().processData(metricData, null, inputStream, host, logger);
-        } else {
-            res = false;
+            processor = new PerfTestLogProcessor();
         }
-        return res;
+        if (processor != null) {
+            return processor.processData(metricData, null, analyzerConfig.processors, inputStream, host, logger);
+        } else {
+            return false;
+        }
     }
 
     protected void processRecursive(File dir) throws TussleException {
@@ -531,7 +537,7 @@ public class Analyzer implements Tool {
         if (matchFilters(operationName, analyzerConfig.operationsInclude, analyzerConfig.operationsExclude)) {
             SamplesProcessorConfig samplesConfig = new SamplesProcessorConfig();
             samplesConfig.copy(analyzerConfig);
-            new SamplesProcessor(samplesConfig).processData(metricData, getHdrData(operationName, "", host), inputStream, host, logger);
+            new SamplesProcessor(samplesConfig).processData(metricData, getHdrData(operationName, "", host), null, inputStream, host, logger);
         } else {
             log("Skipped processing '%s'", fileName);
         }

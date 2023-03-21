@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.DoubleStream;
 
+import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
@@ -48,7 +49,7 @@ import org.tussleframework.metrics.MetricValue;
 public class PerfTestLogProcessor implements DataLogProcessor {
 
 	@Override
-	public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+	public boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger) {
         Pattern pattern = Pattern.compile(".+ records sent, (.+) records/sec \\(.+\\), (.+) ms avg latency, (.+) ms max latency.");
         DoubleStream.Builder buffAvgValues = DoubleStream.builder();
         DoubleStream.Builder buffMaxValues = DoubleStream.builder();

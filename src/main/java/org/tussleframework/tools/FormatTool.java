@@ -340,7 +340,7 @@ public class FormatTool {
      * @return
      */
     public static String join(String sep, Object... c) {
-        return join(new StringBuilder(), sep, Arrays.asList(c)).toString();
+        return c != null ? join(new StringBuilder(), sep, Arrays.asList(c)).toString() : null;
     }
 
     /**
@@ -351,7 +351,7 @@ public class FormatTool {
      * @return
      */
     public static String join(String sep, Collection<?> c) {
-        return join(new StringBuilder(), sep, c).toString();
+        return c != null ?join(new StringBuilder(), sep, c).toString() : null;
     }
 
     public static String withS(long count, String name) {
@@ -406,8 +406,16 @@ public class FormatTool {
     }
 
     public static boolean matchFilters(String name, String[] include, String[] exclude) {
+        return matchFilters(name, Arrays.asList(include), Arrays.asList(exclude));
+    }
+
+    public static boolean matchFilters(String name, Collection<String> include, Collection<String> exclude) {
+        return matchInclude(name, include) && matchExclude(name, exclude);
+    }
+
+    public static boolean matchInclude(String name, Collection<String> include) {
         boolean match = true;
-        if (include != null && include.length > 0) {
+        if (include != null && !include.isEmpty()) {
             match = false;
             for (String inc : include) {
                 Pattern regexp = Pattern.compile(inc);
@@ -416,11 +424,13 @@ public class FormatTool {
                     break;
                 }
             }
-            if (!match) {
-                return match;
-            }
         }
-        if (exclude != null && exclude.length > 0) {
+        return match;
+    }
+    
+    public static boolean matchExclude(String name, Collection<String> exclude) {
+        boolean match = true;
+        if (exclude != null && !exclude.isEmpty()) {
             for (String exc : exclude) {
                 Pattern regexp = Pattern.compile(exc);
                 if (regexp.matcher(name).matches()) {
@@ -429,7 +439,7 @@ public class FormatTool {
                 }
             }
         }
-        return match;
+        return match;    
     }
 
     /**

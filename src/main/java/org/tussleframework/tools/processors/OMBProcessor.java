@@ -35,6 +35,7 @@ package org.tussleframework.tools.processors;
 import java.io.InputStream;
 import java.util.logging.Logger;
 
+import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Metric;
@@ -70,7 +71,7 @@ class OMBMetrics {
 public class OMBProcessor implements DataLogProcessor {
 
     @Override
-    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger) {
         long start = 0;
         long finish = 0;
         OMBMetrics omb;

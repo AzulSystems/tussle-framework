@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -33,8 +33,9 @@
 package org.tussleframework.tools;
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 import org.tussleframework.Tool;
 
@@ -57,15 +58,16 @@ public class Informator implements Tool {
             "jdk.debug",
     };
 
-    public static void print(Properties p, PrintStream out) {
+    public static void print(Map<String, Object> p, PrintStream out) {
         for (Object key : p.keySet()) {
-            out.println(key + ": " + p.getProperty(key.toString(), "None"));
+            out.println(key + ": " + p.getOrDefault(key, "None"));
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static void printAll(PrintStream out) {
         out.println("All system properties:");
-        print(System.getProperties(), out);
+        print((Map)System.getProperties(), out);
         out.println("");
         out.println("");
         out.println("JVM properties:");
@@ -120,8 +122,8 @@ public class Informator implements Tool {
         return System.getProperty("user.name");
     }
 
-    public static Properties getJvmInfo() {
-        Properties p = new Properties();
+    public static Map<String, Object> getJvmInfo() {
+        Map<String, Object> p = new HashMap<>();
         for (String key : JVM_PROP) {
             p.put(makeKey(key), System.getProperty(key, ""));
         }
@@ -147,16 +149,16 @@ public class Informator implements Tool {
             "user.name",
     };
 
-    public static Properties getOsInfo() {
-        Properties p = new Properties();
+    public static Map<String, Object> getOsInfo() {
+        Map<String, Object> p = new HashMap<>();
         for (String key : OS_PROP) {
             p.put(makeKey(key), System.getProperty(key, "None"));
         }
         return p;
     }
 
-    public static Properties getHwInfo() {
-        Properties p = new Properties();
+    public static Map<String, Object> getHwInfo() {
+        Map<String, Object> p = new HashMap<>();
         p.put(makeKey("available.processors"), "" + Runtime.getRuntime().availableProcessors());
         p.put(makeKey("free.memory"), FormatTool.formatBytes(Runtime.getRuntime().freeMemory()));
         p.put(makeKey("max.memory"), FormatTool.formatBytes(Runtime.getRuntime().maxMemory()));

@@ -38,6 +38,7 @@ import java.util.stream.DoubleStream;
 
 import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.HistogramLogReader;
+import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
@@ -45,7 +46,7 @@ import org.tussleframework.metrics.MetricValue;
 
 public class HiccupProcessor implements DataLogProcessor {
     @Override
-    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger) {
         long start = 0;
         long finish = 0;
         DoubleStream.Builder valBuffers = DoubleStream.builder();

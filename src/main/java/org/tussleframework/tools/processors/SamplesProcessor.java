@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.MetricData;
 import org.tussleframework.tools.LoggerTool;
@@ -76,7 +77,7 @@ public class SamplesProcessor implements DataLogProcessor {
      ...
      */
     @Override
-    public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+    public boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger) {
         /// log("Config: %s", new Yaml().dump(config).trim())
         int stampsIdx = 0;
         int valuesIdx = 1;

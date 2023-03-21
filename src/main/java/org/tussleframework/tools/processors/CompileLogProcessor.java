@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
 import org.tussleframework.metrics.Metric;
 import org.tussleframework.metrics.MetricData;
@@ -43,7 +44,7 @@ import org.tussleframework.metrics.MetricData;
 public class CompileLogProcessor implements DataLogProcessor {
 
 	@Override
-	public boolean processData(MetricData metricData, HdrData hdrData, InputStream inputStream, String host, Logger logger) {
+	public boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger) {
 		int step = 0;
 		int countOfMethodsLvl0 = 0;
 		int countOfMethodsLvl1 = 0;

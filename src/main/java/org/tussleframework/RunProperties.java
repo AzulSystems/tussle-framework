@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -32,40 +32,20 @@
 
 package org.tussleframework;
 
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.Map;
 
-public class RunProperties extends HashMap<String, Object> {
+public class RunProperties extends BasicProperties {
     private static final long serialVersionUID = 1L;
 
-    public synchronized void setProperty(String key, Object o) {
-        put(key, o);
-    }
-
-    public synchronized String getProperty(String key) {
-        Object o = get(key);
-        return o != null ? o.toString() : null;
-    }
-
-    public synchronized Properties getPropMap(String key) {
-        Properties[] prop = (Properties[]) get(key);
-        if (prop == null) {
-            prop = new Properties[1];
-            prop[0] = new Properties();
-            put(key, prop);
-        }
-        return prop[0];
-    }
-
-    public synchronized Properties getHardware() {
+    public synchronized Map<String, Object> getHardware() {
         return getPropMap("hardwareInfo");
     }
 
-    public synchronized Properties getOs() {
+    public synchronized Map<String, Object> getOs() {
         return getPropMap("osInfo");
     }
 
-    public synchronized Properties getJvm() {
+    public synchronized Map<String, Object> getJvm() {
         return getPropMap("jvmInfo");
     }
 }

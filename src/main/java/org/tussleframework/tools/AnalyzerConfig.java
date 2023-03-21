@@ -34,6 +34,7 @@ package org.tussleframework.tools;
 
 import java.io.File;
 
+import org.tussleframework.BasicProperties;
 import org.tussleframework.HdrConfig;
 import org.tussleframework.metrics.HdrResult;
 import org.tussleframework.metrics.Interval;
@@ -49,6 +50,7 @@ public class AnalyzerConfig extends HdrConfig {
     public Interval[] intervals = {};
     public MovingWindowSLE[] sleConfig = {};
     public String[] sleFor = { HdrResult.RESPONSE_TIME };
+    public BasicProperties processors;
 
     public AnalyzerConfig() {
     }

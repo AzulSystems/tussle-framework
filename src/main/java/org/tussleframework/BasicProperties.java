@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022, Azul Systems
+ * Copyright (c) 2021-2023, Azul Systems
  * 
  * All rights reserved.
  * 
@@ -30,16 +30,43 @@
  * 
  */
 
-package org.tussleframework.tools.processors;
+package org.tussleframework;
 
-import java.io.InputStream;
-import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.tussleframework.BasicProperties;
-import org.tussleframework.Tool;
-import org.tussleframework.metrics.HdrData;
-import org.tussleframework.metrics.MetricData;
+public class BasicProperties extends HashMap<String, Object> {
+    private static final long serialVersionUID = 1L;
 
-public interface DataLogProcessor extends Tool {
-    boolean processData(MetricData metricData, HdrData hdrData, BasicProperties processorsProps, InputStream inputStream, String host, Logger logger);
+    public synchronized void setProperty(String key, Object o) {
+        put(key, o);
+    }
+
+    public synchronized String getProperty(String key) {
+        Object o = get(key);
+        return o != null ? o.toString() : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public synchronized Map<String, Object> getPropMap(String key) {
+        Object o = get(key);
+        Map<String, Object>[] prop = (Map<String, Object>[]) o;
+        if (prop == null) {
+            prop = new Map[1];
+            prop[0] = new HashMap<>();
+            put(key, prop);
+        }
+        return prop[0];
+    }
+
+    public synchronized Map<String, Object> getProps(String key) {
+        Object o = get(key);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> prop = (Map<String, Object>) o;
+        if (prop == null) {
+            prop = new HashMap<>();
+            put(key, prop);
+        }
+        return prop;
+    }
 }
