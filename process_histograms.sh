@@ -69,6 +69,7 @@ ${INT1}
 ${INT2}
 ${INT3}
 sleConfig: ${SLE}
+processors: ${PROCS}
 "
 
 analyzer=org.tussleframework.tools.Analyzer
