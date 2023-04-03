@@ -33,7 +33,11 @@
 package org.tussleframework.tools.processors;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Logger;
+import java.util.stream.DoubleStream;
+import java.util.stream.DoubleStream.Builder;
 
 import org.tussleframework.BasicProperties;
 import org.tussleframework.metrics.HdrData;
@@ -52,6 +56,8 @@ class OMBMetrics {
     String driver;
     double[] publishRate;
     double[] consumeRate;
+    double[] backlog;
+    double[] publishLatencyAvg;
     double[] publishLatency50pct;
     double[] publishLatency75pct;
     double[] publishLatency95pct;
@@ -59,6 +65,7 @@ class OMBMetrics {
     double[] publishLatency999pct;
     double[] publishLatency9999pct;
     double[] publishLatencyMax;
+    double[] endToEndLatencyAvg;
     double[] endToEndLatency50pct;
     double[] endToEndLatency75pct;
     double[] endToEndLatency95pct;
@@ -66,6 +73,7 @@ class OMBMetrics {
     double[] endToEndLatency999pct;
     double[] endToEndLatency9999pct;
     double[] endToEndLatencyMax;
+    HashMap<Double, Double> aggregatedEndToEndLatencyQuantiles;
 }
 
 public class OMBProcessor implements DataLogProcessor {
@@ -90,6 +98,7 @@ public class OMBProcessor implements DataLogProcessor {
             .finish(finish)
             .delay(10000)
             .build();
+        publishMetric.add(new MetricValue("AVG_VALUES", omb.publishLatencyAvg));
         publishMetric.add(new MetricValue("P50_VALUES", omb.publishLatency50pct));
         publishMetric.add(new MetricValue("P75_VALUES", omb.publishLatency75pct));
         publishMetric.add(new MetricValue("P95_VALUES", omb.publishLatency95pct));
@@ -99,6 +108,26 @@ public class OMBProcessor implements DataLogProcessor {
         publishMetric.add(new MetricValue("P100_VALUES", omb.publishLatencyMax));
         publishMetric.add(new MetricValue("THROUGHPUT", omb.publishRate));
         metricData.add(publishMetric);
+        Metric backlogMetric = Metric.builder()
+                .name("backlog")
+                .host(host)
+                .start(start)
+                .finish(finish)
+                .delay(10000)
+                .build();
+        backlogMetric.add(new MetricValue("VALUES", omb.backlog));
+        metricData.add(backlogMetric);
+        Metric consumeMetric = Metric.builder()
+                .name(HdrResult.SERVICE_TIME)
+                .operation("consume")
+                .units("ms")
+                .host(host)
+                .start(start)
+                .finish(finish)
+                .delay(10000)
+                .build();
+        consumeMetric.add(new MetricValue("THROUGHPUT", omb.consumeRate));
+        metricData.add(consumeMetric);
         Metric endToEndMetric = Metric.builder()
                 .name(HdrResult.SERVICE_TIME)
                 .operation("endToEnd")
@@ -108,6 +137,7 @@ public class OMBProcessor implements DataLogProcessor {
                 .finish(finish)
                 .delay(10000)
                 .build();
+        endToEndMetric.add(new MetricValue("AVG_VALUES", omb.endToEndLatencyAvg));
         endToEndMetric.add(new MetricValue("P50_VALUES", omb.endToEndLatency50pct));
         endToEndMetric.add(new MetricValue("P75_VALUES", omb.endToEndLatency75pct));
         endToEndMetric.add(new MetricValue("P95_VALUES", omb.endToEndLatency95pct));
@@ -116,6 +146,23 @@ public class OMBProcessor implements DataLogProcessor {
         endToEndMetric.add(new MetricValue("P9999_VALUES", omb.endToEndLatency9999pct));
         endToEndMetric.add(new MetricValue("P100_VALUES", omb.endToEndLatencyMax));
         metricData.add(endToEndMetric);
+        Metric aggMetric = Metric.builder()
+                .name(HdrResult.SERVICE_TIME + "_aggregated_quantiles")
+                .operation("endToEnd")
+                .units("ms")
+                .host(host)
+                .build();
+        ArrayList<Double> aggPNames = new ArrayList<>(omb.aggregatedEndToEndLatencyQuantiles.keySet());
+        aggPNames.sort(Double::compare);
+        ArrayList<String> aggNames = new ArrayList<>();
+        Builder aggValues = DoubleStream.builder();
+        for (Double pname : aggPNames) {
+            aggNames.add(String.valueOf(pname));
+            aggValues.add(omb.aggregatedEndToEndLatencyQuantiles.get(pname));
+        }
+        aggMetric.setXValues(aggNames.toArray(new String[] {}));
+        aggMetric.add(new MetricValue("VALUES", aggValues.build().toArray()));
+        metricData.add(aggMetric);
         return true;
     }
 }
