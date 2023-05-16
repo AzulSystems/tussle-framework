@@ -107,7 +107,9 @@ public class TargetRunnerAsync implements TargetRunner {
         }
         long delayBetweenOps = (long) (NS_IN_S / targetRate);
         long startRunTime = System.nanoTime();
-        try (ExecutorService executor = Executors.newFixedThreadPool(threadsCount)) {
+        ExecutorService executor = null;
+        try {
+            executor = Executors.newFixedThreadPool(threadsCount);
             log("Starting: target rate %s op/s, time %d ms, delayBetweenOps %d ns", roundFormat(targetRate), runTime, delayBetweenOps);
             opsCount.set(0);
             errorsCount.set(0);
@@ -135,13 +137,16 @@ public class TargetRunnerAsync implements TargetRunner {
                     }
                 }
             }
-            log("Executor shutdown...");
-            executor.shutdownNow();
-            try {
-                executor.awaitTermination(1, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new TussleException(e);
+        } finally {
+            if (executor != null) {
+                log("Executor shutdown...");
+                executor.shutdownNow();
+                try {
+                    executor.awaitTermination(1, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new TussleException(e);
+                }
             }
         }
         long ops = opsCount.get();

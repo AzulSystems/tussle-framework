@@ -96,7 +96,7 @@ public abstract class WlBenchmark implements Benchmark {
     }
 
     public TargetRunner getTargetRunner() {
-        if (config.asyncMode) {
+        if (config.async) {
             return new TargetRunnerAsync(config.threads);
         } else if (config.threads > 1) {
             return new TargetRunnerMT(config.threads);

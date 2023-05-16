@@ -34,8 +34,7 @@ COMMON_BASE_DIR=$(cd $(dirname $0); pwd)
 cd "${COMMON_BASE_DIR}" || exit 1
 echo "Building $(pwd)..."
 
-mvn clean
-mvn package -DskipTests || exit 1
+mvn clean package -DskipTests || exit 1
 
 from=$(find target -name tussle-framework-*.jar)
 
