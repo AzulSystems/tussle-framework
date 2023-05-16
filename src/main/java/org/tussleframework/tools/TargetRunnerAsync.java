@@ -106,42 +106,43 @@ public class TargetRunnerAsync implements TargetRunner {
             throw new IllegalArgumentException(String.format("Ivalid targetRate=%f value for %s", targetRate, TargetRunnerAsync.class.getSimpleName()));
         }
         long delayBetweenOps = (long) (NS_IN_S / targetRate);
-        ExecutorService executor = Executors.newFixedThreadPool(threadsCount);
-        log("Starting: target rate %s op/s, time %d ms, delayBetweenOps %d ns", roundFormat(targetRate), runTime, delayBetweenOps);
-        opsCount.set(0);
-        errorsCount.set(0);
         long startRunTime = System.nanoTime();
-        long deadline = startRunTime + runTime * NS_IN_MS;
-        long opIndex = 0;
-        Future<?>[] lastOnes = new Future[1000];
-        int lastOneIdx = 0;
-        while (deadline - System.nanoTime() > 0) {
-            long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
-            lastOnes[(lastOneIdx++) % lastOnes.length] = executor.submit(new WorkloadCall(workload, recorder, operationName, intendedStartTime));
-            opIndex++;
-            long intendedNextStartTime = startRunTime + opIndex * delayBetweenOps;
-            SleepTool.sleepUntil(intendedNextStartTime);
-        }
-        log("Finishing tasks...");
-        for (Future<?> lastOne : lastOnes) {
-            if (lastOne != null) {
-                try {
-                    lastOne.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new TussleException(e);
-                } catch (ExecutionException e) {
-                    throw new TussleException(e);
+        try (ExecutorService executor = Executors.newFixedThreadPool(threadsCount)) {
+            log("Starting: target rate %s op/s, time %d ms, delayBetweenOps %d ns", roundFormat(targetRate), runTime, delayBetweenOps);
+            opsCount.set(0);
+            errorsCount.set(0);
+            long deadline = startRunTime + runTime * NS_IN_MS;
+            long opIndex = 0;
+            Future<?>[] lastOnes = new Future[1000];
+            int lastOneIdx = 0;
+            while (deadline - System.nanoTime() > 0) {
+                long intendedStartTime = startRunTime + opIndex * delayBetweenOps;
+                lastOnes[(lastOneIdx++) % lastOnes.length] = executor.submit(new WorkloadCall(workload, recorder, operationName, intendedStartTime));
+                opIndex++;
+                long intendedNextStartTime = startRunTime + opIndex * delayBetweenOps;
+                SleepTool.sleepUntil(intendedNextStartTime);
+            }
+            log("Finishing tasks...");
+            for (Future<?> lastOne : lastOnes) {
+                if (lastOne != null) {
+                    try {
+                        lastOne.get();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new TussleException(e);
+                    } catch (ExecutionException e) {
+                        throw new TussleException(e);
+                    }
                 }
             }
-        }
-        log("Executor shutdown...");
-        executor.shutdownNow();
-        try {
-            executor.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new TussleException(e);
+            log("Executor shutdown...");
+            executor.shutdownNow();
+            try {
+                executor.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new TussleException(e);
+            }
         }
         long ops = opsCount.get();
         long errs = errorsCount.get();
