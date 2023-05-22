@@ -38,8 +38,10 @@ import java.util.Optional;
 
 import static org.tussleframework.tools.FormatTool.*;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Generic metric representation. It can be simple single value metric e.g. { name: 'score', value: ) 
@@ -50,6 +52,8 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Metric {
     protected Long start;        // absolute measurement UTC start time in ms
     protected Long finish;       // absolute measurement UTC finish time in ms

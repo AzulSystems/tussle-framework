@@ -34,10 +34,12 @@ package org.tussleframework.tools;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.SequenceInputStream;
 import java.io.Writer;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -76,15 +78,21 @@ public class LoggerTool {
         };
     }
 
-    public static void init(String name, String handlers) {
+    public static void init(String name, String handlers, String ...extraProps) {
         try {
+            Vector<InputStream> ins = new Vector<>();
+            ins.add(LoggerTool.class.getResourceAsStream("/logging.properties"));
             if (handlers != null) {
-                LogManager.getLogManager().readConfiguration(new SequenceInputStream(Analyzer.class.getResourceAsStream("/logging.properties"),
-                        new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log %nhandlers = %s", name, handlers).getBytes())));
+                ins.add(new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log %nhandlers = %s%n", name, handlers).getBytes()));
             } else {
-                LogManager.getLogManager().readConfiguration(new SequenceInputStream(Analyzer.class.getResourceAsStream("/logging.properties"),
-                        new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log", name).getBytes())));
+                ins.add(new ByteArrayInputStream(String.format("java.util.logging.FileHandler.pattern = %s.log%n", name).getBytes()));
             }
+            if (extraProps != null) {
+                for (String prop : extraProps) {
+                    ins.add(new ByteArrayInputStream(String.format("%s%n", prop).getBytes()));
+                }
+            }
+            LogManager.getLogManager().readConfiguration(new SequenceInputStream(ins.elements()));
         } catch (Exception e) {
             Logger.getGlobal().log(Level.SEVERE, "[LoggerTool] LogManager readConfiguration failed", e);
         }

@@ -1,5 +1,5 @@
 /*
- * (C) Azul Systems 2017-2022, author Ruslan Scherbakov
+ * (C) Azul Systems 2017-2023, author Ruslan Scherbakov
  * 
  * All rights reserved.
  * 
@@ -1690,8 +1690,6 @@ function getMetricValuesChart(metric, showOptions) {
     }
     const options = getChartOptions(getMetricLabel(metric), metric.xunits, metric.units, metric.maxValue, hlines, getVLines(metric), isLong, showOptions, datasets)
     console.log(`getMetricValuesChart wide=${wide} labelsSet=${labelsSet}`);
-    console.dir(data);
-    console.dir(datasets);
     return {
         wide,
         data,

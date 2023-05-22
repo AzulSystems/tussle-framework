@@ -1,5 +1,5 @@
 /*
- * (C) Azul Systems 2017-2022, author Ruslan Scherbakov
+ * (C) Azul Systems 2017-2023, author Ruslan Scherbakov
  * 
  * All rights reserved.
  * 
