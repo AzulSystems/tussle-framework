@@ -36,7 +36,7 @@ echo "Building $(pwd)..."
 
 mvn clean package -DskipTests || exit 1
 
-from=$(find target -name tussle-framework-*.jar)
+from=$(find target -name "tussle-framework-*.jar")
 
 echo "Installing tussle-framework from file '${from}' to the local MAVEN repository..."
 mvn install:install-file -Dfile=${from} -DpomFile=pom.xml
